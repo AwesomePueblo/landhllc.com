@@ -101,6 +101,7 @@
             vy: rand(-1, 1) * SPEED,
             color: speciesObj.color,
             affinity: {},
+            history: {},
             talkingWith: null,
             cooldownUntil: 0,
             log: [],
@@ -341,6 +342,8 @@
             body: JSON.stringify({
                 blobA: { name: speciesA.name, personality: speciesA.personality, role: speciesA.role, faith: speciesA.faith, purpose: speciesA.purpose },
                 blobB: { name: speciesB.name, personality: speciesB.personality, role: speciesB.role, faith: speciesB.faith, purpose: speciesB.purpose },
+                priorEncounters: a.history[b.id] || [],
+                affinity: a.affinity[b.id] || 0,
             }),
         })
             .then((res) => res.json())
@@ -368,6 +371,7 @@
         const outcome = data.outcome || 'neutral';
         applyOutcome(a, b, outcome);
         updateRelationship(a, b, outcome);
+        recordHistory(a, b, data.summary || 'They exchanged a few words.');
         pushFeed(speciesA, speciesB, data.summary || '', outcome);
 
         if (selectedBlobId === a.id || selectedBlobId === b.id) {
@@ -393,6 +397,17 @@
             a.vx = rand(-1, 1) * SPEED; a.vy = rand(-1, 1) * SPEED;
             b.vx = rand(-1, 1) * SPEED; b.vy = rand(-1, 1) * SPEED;
         }
+    }
+
+    const MAX_HISTORY_ITEMS = 3;
+
+    function recordHistory(a, b, summary) {
+        if (!a.history[b.id]) a.history[b.id] = [];
+        if (!b.history[a.id]) b.history[a.id] = [];
+        a.history[b.id].push(summary);
+        b.history[a.id].push(summary);
+        if (a.history[b.id].length > MAX_HISTORY_ITEMS) a.history[b.id].shift();
+        if (b.history[a.id].length > MAX_HISTORY_ITEMS) b.history[a.id].shift();
     }
 
     function updateRelationship(a, b, outcome) {

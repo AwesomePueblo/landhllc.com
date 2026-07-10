@@ -3,6 +3,8 @@ const Anthropic = require('@anthropic-ai/sdk');
 const MODEL = process.env.SIM_MODEL || 'claude-haiku-4-5-20251001';
 const MAX_FIELD_LEN = 300;
 
+const MAX_HISTORY_ITEMS = 3;
+
 const sanitize = (value) =>
   String(value || '').slice(0, MAX_FIELD_LEN).replace(/[\r\n]+/g, ' ').trim();
 
@@ -10,12 +12,27 @@ const describeCreature = (creature, label) =>
   `${label}: name="${sanitize(creature.name)}", personality="${sanitize(creature.personality)}", ` +
   `role="${sanitize(creature.role)}", faith="${sanitize(creature.faith)}", purpose="${sanitize(creature.purpose)}"`;
 
+const describeHistory = (priorEncounters, affinity) => {
+  const encounters = Array.isArray(priorEncounters) ? priorEncounters.slice(-MAX_HISTORY_ITEMS) : [];
+  if (encounters.length === 0) {
+    return 'This is the first time these two creatures have ever met.';
+  }
+  const relation = affinity >= 20 ? 'they have grown to like each other'
+    : affinity <= -20 ? 'they have grown to resent each other'
+    : "they're still feeling each other out";
+  const recap = encounters.map((s, i) => `${i + 1}. ${sanitize(s)}`).join(' ');
+  return `They have met ${encounters.length} time(s) before and ${relation} (relationship score ${affinity}). ` +
+    `What happened previously: ${recap}`;
+};
+
 const SYSTEM_PROMPT =
   'You are the narrative engine for a 2D life simulation game. Two creatures have just encountered ' +
   'each other in the world. Write a brief, natural in-character exchange between them (2 to 4 short ' +
   "lines total, alternating speakers A and B) consistent with each creature's personality, role, faith, " +
-  'and purpose, then classify the overall outcome of the encounter. Call the record_encounter tool ' +
-  'with your result — do not respond in plain text.';
+  'and purpose. If they have history together, the dialogue should acknowledge and build on it — ' +
+  'reference what happened before, let the relationship grow or sour further, rather than greeting ' +
+  'each other as strangers. Then classify the overall outcome of the encounter. Call the record_encounter ' +
+  'tool with your result — do not respond in plain text.';
 
 const ENCOUNTER_TOOL = {
   name: 'record_encounter',
@@ -68,13 +85,14 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
 
-  const { blobA, blobB } = payload;
+  const { blobA, blobB, priorEncounters, affinity } = payload;
   if (!blobA || !blobB) {
     return { statusCode: 400, body: JSON.stringify({ error: 'blobA and blobB are required' }) };
   }
 
   const userMessage =
     `${describeCreature(blobA, 'Creature A')}\n${describeCreature(blobB, 'Creature B')}\n\n` +
+    `${describeHistory(priorEncounters, Number(affinity) || 0)}\n\n` +
     'Generate their encounter now.';
 
   try {
