@@ -2,9 +2,12 @@
     'use strict';
 
     // ---------- Config ----------
-    const BLOB_RADIUS = 10;
-    const ENCOUNTER_DISTANCE = 26;
-    const TAP_TOLERANCE = 16; // extra hit-test radius beyond the visual blob, for touch/finger taps
+    const BLOB_RADIUS = 13;
+    const ENCOUNTER_DISTANCE = 28;
+    const TAP_TOLERANCE = 18; // extra hit-test radius beyond the visual blob, for touch/finger taps
+    const WOBBLE_POINTS = 10;
+    const WOBBLE_AMPLITUDE = BLOB_RADIUS * 0.18;
+    const WOBBLE_SPEED = 1.6; // radians per second
     const TALK_COOLDOWN_MS = 15000;
     const MAX_CONCURRENT_REQUESTS = 2;
     const SESSION_REQUEST_CAP = 60;
@@ -29,6 +32,9 @@
     const ENERGY_DECAY_PER_FRAME = 0.02; // full drain in ~80s with no encounters
     const ENERGY_RESTORE = { friendly: 35, neutral: 20, hostile: 10 };
     const ENERGY_URGENCY_MULTIPLIER = 2.5; // how much harder a depleted blob seeks company
+
+    const STORAGE_KEY = 'ai-blob-sim-state-v1';
+    const AUTOSAVE_INTERVAL_MS = 5000;
 
     // ---------- State ----------
     let species = [];
@@ -114,6 +120,7 @@
             affinity: {},
             history: {},
             energy: ENERGY_MAX,
+            phase: rand(0, Math.PI * 2),
             talkingWith: null,
             cooldownUntil: 0,
             log: [],
@@ -182,6 +189,33 @@
         }, 1);
     }
 
+    // Traces a soft, organic "slime" outline instead of a perfect circle: radius at each
+    // angle is perturbed by a couple of desynced sine waves so each blob wobbles differently.
+    function traceBlobShape(cx, cy, baseRadius, phase, t) {
+        const points = [];
+        for (let i = 0; i < WOBBLE_POINTS; i++) {
+            const angle = (i / WOBBLE_POINTS) * Math.PI * 2;
+            const wobble =
+                Math.sin(angle * 3 + phase + t * WOBBLE_SPEED) * WOBBLE_AMPLITUDE * 0.6 +
+                Math.sin(angle * 2 - phase * 1.3 + t * WOBBLE_SPEED * 0.7) * WOBBLE_AMPLITUDE * 0.4;
+            const r = baseRadius + wobble;
+            points.push([cx + Math.cos(angle) * r, cy + Math.sin(angle) * r]);
+        }
+
+        const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+        const start = mid(points[points.length - 1], points[0]);
+
+        ctx.beginPath();
+        ctx.moveTo(start[0], start[1]);
+        for (let i = 0; i < points.length; i++) {
+            const cur = points[i];
+            const next = points[(i + 1) % points.length];
+            const m = mid(cur, next);
+            ctx.quadraticCurveTo(cur[0], cur[1], m[0], m[1]);
+        }
+        ctx.closePath();
+    }
+
     // ---------- Rendering ----------
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -201,11 +235,12 @@
             }
         });
 
+        const t = performance.now() / 1000;
+
         blobs.forEach((b) => {
             const s = getSpecies(b.speciesId);
             if (!s) return;
-            ctx.beginPath();
-            ctx.arc(b.x, b.y, BLOB_RADIUS, 0, Math.PI * 2);
+            traceBlobShape(b.x, b.y, BLOB_RADIUS, b.phase || 0, t);
             ctx.fillStyle = b.color || s.color;
             const energyAlpha = 0.4 + 0.45 * (b.energy / ENERGY_MAX);
             ctx.globalAlpha = b.talkingWith ? 1 : energyAlpha;
@@ -744,19 +779,27 @@
     });
 
     // ---------- Top controls ----------
-    pauseBtn.addEventListener('click', () => {
-        paused = !paused;
+    function syncPauseButton() {
         pauseBtn.innerHTML = paused
             ? '<i class="fas fa-play"></i> Resume'
             : '<i class="fas fa-pause"></i> Pause';
-    });
+    }
 
-    aiToggleBtn.addEventListener('click', () => {
-        aiEnabled = !aiEnabled;
+    function syncAiToggleButton() {
         aiToggleBtn.innerHTML = aiEnabled
             ? '<i class="fas fa-brain"></i> AI: On'
             : '<i class="fas fa-brain"></i> AI: Off';
         aiToggleBtn.classList.toggle('off', !aiEnabled);
+    }
+
+    pauseBtn.addEventListener('click', () => {
+        paused = !paused;
+        syncPauseButton();
+    });
+
+    aiToggleBtn.addEventListener('click', () => {
+        aiEnabled = !aiEnabled;
+        syncAiToggleButton();
     });
 
     // ---------- Add species modal ----------
@@ -787,6 +830,73 @@
         addSpeciesModal.hidden = true;
     });
 
+    // ---------- Persistence ----------
+    function serializeState() {
+        return {
+            version: 1,
+            species,
+            blobs,
+            nextSpeciesId,
+            nextBlobId,
+            requestCount,
+            aiEnabled,
+            paused,
+        };
+    }
+
+    function saveState() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeState()));
+        } catch (err) {
+            // localStorage unavailable or full; nothing we can do, just skip saving
+        }
+    }
+
+    function loadState() {
+        let raw;
+        try {
+            raw = localStorage.getItem(STORAGE_KEY);
+        } catch (err) {
+            return false;
+        }
+        if (!raw) return false;
+
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (err) {
+            return false;
+        }
+        if (!data || !Array.isArray(data.species) || !Array.isArray(data.blobs) || data.blobs.length === 0) {
+            return false;
+        }
+
+        species = data.species;
+        blobs = data.blobs.map((b) => ({
+            ...b,
+            x: clamp(b.x, BLOB_RADIUS, Math.max(BLOB_RADIUS, canvas.width - BLOB_RADIUS)),
+            y: clamp(b.y, BLOB_RADIUS, Math.max(BLOB_RADIUS, canvas.height - BLOB_RADIUS)),
+            affinity: b.affinity || {},
+            history: b.history || {},
+            log: b.log || [],
+            energy: typeof b.energy === 'number' ? b.energy : ENERGY_MAX,
+            phase: typeof b.phase === 'number' ? b.phase : rand(0, Math.PI * 2),
+            talkingWith: null,
+            cooldownUntil: 0,
+        }));
+        nextSpeciesId = data.nextSpeciesId || Math.max(0, ...species.map((s) => s.id)) + 1;
+        nextBlobId = data.nextBlobId || Math.max(0, ...blobs.map((b) => b.id)) + 1;
+        requestCount = typeof data.requestCount === 'number' ? data.requestCount : 0;
+        aiEnabled = typeof data.aiEnabled === 'boolean' ? data.aiEnabled : true;
+        paused = typeof data.paused === 'boolean' ? data.paused : false;
+
+        renderSpeciesList();
+        updateBudgetCounter();
+        syncAiToggleButton();
+        syncPauseButton();
+        return true;
+    }
+
     // ---------- Main loop ----------
     function tick() {
         if (!paused) update();
@@ -799,8 +909,16 @@
     }
 
     window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('beforeunload', saveState);
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) saveState();
+    });
+    setInterval(saveState, AUTOSAVE_INTERVAL_MS);
+
     resizeCanvas();
-    seedDefaults();
+    if (!loadState()) {
+        seedDefaults();
+    }
     updateBudgetCounter();
     requestAnimationFrame(tick);
 })();
