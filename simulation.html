@@ -29,7 +29,7 @@
                 <button class="icon-btn" id="addSpeciesBtn" title="Add a new species"><i class="fas fa-plus"></i></button>
             </div>
             <ul class="species-list" id="speciesList"></ul>
-            <p class="species-hint">Click a blob in the world to see its conversation and edit its species' prompts.</p>
+            <p class="species-hint">Click a blob in the world to see its conversation. Click a species name to view or edit its bio.</p>
         </aside>
 
         <main class="world-wrap">
@@ -47,11 +47,15 @@
                 </div>
             </div>
 
-            <h3>Conversation</h3>
-            <div class="conversation-log" id="conversationLog"></div>
+            <div id="conversationSection">
+                <h3>Conversation</h3>
+                <div class="conversation-log" id="conversationLog"></div>
+            </div>
 
-            <h3>Relationships</h3>
-            <div class="relationship-list" id="relationshipList"></div>
+            <div id="relationshipSection">
+                <h3>Relationships</h3>
+                <div class="relationship-list" id="relationshipList"></div>
+            </div>
 
             <h3>Species Prompt <span class="saved-indicator" id="savedIndicator">saved</span></h3>
             <p class="field-hint">Editing these applies to every blob of this color, live.</p>

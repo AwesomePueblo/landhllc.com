@@ -30,6 +30,7 @@
     let nextSpeciesId = 1;
     let nextBlobId = 1;
     let selectedBlobId = null;
+    let selectedSpeciesId = null;
     let paused = false;
     let aiEnabled = true;
     let activeRequests = 0;
@@ -45,7 +46,9 @@
     const detailName = document.getElementById('detailName');
     const detailSub = document.getElementById('detailSub');
     const conversationLog = document.getElementById('conversationLog');
+    const conversationSection = document.getElementById('conversationSection');
     const relationshipList = document.getElementById('relationshipList');
+    const relationshipSection = document.getElementById('relationshipSection');
     const fieldPersonality = document.getElementById('fieldPersonality');
     const fieldRole = document.getElementById('fieldRole');
     const fieldFaith = document.getElementById('fieldFaith');
@@ -128,6 +131,9 @@
         species = species.filter((s) => s.id !== speciesId);
         blobs = blobs.filter((b) => b.speciesId !== speciesId);
         if (selectedBlobId && !blobs.find((b) => b.id === selectedBlobId)) {
+            closeDetail();
+        }
+        if (selectedSpeciesId === speciesId) {
             closeDetail();
         }
         renderSpeciesList();
@@ -517,6 +523,7 @@
             li.querySelector('.species-remove').addEventListener('click', () => {
                 if (confirm(`Remove ${s.name} and all its blobs?`)) removeSpecies(s.id);
             });
+            li.querySelector('.species-item-name').addEventListener('click', () => selectSpecies(s.id));
             speciesListEl.appendChild(li);
         });
     }
@@ -524,20 +531,53 @@
     // ---------- Detail panel ----------
     function selectBlob(blob) {
         selectedBlobId = blob.id;
+        selectedSpeciesId = null;
+        detailPanel.hidden = false;
+        renderDetail();
+    }
+
+    function selectSpecies(speciesId) {
+        selectedSpeciesId = speciesId;
+        selectedBlobId = null;
         detailPanel.hidden = false;
         renderDetail();
     }
 
     function closeDetail() {
         selectedBlobId = null;
+        selectedSpeciesId = null;
         detailPanel.hidden = true;
     }
 
+    function getSelectedSpecies() {
+        if (selectedBlobId !== null) {
+            const blob = blobs.find((b) => b.id === selectedBlobId);
+            return blob ? getSpecies(blob.speciesId) : null;
+        }
+        if (selectedSpeciesId !== null) {
+            return getSpecies(selectedSpeciesId);
+        }
+        return null;
+    }
+
     function renderDetail() {
+        if (selectedBlobId !== null) {
+            renderBlobDetail();
+        } else if (selectedSpeciesId !== null) {
+            renderSpeciesDetail();
+        } else {
+            closeDetail();
+        }
+    }
+
+    function renderBlobDetail() {
         const blob = blobs.find((b) => b.id === selectedBlobId);
         if (!blob) { closeDetail(); return; }
         const s = getSpecies(blob.speciesId);
         if (!s) { closeDetail(); return; }
+
+        conversationSection.hidden = false;
+        relationshipSection.hidden = false;
 
         detailSwatch.style.background = blob.color || s.color;
         detailName.textContent = s.name;
@@ -560,7 +600,24 @@
         }
 
         renderRelationships(blob);
+        fillPromptFields(s);
+    }
 
+    function renderSpeciesDetail() {
+        const s = getSpecies(selectedSpeciesId);
+        if (!s) { closeDetail(); return; }
+
+        conversationSection.hidden = true;
+        relationshipSection.hidden = true;
+
+        detailSwatch.style.background = s.color;
+        detailName.textContent = s.name;
+        detailSub.textContent = `Species Bio · ${blobs.filter((b) => b.speciesId === s.id).length} alive`;
+
+        fillPromptFields(s);
+    }
+
+    function fillPromptFields(s) {
         fieldPersonality.value = s.personality;
         fieldRole.value = s.role;
         fieldFaith.value = s.faith;
@@ -613,9 +670,7 @@
         [fieldPurpose, 'purpose'],
     ].forEach(([el, key]) => {
         el.addEventListener('input', () => {
-            const blob = blobs.find((b) => b.id === selectedBlobId);
-            if (!blob) return;
-            const s = getSpecies(blob.speciesId);
+            const s = getSelectedSpecies();
             if (!s) return;
             s[key] = el.value;
             flashSaved();
