@@ -1,0 +1,9 @@
+{
+  "name": "landhllc-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "landhllc.com static site + Netlify function backing the AI blob simulation",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1"
+  }
+}

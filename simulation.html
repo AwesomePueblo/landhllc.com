@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Blob Simulation - Land H LLC</title>
+    <link rel="stylesheet" href="simulation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="sim-header">
+        <a class="sim-logo" href="index.html"><i class="fas fa-arrow-left"></i> Land H <span>LLC</span></a>
+        <h1 class="sim-title">AI Blob Simulation</h1>
+        <div class="sim-controls">
+            <span class="budget-counter" id="budgetCounter" title="AI conversations used this session">AI: 0 / 60</span>
+            <button class="sim-btn" id="aiToggleBtn" title="Toggle real AI conversations on/off"><i class="fas fa-brain"></i> AI: On</button>
+            <button class="sim-btn" id="pauseBtn" title="Pause or resume the world"><i class="fas fa-pause"></i> Pause</button>
+        </div>
+    </header>
+
+    <div class="sim-layout">
+        <aside class="species-panel">
+            <div class="species-panel-head">
+                <h2>Species</h2>
+                <button class="icon-btn" id="addSpeciesBtn" title="Add a new species"><i class="fas fa-plus"></i></button>
+            </div>
+            <ul class="species-list" id="speciesList"></ul>
+            <p class="species-hint">Click a blob in the world to see its conversation and edit its species' prompts.</p>
+        </aside>
+
+        <main class="world-wrap">
+            <canvas id="world"></canvas>
+            <div class="feed" id="feed"></div>
+        </main>
+
+        <aside class="detail-panel" id="detailPanel" hidden>
+            <button class="icon-btn close-btn" id="closeDetailBtn" title="Close"><i class="fas fa-times"></i></button>
+            <div class="detail-head">
+                <span class="detail-swatch" id="detailSwatch"></span>
+                <div>
+                    <h2 id="detailName">-</h2>
+                    <p id="detailSub">-</p>
+                </div>
+            </div>
+
+            <h3>Conversation</h3>
+            <div class="conversation-log" id="conversationLog"></div>
+
+            <h3>Species Prompt <span class="saved-indicator" id="savedIndicator">saved</span></h3>
+            <p class="field-hint">Editing these applies to every blob of this color, live.</p>
+            <label>Personality
+                <textarea id="fieldPersonality" rows="2"></textarea>
+            </label>
+            <label>Role
+                <textarea id="fieldRole" rows="2"></textarea>
+            </label>
+            <label>Faith
+                <textarea id="fieldFaith" rows="2"></textarea>
+            </label>
+            <label>Purpose
+                <textarea id="fieldPurpose" rows="2"></textarea>
+            </label>
+        </aside>
+    </div>
+
+    <div class="modal" id="addSpeciesModal" hidden>
+        <div class="modal-card">
+            <div class="modal-head">
+                <h2>New Species</h2>
+                <button class="icon-btn" id="closeModalBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="addSpeciesForm">
+                <label>Name
+                    <input type="text" id="newName" required maxlength="24" placeholder="e.g. Verdant">
+                </label>
+                <label>Color
+                    <input type="color" id="newColor" value="#39d98a">
+                </label>
+                <label>Personality
+                    <textarea id="newPersonality" rows="2" placeholder="Curious, cautious, quick to trust"></textarea>
+                </label>
+                <label>Role
+                    <textarea id="newRole" rows="2" placeholder="Wandering scholars and record-keepers"></textarea>
+                </label>
+                <label>Faith
+                    <textarea id="newFaith" rows="2" placeholder="Believe every encounter carries a hidden lesson"></textarea>
+                </label>
+                <label>Purpose
+                    <textarea id="newPurpose" rows="2" placeholder="Collect stories from every creature they meet"></textarea>
+                </label>
+                <label>Starting population
+                    <input type="number" id="newPopulation" min="1" max="20" value="6">
+                </label>
+                <button type="submit" class="sim-btn primary">Create Species</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="simulation.js"></script>
+</body>
+</html>
