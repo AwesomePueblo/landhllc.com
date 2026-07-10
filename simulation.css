@@ -375,19 +375,22 @@ body {
 .relationship-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    max-height: 160px;
+    gap: 8px;
+    max-height: 260px;
     overflow-y: auto;
 }
 
 .relationship-row {
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 6px 8px;
+}
+
+.relationship-header {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 0.8rem;
-    background: rgba(255,255,255,0.04);
-    border-radius: 8px;
-    padding: 6px 8px;
 }
 
 .relationship-dot {
@@ -399,6 +402,28 @@ body {
 
 .relationship-name {
     flex: 1;
+}
+
+.relationship-history {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0 0 0 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    line-height: 1.4;
+}
+
+.relationship-history li {
+    position: relative;
+}
+
+.relationship-history li::before {
+    content: '\2022';
+    position: absolute;
+    left: -14px;
 }
 
 .relationship-score.positive {

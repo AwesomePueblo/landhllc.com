@@ -727,13 +727,23 @@
         entries.forEach(({ other, score }) => {
             const otherSpecies = getSpecies(other.speciesId);
             const mood = score >= LIKE_THRESHOLD ? '\u{1F91D}' : score <= DISLIKE_THRESHOLD ? '⚔️' : '➖';
-            const sign = score > 0 ? '+' : '';
+            const rounded = Math.round(score);
+            const sign = rounded > 0 ? '+' : '';
+            const summaries = (blob.history[other.id] || []).slice().reverse();
+
             const row = document.createElement('div');
             row.className = 'relationship-row';
             row.innerHTML = `
-                <span class="relationship-dot" style="background:${(other.color || (otherSpecies && otherSpecies.color)) || '#888'}"></span>
-                <span class="relationship-name">${escapeHtml(otherSpecies ? otherSpecies.name : '?')} #${other.id}</span>
-                <span class="relationship-score ${score >= 0 ? 'positive' : 'negative'}">${mood} ${sign}${score}</span>
+                <div class="relationship-header">
+                    <span class="relationship-dot" style="background:${(other.color || (otherSpecies && otherSpecies.color)) || '#888'}"></span>
+                    <span class="relationship-name">${escapeHtml(otherSpecies ? otherSpecies.name : '?')} #${other.id}</span>
+                    <span class="relationship-score ${rounded >= 0 ? 'positive' : 'negative'}">${mood} ${sign}${rounded}</span>
+                </div>
+                <ul class="relationship-history">
+                    ${summaries.length
+                        ? summaries.map((s) => `<li>${escapeHtml(s)}</li>`).join('')
+                        : '<li>No details recorded yet.</li>'}
+                </ul>
             `;
             relationshipList.appendChild(row);
         });
