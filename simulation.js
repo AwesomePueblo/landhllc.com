@@ -15,7 +15,8 @@
     const AFFINITY_MAX = 100;
     const FRIENDLY_AFFINITY_DELTA = 15;
     const HOSTILE_AFFINITY_DELTA = -20;
-    const NEUTRAL_AFFINITY_DELTA = 2;
+    const NEUTRAL_AFFINITY_DELTA = 0; // a neutral encounter shouldn't build goodwill on its own
+    const AFFINITY_DECAY_PER_FRAME = 0.01; // relationships drift back toward 0 without upkeep (~2.8 min from max)
     const COLOR_BLEND_FACTOR = 0.12;
     const LIKE_THRESHOLD = 20;
     const DISLIKE_THRESHOLD = -20;
@@ -23,6 +24,11 @@
     const SOCIAL_REPEL = 0.03;
     const SOCIAL_REPEL_RANGE = 160;
     const BASE_ATTRACT = 0.018; // baseline pull toward the nearest other blob, active before any relationship exists
+
+    const ENERGY_MAX = 100;
+    const ENERGY_DECAY_PER_FRAME = 0.02; // full drain in ~80s with no encounters
+    const ENERGY_RESTORE = { friendly: 35, neutral: 20, hostile: 10 };
+    const ENERGY_URGENCY_MULTIPLIER = 2.5; // how much harder a depleted blob seeks company
 
     // ---------- State ----------
     let species = [];
@@ -49,6 +55,8 @@
     const conversationSection = document.getElementById('conversationSection');
     const relationshipList = document.getElementById('relationshipList');
     const relationshipSection = document.getElementById('relationshipSection');
+    const energySection = document.getElementById('energySection');
+    const energyFill = document.getElementById('energyFill');
     const fieldPersonality = document.getElementById('fieldPersonality');
     const fieldRole = document.getElementById('fieldRole');
     const fieldFaith = document.getElementById('fieldFaith');
@@ -105,6 +113,7 @@
             color: speciesObj.color,
             affinity: {},
             history: {},
+            energy: ENERGY_MAX,
             talkingWith: null,
             cooldownUntil: 0,
             log: [],
@@ -198,7 +207,8 @@
             ctx.beginPath();
             ctx.arc(b.x, b.y, BLOB_RADIUS, 0, Math.PI * 2);
             ctx.fillStyle = b.color || s.color;
-            ctx.globalAlpha = b.talkingWith ? 1 : 0.85;
+            const energyAlpha = 0.4 + 0.45 * (b.energy / ENERGY_MAX);
+            ctx.globalAlpha = b.talkingWith ? 1 : energyAlpha;
             ctx.fill();
             ctx.globalAlpha = 1;
 
@@ -222,6 +232,9 @@
     function update() {
         const blobsById = new Map();
         blobs.forEach((b) => blobsById.set(b.id, b));
+
+        decayAffinities();
+        decayEnergy();
 
         blobs.forEach((b) => {
             if (b.talkingWith) return; // frozen mid-conversation
@@ -250,6 +263,22 @@
         checkEncounters();
     }
 
+    function decayAffinities() {
+        blobs.forEach((b) => {
+            Object.keys(b.affinity).forEach((idStr) => {
+                const score = b.affinity[idStr];
+                if (score > 0) b.affinity[idStr] = Math.max(0, score - AFFINITY_DECAY_PER_FRAME);
+                else if (score < 0) b.affinity[idStr] = Math.min(0, score + AFFINITY_DECAY_PER_FRAME);
+            });
+        });
+    }
+
+    function decayEnergy() {
+        blobs.forEach((b) => {
+            b.energy = Math.max(0, b.energy - ENERGY_DECAY_PER_FRAME);
+        });
+    }
+
     // Steer gently toward the blob this one likes most, and away from the one it likes least.
     // Also applies a baseline pull toward the nearest other blob so isolated blobs
     // still have a reason to close the gap before any relationship exists.
@@ -275,8 +304,10 @@
         if (nearestId !== null && nearestDist > ENCOUNTER_DISTANCE) {
             const target = blobsById.get(nearestId);
             const dx = target.x - b.x, dy = target.y - b.y;
-            b.vx += (dx / nearestDist) * BASE_ATTRACT;
-            b.vy += (dy / nearestDist) * BASE_ATTRACT;
+            const urgency = 1 + (1 - b.energy / ENERGY_MAX) * ENERGY_URGENCY_MULTIPLIER;
+            const pull = BASE_ATTRACT * urgency;
+            b.vx += (dx / nearestDist) * pull;
+            b.vy += (dy / nearestDist) * pull;
         }
 
         if (bestId !== null) {
@@ -377,6 +408,7 @@
         const outcome = data.outcome || 'neutral';
         applyOutcome(a, b, outcome);
         updateRelationship(a, b, outcome);
+        restoreEnergy(a, b, outcome);
         recordHistory(a, b, data.summary || 'They exchanged a few words.');
         pushFeed(speciesA, speciesB, data.summary || '', outcome);
 
@@ -430,6 +462,12 @@
             a.color = newAColor;
             b.color = newBColor;
         }
+    }
+
+    function restoreEnergy(a, b, outcome) {
+        const amount = ENERGY_RESTORE[outcome] ?? ENERGY_RESTORE.neutral;
+        a.energy = clamp(a.energy + amount, 0, ENERGY_MAX);
+        b.energy = clamp(b.energy + amount, 0, ENERGY_MAX);
     }
 
     function endConversation(a, b) {
@@ -578,10 +616,12 @@
 
         conversationSection.hidden = false;
         relationshipSection.hidden = false;
+        energySection.hidden = false;
 
         detailSwatch.style.background = blob.color || s.color;
         detailName.textContent = s.name;
         detailSub.textContent = `Individual #${blob.id}`;
+        renderEnergyBar(blob);
 
         conversationLog.innerHTML = '';
         if (blob.log.length === 0) {
@@ -609,12 +649,19 @@
 
         conversationSection.hidden = true;
         relationshipSection.hidden = true;
+        energySection.hidden = true;
 
         detailSwatch.style.background = s.color;
         detailName.textContent = s.name;
         detailSub.textContent = `Species Bio · ${blobs.filter((b) => b.speciesId === s.id).length} alive`;
 
         fillPromptFields(s);
+    }
+
+    function renderEnergyBar(blob) {
+        const pct = clamp(blob.energy, 0, ENERGY_MAX);
+        energyFill.style.width = pct + '%';
+        energyFill.style.background = pct > 60 ? '#39d98a' : pct > 30 ? '#ffb84d' : '#ff5b6e';
     }
 
     function fillPromptFields(s) {
@@ -744,6 +791,10 @@
     function tick() {
         if (!paused) update();
         draw();
+        if (selectedBlobId !== null && !paused) {
+            const blob = blobs.find((b) => b.id === selectedBlobId);
+            if (blob) renderEnergyBar(blob);
+        }
         requestAnimationFrame(tick);
     }
 

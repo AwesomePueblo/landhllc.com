@@ -408,6 +408,19 @@ body {
     color: #ff5b6e;
 }
 
+.energy-bar {
+    height: 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+}
+
+.energy-fill {
+    height: 100%;
+    background: #39d98a;
+    transition: width 0.2s linear, background-color 0.2s linear;
+}
+
 .detail-panel label {
     display: block;
     font-size: 0.78rem;
