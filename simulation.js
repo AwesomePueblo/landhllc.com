@@ -813,7 +813,107 @@
     });
 
     // ---------- Add species modal ----------
-    addSpeciesBtn.addEventListener('click', () => { addSpeciesModal.hidden = false; });
+    // ---------- Random species draft ----------
+    const RANDOM_NAMES = [
+        'Verdant', 'Obsidian', 'Cerulean', 'Umber', 'Ivory', 'Vermillion', 'Slate', 'Coral',
+        'Indigo', 'Saffron', 'Onyx', 'Jade', 'Rosewood', 'Cobalt', 'Marigold', 'Charcoal',
+        'Pearl', 'Ember', 'Frost', 'Moss', 'Amethyst', 'Bronze', 'Opal', 'Scarlet',
+    ];
+    const RANDOM_COLORS = [
+        '#ff4d5e', '#4d9bff', '#ffb84d', '#39d98a', '#c65dff', '#ff6fae', '#5de0e6', '#f4d35e',
+        '#ff8552', '#7ee8fa', '#b892ff', '#63e6be', '#ffa8a8', '#74c69d', '#e0aaff', '#ffd166',
+    ];
+    const RANDOM_PERSONALITIES = [
+        'Bold, territorial, quick to challenge strangers',
+        'Calm, curious, values dialogue over conflict',
+        'Playful, impulsive, easily distracted',
+        'Cautious, observant, slow to trust',
+        'Proud, ambitious, hungry for recognition',
+        'Gentle, empathetic, quick to forgive',
+        'Mysterious, aloof, reveals little',
+        'Stubborn, principled, rarely backs down',
+        'Cheerful, generous, makes friends easily',
+        'Restless, wandering, never stays long',
+    ];
+    const RANDOM_ROLES = [
+        'Wandering warriors who patrol their claimed ground',
+        'Scholars who record the history of every creature they encounter',
+        'Free spirits with no fixed allegiance',
+        'Traders who barter stories instead of goods',
+        'Hermits who keep to the edges of the world',
+        'Messengers who carry news between distant strangers',
+        'Guardians sworn to protect a forgotten promise',
+        'Explorers charting territory no one else dares to enter',
+        'Healers who tend to whoever they find in need',
+        'Outcasts searching for a place to belong',
+    ];
+    const RANDOM_FAITHS = [
+        'Believe strength earned in the open is the only truth',
+        'Believe every being carries a story worth understanding',
+        'Believe joy today matters more than plans for tomorrow',
+        'Believe fate rewards those who wait patiently',
+        'Believe every encounter carries a hidden lesson',
+        'Believe the world only rewards the bold',
+        'Believe kindness is repaid in kind, eventually',
+        'Believe nothing lasts, so nothing is worth clinging to',
+        'Believe every stranger is a friend not yet made',
+        'Believe silence holds more truth than words',
+    ];
+    const RANDOM_PURPOSES = [
+        'Expand their territory and test the mettle of anyone they meet',
+        'Learn as much as possible before the world changes again',
+        'Chase whatever looks interesting and make friends along the way',
+        'Find a rival worth respecting',
+        'Collect stories from every creature they meet',
+        'Search for a place they can finally call home',
+        "Protect the few bonds they've already made",
+        "Prove themselves to a world that hasn't noticed them yet",
+        'Spread their beliefs to anyone willing to listen',
+        'Simply survive, one encounter at a time',
+    ];
+
+    const pickRandom = (list) => list[Math.floor(Math.random() * list.length)];
+
+    function randomSpeciesDraft() {
+        let name = pickRandom(RANDOM_NAMES);
+        const usedNames = new Set(species.map((s) => s.name.toLowerCase()));
+        if (usedNames.has(name.toLowerCase())) {
+            let suffix = 2;
+            while (usedNames.has(`${name} ${suffix}`.toLowerCase())) suffix++;
+            name = `${name} ${suffix}`;
+        }
+
+        let color = pickRandom(RANDOM_COLORS);
+        const usedColors = new Set(species.map((s) => s.color.toLowerCase()));
+        for (let i = 0; i < RANDOM_COLORS.length && usedColors.has(color.toLowerCase()); i++) {
+            color = pickRandom(RANDOM_COLORS);
+        }
+
+        return {
+            name,
+            color,
+            personality: pickRandom(RANDOM_PERSONALITIES),
+            role: pickRandom(RANDOM_ROLES),
+            faith: pickRandom(RANDOM_FAITHS),
+            purpose: pickRandom(RANDOM_PURPOSES),
+        };
+    }
+
+    function fillRandomSpeciesDraft() {
+        const draft = randomSpeciesDraft();
+        document.getElementById('newName').value = draft.name;
+        document.getElementById('newColor').value = draft.color;
+        document.getElementById('newPersonality').value = draft.personality;
+        document.getElementById('newRole').value = draft.role;
+        document.getElementById('newFaith').value = draft.faith;
+        document.getElementById('newPurpose').value = draft.purpose;
+        document.getElementById('newPopulation').value = 1;
+    }
+
+    addSpeciesBtn.addEventListener('click', () => {
+        fillRandomSpeciesDraft();
+        addSpeciesModal.hidden = false;
+    });
     closeModalBtn.addEventListener('click', () => { addSpeciesModal.hidden = true; });
     addSpeciesModal.addEventListener('click', (e) => {
         if (e.target === addSpeciesModal) addSpeciesModal.hidden = true;
