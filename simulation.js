@@ -10,6 +10,18 @@
     const SPEED = 0.35;
     const FEED_ITEM_LIMIT = 6;
 
+    const AFFINITY_MIN = -100;
+    const AFFINITY_MAX = 100;
+    const FRIENDLY_AFFINITY_DELTA = 15;
+    const HOSTILE_AFFINITY_DELTA = -20;
+    const NEUTRAL_AFFINITY_DELTA = 2;
+    const COLOR_BLEND_FACTOR = 0.12;
+    const LIKE_THRESHOLD = 20;
+    const DISLIKE_THRESHOLD = -20;
+    const SOCIAL_ATTRACT = 0.03;
+    const SOCIAL_REPEL = 0.03;
+    const SOCIAL_REPEL_RANGE = 160;
+
     // ---------- State ----------
     let species = [];
     let blobs = [];
@@ -31,6 +43,7 @@
     const detailName = document.getElementById('detailName');
     const detailSub = document.getElementById('detailSub');
     const conversationLog = document.getElementById('conversationLog');
+    const relationshipList = document.getElementById('relationshipList');
     const fieldPersonality = document.getElementById('fieldPersonality');
     const fieldRole = document.getElementById('fieldRole');
     const fieldFaith = document.getElementById('fieldFaith');
@@ -49,6 +62,27 @@
     const rand = (min, max) => min + Math.random() * (max - min);
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
+    function hexToRgb(hex) {
+        const int = parseInt(hex.replace('#', ''), 16);
+        return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+    }
+
+    function rgbToHex({ r, g, b }) {
+        return '#' + [r, g, b]
+            .map((v) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0'))
+            .join('');
+    }
+
+    function blendColor(fromHex, towardHex, t) {
+        const a = hexToRgb(fromHex);
+        const b = hexToRgb(towardHex);
+        return rgbToHex({
+            r: a.r + (b.r - a.r) * t,
+            g: a.g + (b.g - a.g) * t,
+            b: a.b + (b.b - a.b) * t,
+        });
+    }
+
     function resizeCanvas() {
         const rect = canvas.parentElement.getBoundingClientRect();
         canvas.width = rect.width;
@@ -63,6 +97,8 @@
             y: rand(40, canvas.height - 40),
             vx: rand(-1, 1) * SPEED,
             vy: rand(-1, 1) * SPEED,
+            color: speciesObj.color,
+            affinity: {},
             talkingWith: null,
             cooldownUntil: 0,
             log: [],
@@ -152,7 +188,7 @@
             if (!s) return;
             ctx.beginPath();
             ctx.arc(b.x, b.y, BLOB_RADIUS, 0, Math.PI * 2);
-            ctx.fillStyle = s.color;
+            ctx.fillStyle = b.color || s.color;
             ctx.globalAlpha = b.talkingWith ? 1 : 0.85;
             ctx.fill();
             ctx.globalAlpha = 1;
@@ -175,11 +211,17 @@
 
     // ---------- Movement ----------
     function update() {
+        const blobsById = new Map();
+        blobs.forEach((b) => blobsById.set(b.id, b));
+
         blobs.forEach((b) => {
             if (b.talkingWith) return; // frozen mid-conversation
 
             b.vx += rand(-0.05, 0.05);
             b.vy += rand(-0.05, 0.05);
+
+            applySocialForces(b, blobsById);
+
             const speed = Math.hypot(b.vx, b.vy) || 1;
             const cap = SPEED * 1.6;
             if (speed > cap) {
@@ -197,6 +239,42 @@
         });
 
         checkEncounters();
+    }
+
+    // Steer gently toward the blob this one likes most, and away from the one it likes least.
+    function applySocialForces(b, blobsById) {
+        let bestId = null, bestScore = LIKE_THRESHOLD;
+        let worstId = null, worstScore = DISLIKE_THRESHOLD;
+
+        Object.keys(b.affinity).forEach((idStr) => {
+            const id = Number(idStr);
+            if (!blobsById.has(id)) return;
+            const score = b.affinity[idStr];
+            if (score > bestScore) { bestScore = score; bestId = id; }
+            if (score < worstScore) { worstScore = score; worstId = id; }
+        });
+
+        if (bestId !== null) {
+            const target = blobsById.get(bestId);
+            const dx = target.x - b.x, dy = target.y - b.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            if (dist > ENCOUNTER_DISTANCE) {
+                const pull = SOCIAL_ATTRACT * (bestScore / AFFINITY_MAX);
+                b.vx += (dx / dist) * pull;
+                b.vy += (dy / dist) * pull;
+            }
+        }
+
+        if (worstId !== null) {
+            const target = blobsById.get(worstId);
+            const dx = b.x - target.x, dy = b.y - target.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            if (dist < SOCIAL_REPEL_RANGE) {
+                const push = SOCIAL_REPEL * (Math.abs(worstScore) / AFFINITY_MAX);
+                b.vx += (dx / dist) * push;
+                b.vy += (dy / dist) * push;
+            }
+        }
     }
 
     function checkEncounters() {
@@ -271,6 +349,7 @@
 
         const outcome = data.outcome || 'neutral';
         applyOutcome(a, b, outcome);
+        updateRelationship(a, b, outcome);
         pushFeed(speciesA, speciesB, data.summary || '', outcome);
 
         if (selectedBlobId === a.id || selectedBlobId === b.id) {
@@ -295,6 +374,22 @@
         } else {
             a.vx = rand(-1, 1) * SPEED; a.vy = rand(-1, 1) * SPEED;
             b.vx = rand(-1, 1) * SPEED; b.vy = rand(-1, 1) * SPEED;
+        }
+    }
+
+    function updateRelationship(a, b, outcome) {
+        const delta = outcome === 'friendly' ? FRIENDLY_AFFINITY_DELTA
+            : outcome === 'hostile' ? HOSTILE_AFFINITY_DELTA
+            : NEUTRAL_AFFINITY_DELTA;
+
+        a.affinity[b.id] = clamp((a.affinity[b.id] || 0) + delta, AFFINITY_MIN, AFFINITY_MAX);
+        b.affinity[a.id] = clamp((b.affinity[a.id] || 0) + delta, AFFINITY_MIN, AFFINITY_MAX);
+
+        if (outcome === 'friendly') {
+            const newAColor = blendColor(a.color, b.color, COLOR_BLEND_FACTOR);
+            const newBColor = blendColor(b.color, a.color, COLOR_BLEND_FACTOR);
+            a.color = newAColor;
+            b.color = newBColor;
         }
     }
 
@@ -369,7 +464,7 @@
         const s = getSpecies(blob.speciesId);
         if (!s) { closeDetail(); return; }
 
-        detailSwatch.style.background = s.color;
+        detailSwatch.style.background = blob.color || s.color;
         detailName.textContent = s.name;
         detailSub.textContent = `Individual #${blob.id}`;
 
@@ -389,10 +484,45 @@
             conversationLog.scrollTop = conversationLog.scrollHeight;
         }
 
+        renderRelationships(blob);
+
         fieldPersonality.value = s.personality;
         fieldRole.value = s.role;
         fieldFaith.value = s.faith;
         fieldPurpose.value = s.purpose;
+    }
+
+    function renderRelationships(blob) {
+        const entries = Object.keys(blob.affinity)
+            .map((idStr) => {
+                const other = blobs.find((o) => o.id === Number(idStr));
+                return other ? { other, score: blob.affinity[idStr] } : null;
+            })
+            .filter(Boolean)
+            .sort((x, y) => y.score - x.score);
+
+        relationshipList.innerHTML = '';
+        if (entries.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'conversation-empty';
+            empty.textContent = 'No relationships yet.';
+            relationshipList.appendChild(empty);
+            return;
+        }
+
+        entries.forEach(({ other, score }) => {
+            const otherSpecies = getSpecies(other.speciesId);
+            const mood = score >= LIKE_THRESHOLD ? '\u{1F91D}' : score <= DISLIKE_THRESHOLD ? '⚔️' : '➖';
+            const sign = score > 0 ? '+' : '';
+            const row = document.createElement('div');
+            row.className = 'relationship-row';
+            row.innerHTML = `
+                <span class="relationship-dot" style="background:${(other.color || (otherSpecies && otherSpecies.color)) || '#888'}"></span>
+                <span class="relationship-name">${escapeHtml(otherSpecies ? otherSpecies.name : '?')} #${other.id}</span>
+                <span class="relationship-score ${score >= 0 ? 'positive' : 'negative'}">${mood} ${sign}${score}</span>
+            `;
+            relationshipList.appendChild(row);
+        });
     }
 
     function flashSaved() {
