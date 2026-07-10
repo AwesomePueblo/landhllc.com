@@ -222,10 +222,12 @@ body {
     position: absolute;
     left: 16px;
     bottom: 16px;
-    max-width: 420px;
+    width: min(420px, calc(100% - 32px));
+    max-height: 30%;
     display: flex;
     flex-direction: column-reverse;
     gap: 6px;
+    overflow: hidden;
     pointer-events: none;
 }
 
@@ -233,9 +235,12 @@ body {
     background: rgba(19, 24, 38, 0.85);
     border: 1px solid var(--panel-border);
     border-radius: var(--radius);
-    padding: 8px 12px;
-    font-size: 0.78rem;
+    padding: 6px 10px;
+    font-size: 0.72rem;
     color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     animation: feedIn 0.25s ease;
 }
 
