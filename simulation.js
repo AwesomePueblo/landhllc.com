@@ -107,7 +107,7 @@
             role: 'Wandering warriors who patrol their claimed ground',
             faith: 'Believe strength earned in the open is the only truth',
             purpose: 'Expand their territory and test the mettle of anyone they meet',
-        }, 6);
+        }, 1);
 
         addSpecies({
             name: 'Azure',
@@ -116,7 +116,7 @@
             role: 'Scholars who record the history of every creature they encounter',
             faith: 'Believe every being carries a story worth understanding',
             purpose: 'Learn as much as possible before the world changes again',
-        }, 6);
+        }, 1);
 
         addSpecies({
             name: 'Amber',
@@ -125,7 +125,7 @@
             role: 'Free spirits with no fixed allegiance',
             faith: 'Believe joy today matters more than plans for tomorrow',
             purpose: 'Chase whatever looks interesting and make friends along the way',
-        }, 5);
+        }, 1);
     }
 
     // ---------- Rendering ----------
@@ -463,7 +463,7 @@
         e.preventDefault();
         const name = document.getElementById('newName').value.trim();
         if (!name) return;
-        const population = clamp(parseInt(document.getElementById('newPopulation').value, 10) || 6, 1, 20);
+        const population = clamp(parseInt(document.getElementById('newPopulation').value, 10) || 1, 1, 20);
 
         addSpecies({
             name,
@@ -476,7 +476,7 @@
 
         addSpeciesForm.reset();
         document.getElementById('newColor').value = '#39d98a';
-        document.getElementById('newPopulation').value = 6;
+        document.getElementById('newPopulation').value = 1;
         addSpeciesModal.hidden = true;
     });
 

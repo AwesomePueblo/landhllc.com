@@ -14,9 +14,34 @@ const SYSTEM_PROMPT =
   'You are the narrative engine for a 2D life simulation game. Two creatures have just encountered ' +
   'each other in the world. Write a brief, natural in-character exchange between them (2 to 4 short ' +
   "lines total, alternating speakers A and B) consistent with each creature's personality, role, faith, " +
-  'and purpose. Then classify the overall outcome of the encounter as exactly one of: "friendly", ' +
-  '"neutral", or "hostile". Respond with ONLY compact JSON, no markdown fences, no commentary, matching ' +
-  'this shape: {"lines":[{"speaker":"A","text":"..."}],"outcome":"friendly|neutral|hostile","summary":"one short sentence"}';
+  'and purpose, then classify the overall outcome of the encounter. Call the record_encounter tool ' +
+  'with your result — do not respond in plain text.';
+
+const ENCOUNTER_TOOL = {
+  name: 'record_encounter',
+  description: 'Record the dialogue and outcome of an encounter between two creatures.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      lines: {
+        type: 'array',
+        minItems: 2,
+        maxItems: 4,
+        items: {
+          type: 'object',
+          properties: {
+            speaker: { type: 'string', enum: ['A', 'B'] },
+            text: { type: 'string' },
+          },
+          required: ['speaker', 'text'],
+        },
+      },
+      outcome: { type: 'string', enum: ['friendly', 'neutral', 'hostile'] },
+      summary: { type: 'string', description: 'One short sentence summarizing what happened.' },
+    },
+    required: ['lines', 'outcome', 'summary'],
+  },
+};
 
 const fallbackResponse = (summary) => ({
   lines: [{ speaker: 'A', text: '...' }],
@@ -56,21 +81,18 @@ exports.handler = async (event) => {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 300,
+      max_tokens: 500,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
+      tools: [ENCOUNTER_TOOL],
+      tool_choice: { type: 'tool', name: 'record_encounter' },
     });
 
-    const block = response.content && response.content[0];
-    const text = block && block.type === 'text' ? block.text : '';
-
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-      if (!Array.isArray(parsed.lines)) throw new Error('bad shape');
-    } catch (err) {
-      parsed = fallbackResponse('They exchanged a few words.');
-    }
+    const toolUse = response.content && response.content.find((block) => block.type === 'tool_use');
+    const parsed =
+      toolUse && Array.isArray(toolUse.input && toolUse.input.lines)
+        ? toolUse.input
+        : fallbackResponse('They exchanged a few words.');
 
     return {
       statusCode: 200,
