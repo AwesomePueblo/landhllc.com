@@ -242,6 +242,10 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     animation: feedIn 0.25s ease;
+    pointer-events: auto;
+    touch-action: pan-y;
+    cursor: grab;
+    user-select: none;
 }
 
 .feed-item strong {

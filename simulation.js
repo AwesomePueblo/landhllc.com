@@ -443,10 +443,52 @@
         item.className = 'feed-item';
         const outcomeLabel = outcome === 'friendly' ? '🤝' : outcome === 'hostile' ? '⚔️' : '💬';
         item.innerHTML = `${outcomeLabel} <strong>${escapeHtml(speciesA.name)}</strong> &amp; <strong>${escapeHtml(speciesB.name)}</strong>: ${escapeHtml(summary)}`;
+        makeSwipeToDismiss(item);
         feedEl.appendChild(item);
         while (feedEl.children.length > FEED_ITEM_LIMIT) {
             feedEl.removeChild(feedEl.firstChild);
         }
+    }
+
+    const SWIPE_DISMISS_THRESHOLD = 60;
+
+    function makeSwipeToDismiss(item) {
+        let startX = 0;
+        let dx = 0;
+        let dragging = false;
+
+        item.addEventListener('pointerdown', (e) => {
+            dragging = true;
+            startX = e.clientX;
+            dx = 0;
+            item.style.transition = 'none';
+            item.setPointerCapture(e.pointerId);
+        });
+
+        item.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            dx = e.clientX - startX;
+            item.style.transform = `translateX(${dx}px)`;
+            item.style.opacity = String(Math.max(0, 1 - Math.abs(dx) / 120));
+        });
+
+        const endDrag = () => {
+            if (!dragging) return;
+            dragging = false;
+            item.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+            if (Math.abs(dx) > SWIPE_DISMISS_THRESHOLD) {
+                const dir = dx > 0 ? 1 : -1;
+                item.style.transform = `translateX(${dir * 400}px)`;
+                item.style.opacity = '0';
+                setTimeout(() => item.remove(), 200);
+            } else {
+                item.style.transform = 'translateX(0)';
+                item.style.opacity = '1';
+            }
+        };
+
+        item.addEventListener('pointerup', endDrag);
+        item.addEventListener('pointercancel', endDrag);
     }
 
     function escapeHtml(str) {
