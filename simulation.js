@@ -4,6 +4,7 @@
     // ---------- Config ----------
     const BLOB_RADIUS = 10;
     const ENCOUNTER_DISTANCE = 26;
+    const TAP_TOLERANCE = 16; // extra hit-test radius beyond the visual blob, for touch/finger taps
     const TALK_COOLDOWN_MS = 15000;
     const MAX_CONCURRENT_REQUESTS = 2;
     const SESSION_REQUEST_CAP = 60;
@@ -559,7 +560,7 @@
         let hitDist = Infinity;
         blobs.forEach((b) => {
             const d = Math.hypot(b.x - x, b.y - y);
-            if (d <= BLOB_RADIUS + 6 && d < hitDist) { hit = b; hitDist = d; }
+            if (d <= BLOB_RADIUS + TAP_TOLERANCE && d < hitDist) { hit = b; hitDist = d; }
         });
 
         if (hit) selectBlob(hit);
