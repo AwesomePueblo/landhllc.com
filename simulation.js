@@ -22,6 +22,7 @@
     const SOCIAL_ATTRACT = 0.03;
     const SOCIAL_REPEL = 0.03;
     const SOCIAL_REPEL_RANGE = 160;
+    const BASE_ATTRACT = 0.018; // baseline pull toward the nearest other blob, active before any relationship exists
 
     // ---------- State ----------
     let species = [];
@@ -243,9 +244,12 @@
     }
 
     // Steer gently toward the blob this one likes most, and away from the one it likes least.
+    // Also applies a baseline pull toward the nearest other blob so isolated blobs
+    // still have a reason to close the gap before any relationship exists.
     function applySocialForces(b, blobsById) {
         let bestId = null, bestScore = LIKE_THRESHOLD;
         let worstId = null, worstScore = DISLIKE_THRESHOLD;
+        let nearestId = null, nearestDist = Infinity;
 
         Object.keys(b.affinity).forEach((idStr) => {
             const id = Number(idStr);
@@ -254,6 +258,19 @@
             if (score > bestScore) { bestScore = score; bestId = id; }
             if (score < worstScore) { worstScore = score; worstId = id; }
         });
+
+        blobsById.forEach((other, id) => {
+            if (id === b.id) return;
+            const dist = Math.hypot(other.x - b.x, other.y - b.y);
+            if (dist < nearestDist) { nearestDist = dist; nearestId = id; }
+        });
+
+        if (nearestId !== null && nearestDist > ENCOUNTER_DISTANCE) {
+            const target = blobsById.get(nearestId);
+            const dx = target.x - b.x, dy = target.y - b.y;
+            b.vx += (dx / nearestDist) * BASE_ATTRACT;
+            b.vy += (dy / nearestDist) * BASE_ATTRACT;
+        }
 
         if (bestId !== null) {
             const target = blobsById.get(bestId);
