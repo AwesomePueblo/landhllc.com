@@ -12,6 +12,12 @@ const describeCreature = (creature, label) =>
   `${label}: name="${sanitize(creature.name)}", personality="${sanitize(creature.personality)}", ` +
   `role="${sanitize(creature.role)}", faith="${sanitize(creature.faith)}", purpose="${sanitize(creature.purpose)}"`;
 
+const describeScene = (scene) => {
+  if (!scene || !scene.name) return 'They are out in the open, no particular landmark nearby.';
+  return `Setting: they are near ${sanitize(scene.name)} — ${sanitize(scene.description)}. ` +
+    'Let the setting color the encounter naturally (something to react to, a reason to linger) without forcing it.';
+};
+
 const describeHistory = (priorEncounters, affinity) => {
   const encounters = Array.isArray(priorEncounters) ? priorEncounters.slice(-MAX_HISTORY_ITEMS) : [];
   if (encounters.length === 0) {
@@ -85,7 +91,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
 
-  const { blobA, blobB, priorEncounters, affinity } = payload;
+  const { blobA, blobB, priorEncounters, affinity, scene } = payload;
   if (!blobA || !blobB) {
     return { statusCode: 400, body: JSON.stringify({ error: 'blobA and blobB are required' }) };
   }
@@ -93,6 +99,7 @@ exports.handler = async (event) => {
   const userMessage =
     `${describeCreature(blobA, 'Creature A')}\n${describeCreature(blobB, 'Creature B')}\n\n` +
     `${describeHistory(priorEncounters, Number(affinity) || 0)}\n\n` +
+    `${describeScene(scene)}\n\n` +
     'Generate their encounter now.';
 
   try {

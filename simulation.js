@@ -36,11 +36,26 @@
     const STORAGE_KEY = 'ai-blob-sim-state-v1';
     const AUTOSAVE_INTERVAL_MS = 5000;
 
+    const SCENE_COUNT = 4;
+    const SCENE_PROXIMITY_RADIUS = 90;
+    const SCENE_TYPES = [
+        { icon: '🔥', name: 'Bonfire', description: 'a crackling bonfire radiating warmth and light' },
+        { icon: '🌳', name: 'Ancient Tree', description: 'an enormous ancient tree with roots older than memory' },
+        { icon: '⛲', name: 'Old Well', description: 'a crumbling stone well said to grant wishes' },
+        { icon: '💎', name: 'Crystal Formation', description: 'a cluster of glowing crystals jutting from the ground' },
+        { icon: '🏚️', name: 'Abandoned Camp', description: 'the remains of a camp abandoned in a hurry' },
+        { icon: '🪦', name: 'Old Grave', description: 'a weathered, unmarked grave overgrown with moss' },
+        { icon: '🌸', name: 'Flower Patch', description: 'a patch of wildflowers blooming against the odds' },
+        { icon: '🗿', name: 'Stone Idol', description: 'a moss-covered stone idol of a forgotten god' },
+    ];
+
     // ---------- State ----------
     let species = [];
     let blobs = [];
+    let scenes = [];
     let nextSpeciesId = 1;
     let nextBlobId = 1;
+    let nextSceneId = 1;
     let selectedBlobId = null;
     let selectedSpeciesId = null;
     let paused = false;
@@ -190,6 +205,38 @@
         }, 1);
     }
 
+    // ---------- Scenes ----------
+    function spawnScene(type) {
+        scenes.push({
+            id: nextSceneId++,
+            icon: type.icon,
+            name: type.name,
+            description: type.description,
+            x: rand(60, Math.max(60, canvas.width - 60)),
+            y: rand(60, Math.max(60, canvas.height - 60)),
+            radius: SCENE_PROXIMITY_RADIUS,
+        });
+    }
+
+    function seedScenes() {
+        const pool = SCENE_TYPES.slice();
+        for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+        pool.slice(0, SCENE_COUNT).forEach(spawnScene);
+    }
+
+    function findNearbyScene(x, y) {
+        let found = null;
+        let bestDist = Infinity;
+        scenes.forEach((sc) => {
+            const d = Math.hypot(sc.x - x, sc.y - y);
+            if (d <= sc.radius && d < bestDist) { bestDist = d; found = sc; }
+        });
+        return found;
+    }
+
     // Traces a soft, organic "slime" outline instead of a perfect circle: radius at each
     // angle is perturbed by a couple of desynced sine waves so each blob wobbles differently.
     function traceBlobShape(cx, cy, baseRadius, phase, t) {
@@ -220,6 +267,27 @@
     // ---------- Rendering ----------
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        scenes.forEach((sc) => {
+            ctx.beginPath();
+            ctx.arc(sc.x, sc.y, sc.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+            ctx.setLineDash([4, 6]);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.font = '22px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(sc.icon, sc.x, sc.y);
+
+            ctx.font = '11px sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.45)';
+            ctx.fillText(sc.name, sc.x, sc.y + sc.radius * 0.55);
+        });
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic';
 
         // connecting lines for active conversations
         blobs.forEach((b) => {
@@ -409,6 +477,8 @@
         requestCount++;
         updateBudgetCounter();
 
+        const nearbyScene = findNearbyScene((a.x + b.x) / 2, (a.y + b.y) / 2);
+
         fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -417,11 +487,12 @@
                 blobB: { name: speciesB.name, personality: speciesB.personality, role: speciesB.role, faith: speciesB.faith, purpose: speciesB.purpose },
                 priorEncounters: a.history[b.id] || [],
                 affinity: a.affinity[b.id] || 0,
+                scene: nearbyScene ? { name: nearbyScene.name, description: nearbyScene.description } : null,
             }),
         })
             .then((res) => res.json())
             .then((data) => {
-                applyConversationResult(a, b, speciesA, speciesB, data);
+                applyConversationResult(a, b, speciesA, speciesB, data, nearbyScene);
             })
             .catch(() => {
                 appendLog(a, { who: 'System', text: 'Could not reach the AI narrator.' });
@@ -432,7 +503,7 @@
             });
     }
 
-    function applyConversationResult(a, b, speciesA, speciesB, data) {
+    function applyConversationResult(a, b, speciesA, speciesB, data, nearbyScene) {
         const lines = Array.isArray(data.lines) ? data.lines : [];
         lines.forEach((line) => {
             const who = line.speaker === 'B' ? speciesB.name : speciesA.name;
@@ -446,7 +517,7 @@
         updateRelationship(a, b, outcome);
         restoreEnergy(a, b, outcome);
         recordHistory(a, b, data.summary || 'They exchanged a few words.');
-        pushFeed(speciesA, speciesB, data.summary || '', outcome);
+        pushFeed(speciesA, speciesB, data.summary || '', outcome, nearbyScene);
 
         if (selectedBlobId === a.id || selectedBlobId === b.id) {
             renderDetail();
@@ -520,11 +591,12 @@
 
     const FEED_ITEM_TTL_MS = 5000;
 
-    function pushFeed(speciesA, speciesB, summary, outcome) {
+    function pushFeed(speciesA, speciesB, summary, outcome, nearbyScene) {
         const item = document.createElement('div');
         item.className = 'feed-item';
         const outcomeLabel = outcome === 'friendly' ? '🤝' : outcome === 'hostile' ? '⚔️' : '💬';
-        item.innerHTML = `${outcomeLabel} <strong>${escapeHtml(speciesA.name)}</strong> &amp; <strong>${escapeHtml(speciesB.name)}</strong>: ${escapeHtml(summary)}`;
+        const sceneTag = nearbyScene ? ` <em>near ${escapeHtml(nearbyScene.name)}</em>` : '';
+        item.innerHTML = `${outcomeLabel} <strong>${escapeHtml(speciesA.name)}</strong> &amp; <strong>${escapeHtml(speciesB.name)}</strong>${sceneTag}: ${escapeHtml(summary)}`;
         makeSwipeToDismiss(item);
         feedEl.appendChild(item);
         item._ttlTimer = setTimeout(() => dismissFeedItem(item, 1), FEED_ITEM_TTL_MS);
@@ -828,8 +900,10 @@
 
         species = [];
         blobs = [];
+        scenes = [];
         nextSpeciesId = 1;
         nextBlobId = 1;
+        nextSceneId = 1;
         requestCount = 0;
         activeRequests = 0;
         paused = false;
@@ -840,6 +914,7 @@
         feedEl.innerHTML = '';
 
         seedDefaults();
+        seedScenes();
         updateBudgetCounter();
         syncAiToggleButton();
         syncPauseButton();
@@ -985,8 +1060,10 @@
             version: 1,
             species,
             blobs,
+            scenes,
             nextSpeciesId,
             nextBlobId,
+            nextSceneId,
             requestCount,
             aiEnabled,
             paused,
@@ -1033,11 +1110,26 @@
             talkingWith: null,
             cooldownUntil: 0,
         }));
+        scenes = Array.isArray(data.scenes) && data.scenes.length > 0
+            ? data.scenes.map((sc) => ({
+                ...sc,
+                x: clamp(sc.x, 30, Math.max(30, canvas.width - 30)),
+                y: clamp(sc.y, 30, Math.max(30, canvas.height - 30)),
+                radius: typeof sc.radius === 'number' ? sc.radius : SCENE_PROXIMITY_RADIUS,
+            }))
+            : null;
+
         nextSpeciesId = data.nextSpeciesId || Math.max(0, ...species.map((s) => s.id)) + 1;
         nextBlobId = data.nextBlobId || Math.max(0, ...blobs.map((b) => b.id)) + 1;
+        nextSceneId = data.nextSceneId || (scenes ? Math.max(0, ...scenes.map((sc) => sc.id)) + 1 : 1);
         requestCount = typeof data.requestCount === 'number' ? data.requestCount : 0;
         aiEnabled = typeof data.aiEnabled === 'boolean' ? data.aiEnabled : true;
         paused = typeof data.paused === 'boolean' ? data.paused : false;
+
+        if (!scenes) {
+            scenes = [];
+            seedScenes();
+        }
 
         renderSpeciesList();
         updateBudgetCounter();
@@ -1067,6 +1159,7 @@
     resizeCanvas();
     if (!loadState()) {
         seedDefaults();
+        seedScenes();
     }
     updateBudgetCounter();
     requestAnimationFrame(tick);
