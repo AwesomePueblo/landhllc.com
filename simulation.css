@@ -100,6 +100,12 @@ body {
     opacity: 0.5;
 }
 
+.sim-btn.danger:hover {
+    background: rgba(255, 91, 110, 0.15);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
 /* Layout */
 .sim-layout {
     flex: 1;

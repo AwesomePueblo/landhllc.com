@@ -71,6 +71,7 @@
     const budgetCounter = document.getElementById('budgetCounter');
     const aiToggleBtn = document.getElementById('aiToggleBtn');
     const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
     const addSpeciesBtn = document.getElementById('addSpeciesBtn');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const addSpeciesModal = document.getElementById('addSpeciesModal');
@@ -810,6 +811,34 @@
     aiToggleBtn.addEventListener('click', () => {
         aiEnabled = !aiEnabled;
         syncAiToggleButton();
+    });
+
+    function resetSimulation() {
+        try { localStorage.removeItem(STORAGE_KEY); } catch (err) { /* ignore */ }
+
+        species = [];
+        blobs = [];
+        nextSpeciesId = 1;
+        nextBlobId = 1;
+        requestCount = 0;
+        activeRequests = 0;
+        paused = false;
+        aiEnabled = true;
+
+        closeDetail();
+        addSpeciesModal.hidden = true;
+        feedEl.innerHTML = '';
+
+        seedDefaults();
+        updateBudgetCounter();
+        syncAiToggleButton();
+        syncPauseButton();
+    }
+
+    resetBtn.addEventListener('click', () => {
+        if (confirm('Reset the whole simulation? This permanently clears all species, blobs, relationships, and history.')) {
+            resetSimulation();
+        }
     });
 
     // ---------- Add species modal ----------
