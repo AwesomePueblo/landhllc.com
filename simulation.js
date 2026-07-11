@@ -518,6 +518,8 @@
         if (blob.log.length > 20) blob.log.shift();
     }
 
+    const FEED_ITEM_TTL_MS = 5000;
+
     function pushFeed(speciesA, speciesB, summary, outcome) {
         const item = document.createElement('div');
         item.className = 'feed-item';
@@ -525,9 +527,20 @@
         item.innerHTML = `${outcomeLabel} <strong>${escapeHtml(speciesA.name)}</strong> &amp; <strong>${escapeHtml(speciesB.name)}</strong>: ${escapeHtml(summary)}`;
         makeSwipeToDismiss(item);
         feedEl.appendChild(item);
+        item._ttlTimer = setTimeout(() => dismissFeedItem(item, 1), FEED_ITEM_TTL_MS);
         while (feedEl.children.length > FEED_ITEM_LIMIT) {
             feedEl.removeChild(feedEl.firstChild);
         }
+    }
+
+    function dismissFeedItem(item, dir) {
+        if (item.dataset.dismissing === '1') return;
+        item.dataset.dismissing = '1';
+        if (item._ttlTimer) clearTimeout(item._ttlTimer);
+        item.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+        item.style.transform = `translateX(${dir * 400}px)`;
+        item.style.opacity = '0';
+        setTimeout(() => item.remove(), 200);
     }
 
     const SWIPE_DISMISS_THRESHOLD = 60;
@@ -555,13 +568,10 @@
         const endDrag = () => {
             if (!dragging) return;
             dragging = false;
-            item.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
             if (Math.abs(dx) > SWIPE_DISMISS_THRESHOLD) {
-                const dir = dx > 0 ? 1 : -1;
-                item.style.transform = `translateX(${dir * 400}px)`;
-                item.style.opacity = '0';
-                setTimeout(() => item.remove(), 200);
+                dismissFeedItem(item, dx > 0 ? 1 : -1);
             } else {
+                item.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
                 item.style.transform = 'translateX(0)';
                 item.style.opacity = '1';
             }
