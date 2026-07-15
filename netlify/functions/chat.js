@@ -37,12 +37,15 @@ const SYSTEM_PROMPT =
   "lines total, alternating speakers A and B) consistent with each creature's personality, role, faith, " +
   'and purpose. If they have history together, the dialogue should acknowledge and build on it — ' +
   'reference what happened before, let the relationship grow or sour further, rather than greeting ' +
-  'each other as strangers. Then classify the overall outcome of the encounter. Call the record_encounter ' +
-  'tool with your result — do not respond in plain text.';
+  'each other as strangers. Then classify the overall outcome of the encounter, and decide which ' +
+  'creature came out on top - the more persuasive, dominant, or favorably-perceived one in this specific ' +
+  "exchange (base it on their personality/role/faith and who's more assertive here, not just who spoke " +
+  "first). Use \"tie\" only when neither clearly prevailed. Call the record_encounter tool with your " +
+  'result — do not respond in plain text.';
 
 const ENCOUNTER_TOOL = {
   name: 'record_encounter',
-  description: 'Record the dialogue and outcome of an encounter between two creatures.',
+  description: 'Record the dialogue, outcome, and winner of an encounter between two creatures.',
   input_schema: {
     type: 'object',
     properties: {
@@ -60,15 +63,21 @@ const ENCOUNTER_TOOL = {
         },
       },
       outcome: { type: 'string', enum: ['friendly', 'neutral', 'hostile'] },
+      winner: {
+        type: 'string',
+        enum: ['A', 'B', 'tie'],
+        description: 'Which creature came out on top in this specific exchange, or "tie" if neither did.',
+      },
       summary: { type: 'string', description: 'One short sentence summarizing what happened.' },
     },
-    required: ['lines', 'outcome', 'summary'],
+    required: ['lines', 'outcome', 'winner', 'summary'],
   },
 };
 
 const fallbackResponse = (summary) => ({
   lines: [{ speaker: 'A', text: '...' }],
   outcome: 'neutral',
+  winner: 'tie',
   summary,
 });
 

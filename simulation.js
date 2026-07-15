@@ -21,6 +21,10 @@
     const NEUTRAL_AFFINITY_DELTA = 0; // a neutral encounter shouldn't build goodwill on its own
     const AFFINITY_DECAY_PER_FRAME = 0.01; // relationships drift back toward 0 without upkeep (~2.8 min from max)
     const COLOR_BLEND_FACTOR = 0.12;
+    const WINNER_AFFINITY_SCALE = 0.6; // the winner is less moved by the encounter, staying closer to who they were
+    const LOSER_AFFINITY_SCALE = 1.6; // the loser swings harder toward (or away from) the winner
+    const WINNER_COLOR_SCALE = 0.5; // the winner's color barely drifts
+    const LOSER_COLOR_SCALE = 1.8; // the loser's color drifts hard toward the winner's
     const LIKE_THRESHOLD = 20;
     const DISLIKE_THRESHOLD = -20;
     const SOCIAL_ATTRACT = 0.03;
@@ -76,6 +80,9 @@
     const conversationSection = document.getElementById('conversationSection');
     const relationshipList = document.getElementById('relationshipList');
     const relationshipSection = document.getElementById('relationshipSection');
+    const debugSection = document.getElementById('debugSection');
+    const debugRequest = document.getElementById('debugRequest');
+    const debugResponse = document.getElementById('debugResponse');
     const energySection = document.getElementById('energySection');
     const energyFill = document.getElementById('energyFill');
     const fieldPersonality = document.getElementById('fieldPersonality');
@@ -140,6 +147,8 @@
             talkingWith: null,
             cooldownUntil: 0,
             log: [],
+            lastRequest: null,
+            lastResponse: null,
         });
     }
 
@@ -479,19 +488,25 @@
 
         const nearbyScene = findNearbyScene((a.x + b.x) / 2, (a.y + b.y) / 2);
 
+        const requestBody = {
+            blobA: { name: speciesA.name, personality: speciesA.personality, role: speciesA.role, faith: speciesA.faith, purpose: speciesA.purpose },
+            blobB: { name: speciesB.name, personality: speciesB.personality, role: speciesB.role, faith: speciesB.faith, purpose: speciesB.purpose },
+            priorEncounters: a.history[b.id] || [],
+            affinity: a.affinity[b.id] || 0,
+            scene: nearbyScene ? { name: nearbyScene.name, description: nearbyScene.description } : null,
+        };
+        a.lastRequest = requestBody;
+        b.lastRequest = requestBody;
+
         fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                blobA: { name: speciesA.name, personality: speciesA.personality, role: speciesA.role, faith: speciesA.faith, purpose: speciesA.purpose },
-                blobB: { name: speciesB.name, personality: speciesB.personality, role: speciesB.role, faith: speciesB.faith, purpose: speciesB.purpose },
-                priorEncounters: a.history[b.id] || [],
-                affinity: a.affinity[b.id] || 0,
-                scene: nearbyScene ? { name: nearbyScene.name, description: nearbyScene.description } : null,
-            }),
+            body: JSON.stringify(requestBody),
         })
             .then((res) => res.json())
             .then((data) => {
+                a.lastResponse = data;
+                b.lastResponse = data;
                 applyConversationResult(a, b, speciesA, speciesB, data, nearbyScene);
             })
             .catch(() => {
@@ -513,8 +528,9 @@
         });
 
         const outcome = data.outcome || 'neutral';
+        const winner = data.winner === 'A' || data.winner === 'B' ? data.winner : 'tie';
         applyOutcome(a, b, outcome);
-        updateRelationship(a, b, outcome);
+        updateRelationship(a, b, outcome, winner);
         restoreEnergy(a, b, outcome);
         recordHistory(a, b, data.summary || 'They exchanged a few words.');
         pushFeed(speciesA, speciesB, data.summary || '', outcome, nearbyScene);
@@ -555,19 +571,40 @@
         if (b.history[a.id].length > MAX_HISTORY_ITEMS) b.history[a.id].shift();
     }
 
-    function updateRelationship(a, b, outcome) {
-        const delta = outcome === 'friendly' ? FRIENDLY_AFFINITY_DELTA
+    // Winner/loser diverge instead of mirroring: the winner barely moves (stays who they
+    // were), the loser swings harder toward the winner - in relationship score and in
+    // color - so repeated wins compound into one side's identity spreading, rather than
+    // both sides drifting toward a shared average every time.
+    function updateRelationship(a, b, outcome, winner) {
+        const base = outcome === 'friendly' ? FRIENDLY_AFFINITY_DELTA
             : outcome === 'hostile' ? HOSTILE_AFFINITY_DELTA
             : NEUTRAL_AFFINITY_DELTA;
 
-        a.affinity[b.id] = clamp((a.affinity[b.id] || 0) + delta, AFFINITY_MIN, AFFINITY_MAX);
-        b.affinity[a.id] = clamp((b.affinity[a.id] || 0) + delta, AFFINITY_MIN, AFFINITY_MAX);
+        let deltaA = base, deltaB = base;
+        if (winner === 'A') {
+            deltaA = base * WINNER_AFFINITY_SCALE;
+            deltaB = base * LOSER_AFFINITY_SCALE;
+        } else if (winner === 'B') {
+            deltaB = base * WINNER_AFFINITY_SCALE;
+            deltaA = base * LOSER_AFFINITY_SCALE;
+        }
+
+        a.affinity[b.id] = clamp((a.affinity[b.id] || 0) + deltaA, AFFINITY_MIN, AFFINITY_MAX);
+        b.affinity[a.id] = clamp((b.affinity[a.id] || 0) + deltaB, AFFINITY_MIN, AFFINITY_MAX);
 
         if (outcome === 'friendly') {
-            const newAColor = blendColor(a.color, b.color, COLOR_BLEND_FACTOR);
-            const newBColor = blendColor(b.color, a.color, COLOR_BLEND_FACTOR);
-            a.color = newAColor;
-            b.color = newBColor;
+            const aColorBefore = a.color;
+            const bColorBefore = b.color;
+            if (winner === 'A') {
+                a.color = blendColor(aColorBefore, bColorBefore, COLOR_BLEND_FACTOR * WINNER_COLOR_SCALE);
+                b.color = blendColor(bColorBefore, aColorBefore, COLOR_BLEND_FACTOR * LOSER_COLOR_SCALE);
+            } else if (winner === 'B') {
+                b.color = blendColor(bColorBefore, aColorBefore, COLOR_BLEND_FACTOR * WINNER_COLOR_SCALE);
+                a.color = blendColor(aColorBefore, bColorBefore, COLOR_BLEND_FACTOR * LOSER_COLOR_SCALE);
+            } else {
+                a.color = blendColor(aColorBefore, bColorBefore, COLOR_BLEND_FACTOR);
+                b.color = blendColor(bColorBefore, aColorBefore, COLOR_BLEND_FACTOR);
+            }
         }
     }
 
@@ -735,11 +772,14 @@
         conversationSection.hidden = false;
         relationshipSection.hidden = false;
         energySection.hidden = false;
+        debugSection.hidden = false;
 
         detailSwatch.style.background = blob.color || s.color;
         detailName.textContent = s.name;
         detailSub.textContent = `Individual #${blob.id}`;
         renderEnergyBar(blob);
+        debugRequest.textContent = blob.lastRequest ? JSON.stringify(blob.lastRequest, null, 2) : 'No AI calls yet.';
+        debugResponse.textContent = blob.lastResponse ? JSON.stringify(blob.lastResponse, null, 2) : 'No AI calls yet.';
 
         conversationLog.innerHTML = '';
         if (blob.log.length === 0) {
@@ -768,6 +808,7 @@
         conversationSection.hidden = true;
         relationshipSection.hidden = true;
         energySection.hidden = true;
+        debugSection.hidden = true;
 
         detailSwatch.style.background = s.color;
         detailName.textContent = s.name;
@@ -1109,6 +1150,8 @@
             phase: typeof b.phase === 'number' ? b.phase : rand(0, Math.PI * 2),
             talkingWith: null,
             cooldownUntil: 0,
+            lastRequest: null,
+            lastResponse: null,
         }));
         scenes = Array.isArray(data.scenes) && data.scenes.length > 0
             ? data.scenes.map((sc) => ({

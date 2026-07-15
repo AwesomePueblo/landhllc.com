@@ -63,6 +63,17 @@
                 <div class="relationship-list" id="relationshipList"></div>
             </div>
 
+            <div id="debugSection">
+                <details class="debug-details">
+                    <summary>Last AI Call</summary>
+                    <p class="field-hint">Exact request sent to /api/chat and the response received, for this blob's most recent encounter.</p>
+                    <h4>Request</h4>
+                    <pre class="debug-json" id="debugRequest">No AI calls yet.</pre>
+                    <h4>Response</h4>
+                    <pre class="debug-json" id="debugResponse">No AI calls yet.</pre>
+                </details>
+            </div>
+
             <h3>Species Prompt <span class="saved-indicator" id="savedIndicator">saved</span></h3>
             <p class="field-hint">Editing these applies to every blob of this color, live.</p>
             <label>Personality
