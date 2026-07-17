@@ -82,6 +82,7 @@
     const relationshipSection = document.getElementById('relationshipSection');
     const debugSection = document.getElementById('debugSection');
     const debugRequest = document.getElementById('debugRequest');
+    const debugPrompt = document.getElementById('debugPrompt');
     const debugResponse = document.getElementById('debugResponse');
     const energySection = document.getElementById('energySection');
     const energyFill = document.getElementById('energyFill');
@@ -779,7 +780,18 @@
         detailSub.textContent = `Individual #${blob.id}`;
         renderEnergyBar(blob);
         debugRequest.textContent = blob.lastRequest ? JSON.stringify(blob.lastRequest, null, 2) : 'No AI calls yet.';
-        debugResponse.textContent = blob.lastResponse ? JSON.stringify(blob.lastResponse, null, 2) : 'No AI calls yet.';
+
+        const promptInfo = blob.lastResponse && blob.lastResponse._promptDebug;
+        debugPrompt.textContent = promptInfo
+            ? `Model: ${promptInfo.model}\n\nSystem:\n${promptInfo.system}\n\nUser:\n${promptInfo.user}`
+            : 'No AI calls yet.';
+
+        if (blob.lastResponse) {
+            const { _promptDebug, ...responseOnly } = blob.lastResponse;
+            debugResponse.textContent = JSON.stringify(responseOnly, null, 2);
+        } else {
+            debugResponse.textContent = 'No AI calls yet.';
+        }
 
         conversationLog.innerHTML = '';
         if (blob.log.length === 0) {

@@ -128,6 +128,8 @@ exports.handler = async (event) => {
         ? toolUse.input
         : fallbackResponse('They exchanged a few words.');
 
+    parsed._promptDebug = { system: SYSTEM_PROMPT, user: userMessage, model: MODEL };
+
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
