@@ -1,0 +1,334 @@
+:root {
+    --coral: #ff6b6b;
+    --coral-dark: #e85555;
+    --gold: #ffb347;
+    --cream: #fff9f5;
+    --card: #ffffff;
+    --text: #33302e;
+    --text-light: #766e69;
+    --border: #f0e4dc;
+    --shadow: 0 10px 30px rgba(255, 107, 107, 0.12);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    color: var(--text);
+    background: var(--cream);
+    line-height: 1.65;
+    overflow-x: hidden;
+}
+
+.container {
+    width: 90%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.fnd-narrow {
+    max-width: 720px;
+}
+
+a {
+    color: inherit;
+}
+
+/* Header */
+.fnd-header {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+}
+
+.fnd-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.fnd-logo {
+    text-decoration: none;
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.fnd-logo span {
+    color: var(--coral);
+}
+
+.fnd-header-tag {
+    font-size: 0.78rem;
+    color: var(--text-light);
+}
+
+/* Hero */
+.fnd-hero {
+    padding: 70px 0 60px;
+    text-align: center;
+    background: radial-gradient(circle at 50% 0%, #fff1ea 0%, var(--cream) 65%);
+}
+
+.fnd-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--coral-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 18px;
+}
+
+.fnd-hero h1 {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    line-height: 1.3;
+    max-width: 780px;
+    margin: 0 auto 20px;
+    color: #2a221f;
+}
+
+.fnd-hero-sub {
+    max-width: 560px;
+    margin: 0 auto 34px;
+    color: var(--text-light);
+    font-size: 1.05rem;
+}
+
+.fnd-hero-cta {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+/* Buttons */
+.fnd-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fnd-btn-primary {
+    background: linear-gradient(135deg, var(--coral), var(--gold));
+    color: #ffffff;
+    box-shadow: var(--shadow);
+}
+
+.fnd-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 34px rgba(255, 107, 107, 0.22);
+}
+
+.fnd-btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 2px solid var(--border);
+}
+
+.fnd-btn-ghost:hover {
+    border-color: var(--coral);
+    color: var(--coral-dark);
+}
+
+.fnd-btn-large {
+    padding: 18px 38px;
+    font-size: 1.1rem;
+}
+
+/* Sections */
+.fnd-section {
+    padding: 64px 0;
+}
+
+.fnd-section-alt {
+    background: var(--card);
+}
+
+.fnd-kicker {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--coral-dark);
+    margin-bottom: 10px;
+}
+
+.fnd-section h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+    margin-bottom: 24px;
+    color: #2a221f;
+}
+
+.fnd-story-text p {
+    margin-bottom: 18px;
+    color: var(--text-light);
+    font-size: 1.02rem;
+}
+
+.fnd-story-text p:last-child {
+    color: var(--text);
+    font-weight: 500;
+}
+
+/* Cards */
+.fnd-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 30px;
+}
+
+.fnd-card {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 30px 24px;
+    text-align: center;
+}
+
+.fnd-card-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--coral), var(--gold));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+}
+
+.fnd-card h3 {
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+.fnd-card p {
+    color: var(--text-light);
+    font-size: 0.92rem;
+}
+
+/* Transparency */
+.fnd-transparency {
+    padding: 40px 0;
+}
+
+.fnd-transparency p:not(.fnd-kicker) {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 26px;
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+/* Donate */
+.fnd-donate {
+    padding: 80px 0;
+    text-align: center;
+    background: linear-gradient(135deg, var(--coral), var(--gold));
+    color: #ffffff;
+}
+
+.fnd-eyebrow-light {
+    color: rgba(255,255,255,0.9);
+}
+
+.fnd-donate h2 {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    margin-bottom: 14px;
+}
+
+.fnd-donate-sub {
+    max-width: 480px;
+    margin: 0 auto 30px;
+    opacity: 0.95;
+}
+
+.fnd-donate .fnd-btn-primary {
+    background: #ffffff;
+    color: var(--coral-dark);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.15);
+}
+
+.fnd-donate .fnd-btn-primary:hover {
+    box-shadow: 0 18px 40px rgba(0,0,0,0.2);
+}
+
+.fnd-donate-note {
+    margin-top: 18px;
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+/* Footer */
+.fnd-footer {
+    padding: 24px 0;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-light);
+    background: var(--card);
+    border-top: 1px solid var(--border);
+}
+
+.fnd-footer a {
+    color: var(--coral-dark);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .fnd-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .fnd-hero {
+        padding: 50px 0 40px;
+    }
+
+    .fnd-section {
+        padding: 46px 0;
+    }
+
+    .fnd-hero-cta {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fnd-btn {
+        justify-content: center;
+    }
+
+    .fnd-donate {
+        padding: 56px 0;
+    }
+}
