@@ -266,6 +266,7 @@ function screenAnswering(st, me) {
     <div class="title">🎤 Song Party</div>
     <div class="card col">
       <div class="muted">Round ${st.roundNumber} · ${escapeHtml(styleSummaryText(st.styleProfile))}</div>
+      <div class="muted" style="font-size:0.95rem">Scenario: <strong>${escapeHtml(st.questionTheme || "")}</strong></div>
       <div style="font-size:1.3rem;font-weight:700;line-height:1.4">${escapeHtml(st.question || "")}</div>
     </div>
     <div class="card col">
