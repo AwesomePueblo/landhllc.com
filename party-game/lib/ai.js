@@ -30,10 +30,34 @@ function firstText(message) {
   return block ? block.text.trim() : "";
 }
 
+// A generic "give me a silly party prompt" request has an obvious generic
+// answer (a wedding running late, missing the bus, etc.) that Claude tends
+// to converge on every time, especially right after a server restart when
+// there's no previousQuestions history yet to steer away from it. Picking
+// a random theme per call breaks that convergence regardless of history.
+const QUESTION_THEMES = [
+  "childhood memories",
+  "embarrassing moments",
+  "superpowers or magic",
+  "weird food combinations",
+  "workplace or school mishaps",
+  "family gatherings",
+  "travel disasters",
+  "first impressions",
+  "hidden talents",
+  "roommate or neighbor drama",
+  "pets or animals",
+  "technology going wrong",
+  "conspiracy theories (silly, not real ones)",
+  "fashion choices",
+  "secret identities",
+];
+
 async function generateQuestion({ previousQuestions = [] } = {}) {
   const c = getClient();
   if (!c) return { result: null };
 
+  const theme = QUESTION_THEMES[Math.floor(Math.random() * QUESTION_THEMES.length)];
   const avoid = previousQuestions.length
     ? `Don't repeat or closely resemble any of these already-used prompts: ${previousQuestions
         .map((q) => `"${q}"`)
@@ -42,13 +66,14 @@ async function generateQuestion({ previousQuestions = [] } = {}) {
   const request = {
     model: MODEL,
     max_tokens: 300,
+    temperature: 1,
     output_config: { effort: "low" },
     system:
       "You write a single short, funny, party-game prompt. It will be shown to a group of friends on their phones; each of them types a short answer, and those answers get woven into song lyrics afterward. Keep it silly, inclusive, safe for a mixed group, and answerable in one short sentence. Reply with ONLY the prompt text itself - no quotes, no preamble, no label.",
     messages: [
       {
         role: "user",
-        content: `Give me one new party prompt for this round. ${avoid}`,
+        content: `Give me one new party prompt for this round, themed loosely around: ${theme}. ${avoid}`,
       },
     ],
   };
