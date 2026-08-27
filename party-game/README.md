@@ -1,16 +1,19 @@
 # Song Party 🎤
 
 A local Wi-Fi party game, Jackbox-style. One device (a laptop hooked up to
-a TV works great) runs the **host screen**. Everyone else joins the same
-URL on their phone. Each round:
+a TV works great) runs the **host screen** and plays the song. Everyone
+else joins the same URL on their phone. Each round:
 
-1. Claude comes up with a silly prompt.
-2. Everyone answers on their phone.
-3. Claude weaves everyone's answers into original song lyrics, in whatever
-   genre the host picked.
-4. The server generates a matching instrumental track.
-5. It plays back **in sync on every connected device** (host screen +
-   everyone's phone), with the lyrics displayed karaoke-style.
+1. Claude invents a silly shared scenario and writes each player their own
+   related-but-different prompt about it (not one shared question) - so
+   their answers naturally read as different beats of one story.
+2. Everyone answers their own prompt on their phone, without seeing
+   anyone else's prompt or answer.
+3. Claude weaves everyone's answers into one coherent set of original song
+   lyrics, in whatever genre the host picked.
+4. The server generates a matching track.
+5. It plays back **on the host screen** (the one with the TV/speakers) -
+   phones just show the lyrics, no audio, no autoplay permission prompts.
 
 Everything runs on one machine on your local network. No accounts, no
 passwords - just a nickname.
@@ -63,27 +66,27 @@ the join URL.
 
 ## Playing
 
-- On the host screen, pick a genre and hit **Start round**.
-- Everyone answers the prompt on their phone (there's a soft time limit,
-  and the round auto-advances once everyone's answered or time's up).
-- Claude turns the answers into lyrics - shown on the host screen.
-- Hit **Make it a song!** to generate the instrumental. Playback starts on
-  every device a few seconds later, synced by a shared start time.
+- On the host screen, pick a genre and hit **Start round**. Click
+  **⛶ Fullscreen** to fill the whole screen (handy on a TV).
+- The host screen shows each player's own prompt as they answer (there's a
+  soft time limit, and the round auto-advances once everyone's answered or
+  time's up).
+- Claude turns everyone's answers into one set of lyrics - shown on the
+  host screen.
+- Hit **Make it a song!** to generate the track. It starts playing
+  automatically on the host screen a few seconds later, with a real audio
+  player (play/pause/seek/replay) docked at the bottom - use **⏹ Stop
+  song** to end it early, or just let it play out. **⬇ Download** saves
+  the track file. It stays loaded and replayable through **round_end**
+  too, until the next round starts.
 - **Next round** to go again, or **New game** to reset everyone.
-
-### A note on phone audio
-
-Mobile browsers block a web page from playing audio automatically -
-they require a real tap first. Each phone gets a **"Tap to enable sound"**
-button while the song is being produced; tapping it once per visit is
-enough to unlock synced playback for the rest of the game.
 
 ## How the pieces fit together
 
 ```
 party-game/
   server.js          Express + WebSocket server, the whole game state machine
-  lib/ai.js           Claude calls: generateQuestion(), generateLyrics()
+  lib/ai.js           Claude calls: generateQuestionSet(), generateLyrics()
   lib/music.js         Pluggable "turn lyrics into a track" interface
   lib/wavSynth.js       Built-in instrumental synthesizer (the default provider)
   lib/genrePresets.js    Tempo/key/chord/waveform settings per genre

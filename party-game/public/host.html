@@ -22,7 +22,11 @@
       </div>
     </aside>
   </div>
-  <audio id="host-audio" playsinline></audio>
+  <div class="audio-dock" id="audioDock">
+    <div class="audio-dock-title" id="audioDockTitle"></div>
+    <audio id="host-audio" controls playsinline></audio>
+    <a id="downloadLink" class="ghost small" download>⬇ Download</a>
+  </div>
 
   <script src="js/shared.js"></script>
   <script src="js/host.js"></script>

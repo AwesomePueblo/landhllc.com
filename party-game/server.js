@@ -22,7 +22,7 @@ const { WebSocketServer, WebSocket } = require("ws");
 const ai = require("./lib/ai");
 const music = require("./lib/music");
 const { fallbackLyrics } = require("./lib/fallbackLyrics");
-const { randomQuestion } = require("./lib/questions");
+const { randomQuestionSet } = require("./lib/questions");
 const { GENRE_LIST, getGenre } = require("./lib/genrePresets");
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -34,17 +34,17 @@ const HOST_KEY = crypto.randomBytes(3).toString("hex");
 // Game state (single shared room)
 // ---------------------------------------------------------------------------
 
-const players = new Map(); // playerId -> { id, name, color, ws, connected, answer }
+const players = new Map(); // playerId -> { id, name, color, ws, connected, answer, question }
 
 const state = {
   phase: "lobby", // lobby | question | answering | generating_lyrics | lyrics_ready | generating_music | playback | round_end
   roundNumber: 0,
   genre: "pop",
-  question: null,
+  questionSet: null, // { theme, questions: [...] } - each player gets their own entry, see startRound()
   deadline: null,
   lyrics: null, // { title, body }
   track: null, // { url, durationSeconds, startAt }
-  previousQuestions: [],
+  previousThemes: [],
   debugLog: [], // host-only: raw request/response for each AI + music call, newest first
 };
 
@@ -83,15 +83,20 @@ function pickColor(seed) {
 // State broadcasting
 // ---------------------------------------------------------------------------
 
-function buildState(forHost) {
+// forHost=true gets the full picture (everyone's individual prompt, the
+// debug log). A player only ever gets their OWN prompt in `question` -
+// never anyone else's - via viewerId.
+function buildState(forHost, viewerId) {
   const revealPhases = ["lyrics_ready", "generating_music", "playback", "round_end"];
+  const viewer = viewerId ? players.get(viewerId) : null;
   const base = {
     phase: state.phase,
     roundNumber: state.roundNumber,
     genre: state.genre,
     genreLabel: getGenre(state.genre).label,
     genres: GENRE_LIST.map((id) => ({ id, label: getGenre(id).label })),
-    question: state.question,
+    question: viewer ? viewer.question : null,
+    questionTheme: state.questionSet ? state.questionSet.theme : null,
     deadline: state.deadline,
     answerSeconds: ANSWER_SECONDS,
     players: [...players.values()].map((p) => ({
@@ -100,9 +105,10 @@ function buildState(forHost) {
       color: p.color,
       connected: !!p.connected,
       answered: !!p.answer,
+      question: forHost ? p.question : undefined,
     })),
     answers: revealPhases.includes(state.phase)
-      ? [...players.values()].filter((p) => p.answer).map((p) => ({ name: p.name, text: p.answer }))
+      ? [...players.values()].filter((p) => p.answer).map((p) => ({ name: p.name, text: p.answer, question: p.question }))
       : undefined,
     lyrics: state.lyrics,
     track: state.track,
@@ -116,11 +122,14 @@ function sendTo(ws, obj) {
 }
 
 function broadcastState() {
-  const playerPayload = JSON.stringify({ type: "state", state: buildState(false) });
   const hostPayload = JSON.stringify({ type: "state", state: buildState(true) });
   wss.clients.forEach((c) => {
     if (c.readyState !== WebSocket.OPEN) return;
-    c.send(c.isHost ? hostPayload : playerPayload);
+    if (c.isHost) {
+      c.send(hostPayload);
+      return;
+    }
+    c.send(JSON.stringify({ type: "state", state: buildState(false, c.playerId) }));
   });
 }
 
@@ -138,16 +147,30 @@ function clearTimers() {
 async function startRound() {
   if (state.phase !== "lobby" && state.phase !== "round_end") return;
   clearTimers();
-  players.forEach((p) => (p.answer = null));
+  players.forEach((p) => {
+    p.answer = null;
+    p.question = null;
+  });
   state.lyrics = null;
   state.track = null;
   state.phase = "question";
   broadcastState();
 
-  const q = await ai.generateQuestion({ previousQuestions: state.previousQuestions });
+  const connectedPlayers = [...players.values()].filter((p) => p.connected);
+  const playerCount = Math.max(connectedPlayers.length, 1);
+
+  const q = await ai.generateQuestionSet({ playerCount, previousThemes: state.previousThemes });
   if (q.request) logDebug("question", q);
-  state.question = q.result || randomQuestion();
-  state.previousQuestions.push(state.question);
+  const questionSet = q.result || randomQuestionSet(playerCount);
+  state.questionSet = questionSet;
+  state.previousThemes.push(questionSet.theme);
+
+  // Each connected player gets their own related-but-different prompt from
+  // the set (cycling through it if there are more players than prompts).
+  connectedPlayers.forEach((p, i) => {
+    p.question = questionSet.questions[i % questionSet.questions.length];
+  });
+
   state.roundNumber += 1;
   state.deadline = Date.now() + ANSWER_SECONDS * 1000;
   state.phase = "answering";
@@ -171,11 +194,11 @@ async function lockAnswers() {
 
   const answers = [...players.values()]
     .filter((p) => p.answer)
-    .map((p) => ({ name: p.name, text: p.answer }));
+    .map((p) => ({ name: p.name, text: p.answer, question: p.question }));
 
   if (answers.length === 0) {
     state.phase = "lobby";
-    state.question = null;
+    state.questionSet = null;
     broadcastState();
     return;
   }
@@ -184,9 +207,10 @@ async function lockAnswers() {
   broadcastState();
 
   const genreLabel = getGenre(state.genre).label;
-  const lyricsCall = await ai.generateLyrics({ question: state.question, genre: state.genre, genreLabel, answers });
+  const theme = state.questionSet ? state.questionSet.theme : "tonight's chaos";
+  const lyricsCall = await ai.generateLyrics({ theme, genre: state.genre, genreLabel, answers });
   if (lyricsCall.request) logDebug("lyrics", lyricsCall);
-  const lyrics = lyricsCall.result || fallbackLyrics({ question: state.question, genre: genreLabel, answers });
+  const lyrics = lyricsCall.result || fallbackLyrics({ theme, genre: genreLabel, answers });
 
   state.lyrics = lyrics;
   state.phase = "lyrics_ready";
@@ -243,14 +267,17 @@ function nextRound() {
 
 function resetGame() {
   clearTimers();
-  players.forEach((p) => (p.answer = null));
+  players.forEach((p) => {
+    p.answer = null;
+    p.question = null;
+  });
   state.phase = "lobby";
   state.roundNumber = 0;
-  state.question = null;
+  state.questionSet = null;
   state.deadline = null;
   state.lyrics = null;
   state.track = null;
-  state.previousQuestions = [];
+  state.previousThemes = [];
   broadcastState();
 }
 
@@ -279,10 +306,17 @@ function handleJoin(ws, msg) {
   let player = msg.playerId && players.get(msg.playerId);
   if (!player) {
     const id = crypto.randomUUID();
-    player = { id, name, color: pickColor(id), ws: null, connected: false, answer: null };
+    player = { id, name, color: pickColor(id), ws: null, connected: false, answer: null, question: null };
     players.set(id, player);
   } else {
     player.name = name;
+  }
+
+  // A player joining mid-round has no assigned prompt yet - give them one
+  // from the current set (cycling through it) so they're not left blank.
+  if (state.phase === "answering" && state.questionSet && !player.question) {
+    const assignedCount = [...players.values()].filter((p) => p.question).length;
+    player.question = state.questionSet.questions[assignedCount % state.questionSet.questions.length];
   }
 
   player.ws = ws;

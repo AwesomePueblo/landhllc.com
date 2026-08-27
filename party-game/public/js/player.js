@@ -4,15 +4,20 @@ const NAME_KEY = "pg_name";
 const ID_KEY = "pg_playerId";
 
 const app = document.getElementById("app");
-const audioEl = document.getElementById("player-audio");
 
 let myId = null;
 let awaitingJoin = false;
 let latestState = null;
-let audioUnlocked = false;
 let countdownTimer = null;
-let karaokeTimer = null;
-let scheduledTrackUrl = null;
+
+// The server pushes a fresh state to every client whenever ANYTHING changes
+// (another player joining, someone else submitting their answer, etc.) -
+// including to players who are mid-typing. A naive re-render on every one
+// of those pushes would blow away the textarea/name field the player is
+// actively editing. currentScreenKey tracks which "input screen" is
+// currently shown; the input-taking screens skip re-rendering entirely
+// when the incoming state doesn't actually change what they'd show.
+let currentScreenKey = null;
 
 function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, (c) => ({
@@ -94,56 +99,8 @@ function updateCountdown(deadline) {
   countdownTimer = setInterval(tick, 500);
 }
 
-function wireUnlockButton() {
-  const btn = document.getElementById("unlockAudioBtn");
-  if (!btn) return;
-  btn.addEventListener("click", () => {
-    PartyGame.unlockAudio(audioEl);
-    audioUnlocked = true;
-    render();
-  });
-}
-
-function schedulePlayback(st) {
-  if (!st.track || scheduledTrackUrl === st.track.url) return;
-  scheduledTrackUrl = st.track.url;
-  audioEl.src = st.track.url;
-  audioEl.load();
-  const delay = st.track.startAt - Date.now();
-  const doPlay = () => audioEl.play().catch(() => {});
-  if (delay <= 0) doPlay();
-  else setTimeout(doPlay, delay);
-}
-
-function startKaraoke(st) {
-  if (karaokeTimer) clearInterval(karaokeTimer);
-  if (!st.track || !st.lyrics) return;
-  const lines = st.lyrics.body.split("\n");
-  const contentLines = lines
-    .map((l, i) => ({ i, isContent: l.trim() && !/^\[.*\]$/.test(l.trim()) }))
-    .filter((l) => l.isContent);
-  const total = contentLines.length || 1;
-
-  function tick() {
-    const el = document.getElementById("lyricsBlock");
-    if (!el) { clearInterval(karaokeTimer); return; }
-    const elapsed = (Date.now() - st.track.startAt) / 1000;
-    const frac = Math.max(0, Math.min(0.999, elapsed / st.track.durationSeconds));
-    const activeEntry = contentLines[Math.floor(frac * total)];
-    const activeIdx = activeEntry ? activeEntry.i : null;
-    el.querySelectorAll("[data-line]").forEach((node) => {
-      node.classList.toggle("active-line", Number(node.dataset.line) === activeIdx);
-    });
-    if (activeIdx != null) {
-      const activeNode = el.querySelector(`[data-line="${activeIdx}"]`);
-      if (activeNode) activeNode.scrollIntoView({ block: "center", behavior: "smooth" });
-    }
-  }
-  tick();
-  karaokeTimer = setInterval(tick, 400);
-}
-
 function screenSpinner(text) {
+  currentScreenKey = null;
   setApp(`
     <div class="title">🎤 Song Party</div>
     <div class="spinner"></div>
@@ -152,6 +109,8 @@ function screenSpinner(text) {
 }
 
 function screenNameForm() {
+  if (currentScreenKey === "nameForm") return; // preserve in-progress typing
+  currentScreenKey = "nameForm";
   setApp(`
     <div class="title">🎤 Song Party</div>
     <div class="card col">
@@ -176,6 +135,7 @@ function screenNameForm() {
 }
 
 function screenLobby(st, me) {
+  currentScreenKey = null;
   const list = st.players
     .map((p) => `<span class="badge"><span class="dot" style="background:${p.color}"></span>${escapeHtml(p.name)}${p.connected ? "" : " (away)"}</span>`)
     .join("");
@@ -198,6 +158,7 @@ function screenAnswering(st, me) {
   const pct = total ? Math.round((answeredCount / total) * 100) : 0;
 
   if (me && me.answered) {
+    currentScreenKey = null;
     setApp(`
       <div class="title">🎤 Song Party</div>
       <div class="card col center">
@@ -205,12 +166,18 @@ function screenAnswering(st, me) {
         <div>Answer locked in! Waiting on the rest of the crew...</div>
         <div class="progress-bar"><div style="width:${pct}%"></div></div>
         <div class="muted">${answeredCount}/${total} answered</div>
-        ${audioUnlocked ? "" : '<button id="unlockAudioBtn" class="ghost">🔊 Tap to enable sound for later</button>'}
       </div>
     `);
-    wireUnlockButton();
     return;
   }
+
+  // Nothing in this screen depends on other players' state (the deadline
+  // countdown ticks itself via its own timer) - so if we're already
+  // showing the form for this exact round/question, do nothing rather
+  // than wiping out what the player is mid-typing.
+  const screenKey = `answering:${st.roundNumber}:${st.question}`;
+  if (currentScreenKey === screenKey) return;
+  currentScreenKey = screenKey;
 
   setApp(`
     <div class="title">🎤 Song Party</div>
@@ -239,75 +206,48 @@ function screenAnswering(st, me) {
   if (st.deadline) updateCountdown(st.deadline);
 }
 
-function screenLoading(text, opts = {}) {
+function screenLoading(text) {
+  currentScreenKey = null;
   setApp(`
     <div class="title">🎤 Song Party</div>
     <div class="card col center">
       <div class="spinner"></div>
       <div class="pulse">${escapeHtml(text)}</div>
-      ${opts.withUnlock && !audioUnlocked ? '<button id="unlockAudioBtn" class="ghost">🔊 Tap to enable sound</button>' : ""}
     </div>
   `);
-  wireUnlockButton();
 }
 
 function screenLyrics(st) {
+  currentScreenKey = null;
   setApp(`
     <div class="title">🎶 ${escapeHtml(st.lyrics.title)}</div>
     <div class="card col center">
-      <div class="muted">The song's ready! Watch the host screen while it's produced 🎧</div>
-      ${audioUnlocked ? "" : '<button id="unlockAudioBtn" class="secondary">🔊 Tap to enable sound on this phone</button>'}
+      <div class="muted">The song's ready! Watch the host screen for playback 🎧</div>
     </div>
     <div class="card lyrics">${lyricsLinesHTML(st.lyrics.body)}</div>
   `);
-  wireUnlockButton();
 }
 
 function screenPlayback(st) {
+  currentScreenKey = null;
   setApp(`
     <div class="title">🎶 ${escapeHtml(st.lyrics ? st.lyrics.title : "Now Playing")}</div>
     <div class="card col center">
-      <div class="pulse">🎧 Now playing on everyone's device</div>
-      ${audioUnlocked ? "" : '<button id="unlockAudioBtn" class="secondary">▶️ Tap to play on this phone</button>'}
+      <div class="pulse">🎧 Now playing on the host screen</div>
     </div>
-    <div class="card lyrics" id="lyricsBlock">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
+    <div class="card lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
-  const btn = document.getElementById("unlockAudioBtn");
-  if (btn) {
-    btn.addEventListener("click", () => {
-      if (st.track) {
-        audioEl.src = st.track.url;
-        audioEl.load();
-        audioEl.play().catch(() => {});
-        scheduledTrackUrl = st.track.url;
-      }
-      audioUnlocked = true;
-      render();
-    });
-  }
-  schedulePlayback(st);
-  startKaraoke(st);
 }
 
 function screenRoundEnd(st) {
+  currentScreenKey = null;
   setApp(`
     <div class="title">🎉 Song complete!</div>
     <div class="card col center">
       <div>Nice work, crew. Waiting for the host to start the next round...</div>
-      <button id="replayBtn" class="secondary">🔁 Replay on this phone</button>
     </div>
     <div class="card lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
-  const btn = document.getElementById("replayBtn");
-  if (btn) {
-    btn.addEventListener("click", () => {
-      if (st.track) {
-        audioEl.src = st.track.url;
-        audioEl.currentTime = 0;
-        audioEl.play().catch(() => {});
-      }
-    });
-  }
 }
 
 function render() {
@@ -317,18 +257,16 @@ function render() {
   }
   if (!latestState) return screenSpinner("Loading game...");
 
-  if (latestState.phase !== "playback" && !audioEl.paused) audioEl.pause();
-
   const st = latestState;
   const me = st.players.find((p) => p.id === myId);
 
   switch (st.phase) {
     case "lobby": return screenLobby(st, me);
-    case "question": return screenLoading("🎲 Claude is thinking of a prompt...");
+    case "question": return screenLoading("🎲 Claude is thinking of everyone's prompts...");
     case "answering": return screenAnswering(st, me);
     case "generating_lyrics": return screenLoading("✍️ Claude is writing your song lyrics...");
     case "lyrics_ready": return screenLyrics(st);
-    case "generating_music": return screenLoading("🎧 Producing your track...", { withUnlock: true });
+    case "generating_music": return screenLoading("🎧 Producing your track...");
     case "playback": return screenPlayback(st);
     case "round_end": return screenRoundEnd(st);
     default: return screenSpinner("...");

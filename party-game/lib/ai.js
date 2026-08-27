@@ -1,8 +1,9 @@
-// Claude wrapper: generates the party prompt/question each round, and turns
-// the players' answers into song lyrics. Both functions return { result: null }
-// on any failure (missing key, network error, refusal) so the caller can fall
-// back to the offline content banks - the game should never hard-fail a round
-// just because the AI call didn't work.
+// Claude wrapper: generates each round's set of related-but-different
+// player prompts, and turns the players' answers into song lyrics. Both
+// functions return { result: null } on any failure (missing key, network
+// error, refusal) so the caller can fall back to the offline content banks
+// - the game should never hard-fail a round just because the AI call
+// didn't work.
 //
 // Every call also returns the raw request/response (or error) it made, so
 // the server can surface them in the host's debug panel - useful for
@@ -30,79 +31,78 @@ function firstText(message) {
   return block ? block.text.trim() : "";
 }
 
-// A generic "give me a silly party prompt" request has an obvious generic
-// answer (a wedding running late, missing the bus, etc.) that Claude tends
-// to converge on every time, especially right after a server restart when
-// there's no previousQuestions history yet to steer away from it. Picking
-// a random theme per call breaks that convergence regardless of history.
-const QUESTION_THEMES = [
-  "childhood memories",
-  "embarrassing moments",
-  "superpowers or magic",
-  "weird food combinations",
-  "workplace or school mishaps",
-  "family gatherings",
-  "travel disasters",
-  "first impressions",
-  "hidden talents",
-  "roommate or neighbor drama",
-  "pets or animals",
-  "technology going wrong",
-  "conspiracy theories (silly, not real ones)",
-  "fashion choices",
-  "secret identities",
-];
-
-async function generateQuestion({ previousQuestions = [] } = {}) {
+// Each player gets their OWN prompt (not a shared one) so their answers
+// read as different beats of one story - Claude invents a shared scenario
+// and writes one prompt per player about it, which the lyrics step later
+// weaves into a single coherent song.
+async function generateQuestionSet({ playerCount = 4, previousThemes = [] } = {}) {
   const c = getClient();
   if (!c) return { result: null };
 
-  const theme = QUESTION_THEMES[Math.floor(Math.random() * QUESTION_THEMES.length)];
-  const avoid = previousQuestions.length
-    ? `Don't repeat or closely resemble any of these already-used prompts: ${previousQuestions
-        .map((q) => `"${q}"`)
+  const n = Math.max(2, Math.min(playerCount, 8));
+  const avoid = previousThemes.length
+    ? `Don't reuse or closely resemble any of these already-used scenarios: ${previousThemes
+        .map((t) => `"${t}"`)
         .join(", ")}.`
     : "";
   const request = {
     model: MODEL,
-    max_tokens: 300,
+    max_tokens: 500,
     temperature: 1,
     output_config: { effort: "low" },
     system:
-      "You write a single short, funny, party-game prompt. It will be shown to a group of friends on their phones; each of them types a short answer, and those answers get woven into song lyrics afterward. Keep it silly, inclusive, safe for a mixed group, and answerable in one short sentence. Reply with ONLY the prompt text itself - no quotes, no preamble, no label.",
+      `You write party-game prompts for a group of friends playing on their phones. ` +
+      `Invent one silly shared scenario, then write ${n} DIFFERENT short prompts about ` +
+      `that same scenario - one per player - so that when each person answers only their ` +
+      `own prompt, the combined answers naturally read as one coherent, funny story that ` +
+      `can be turned into a single song afterward. Keep every prompt short, safe for a ` +
+      `mixed group, and answerable in one short sentence. Respond in EXACTLY this format, ` +
+      `nothing else:\n` +
+      `THEME: <short scenario name>\n` +
+      `1. <prompt for player 1>\n` +
+      `2. <prompt for player 2>\n` +
+      `(one numbered line per prompt, exactly ${n} numbered lines, no extra commentary)`,
     messages: [
       {
         role: "user",
-        content: `Give me one new party prompt for this round, themed loosely around: ${theme}. ${avoid}`,
+        content: `Group size: ${n} players. ${avoid}`,
       },
     ],
   };
 
   try {
     const message = await c.messages.create(request);
-    const text = firstText(message).replace(/^["']|["']$/g, "");
-    return { result: text || null, request, response: message };
+    const text = firstText(message);
+    const themeMatch = text.match(/THEME:\s*(.*)/);
+    const theme = themeMatch ? themeMatch[1].trim() : "";
+    const questions = [...text.matchAll(/^\s*\d+[.)]\s*(.+)$/gm)].map((m) => m[1].trim());
+    if (!theme || questions.length === 0) return { result: null, request, response: message };
+    return { result: { theme, questions }, request, response: message };
   } catch (err) {
-    console.error("[ai] generateQuestion failed:", err.message || err);
+    console.error("[ai] generateQuestionSet failed:", err.message || err);
     return { result: null, request, error: err.message || String(err) };
   }
 }
 
-async function generateLyrics({ question, genre, genreLabel, answers }) {
+async function generateLyrics({ theme, genre, genreLabel, answers }) {
   const c = getClient();
   if (!c) return { result: null };
 
-  const answerLines = answers.map((a) => `- ${a.name}: "${a.text}"`).join("\n");
+  const answerLines = answers
+    .map((a) => `- ${a.name} was asked "${a.question}" and answered: "${a.text}"`)
+    .join("\n");
   const request = {
     model: MODEL,
     max_tokens: 1200,
     output_config: { effort: "medium" },
     system:
-      `You are a witty songwriter for a party game. Given a prompt and a list of ` +
-      `players' short answers, write original, family-friendly, funny song lyrics ` +
-      `in the ${genreLabel} genre that weave in as many players' names and answers as ` +
-      `you naturally can. Use standard section labels like [Verse 1], [Chorus], ` +
-      `[Verse 2], [Bridge]. Keep it tight - roughly 16-24 lines total. ` +
+      `You are a witty songwriter for a party game. Players were each asked a different ` +
+      `question about one shared scenario, and answered separately without seeing each ` +
+      `other's answers. Given the scenario and everyone's question+answer pairs, write ` +
+      `original, family-friendly, funny song lyrics in the ${genreLabel} genre that weave ` +
+      `all the answers together into ONE coherent story about the scenario, in the order ` +
+      `that makes it read as a single narrative. Use standard section labels like ` +
+      `[Verse 1], [Chorus], [Verse 2], [Bridge]. Keep it tight - roughly 16-24 lines total. ` +
       `Respond in EXACTLY this format, nothing else:\n` +
       `TITLE: <song title>\n` +
       `---\n` +
@@ -110,7 +110,7 @@ async function generateLyrics({ question, genre, genreLabel, answers }) {
     messages: [
       {
         role: "user",
-        content: `Prompt: "${question}"\nGenre: ${genreLabel}\nAnswers:\n${answerLines}`,
+        content: `Scenario: "${theme}"\nGenre: ${genreLabel}\nPlayer prompts and answers:\n${answerLines}`,
       },
     ],
   };
@@ -131,4 +131,4 @@ async function generateLyrics({ question, genre, genreLabel, answers }) {
   }
 }
 
-module.exports = { isConfigured, generateQuestion, generateLyrics };
+module.exports = { isConfigured, generateQuestionSet, generateLyrics };

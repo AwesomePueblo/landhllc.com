@@ -6,7 +6,7 @@ function clean(text) {
   return String(text || "").trim().replace(/\s+/g, " ");
 }
 
-function fallbackLyrics({ question, genre, answers }) {
+function fallbackLyrics({ theme, genre, answers }) {
   const lines = answers.map((a) => `${a.name} says: ${clean(a.text)}`);
   const title = `The Ballad of ${answers.map((a) => a.name).join(" & ")}`;
 
@@ -15,8 +15,8 @@ function fallbackLyrics({ question, genre, answers }) {
   lines.slice(0, Math.ceil(lines.length / 2)).forEach((l) => body.push(l));
   body.push("");
   body.push("[Chorus]");
-  body.push(`We asked the room, "${clean(question)}"`);
-  body.push("And everybody answered, out of tune but true");
+  body.push(`This is the story of ${clean(theme)}`);
+  body.push("Everybody's got a piece, out of tune but true");
   body.push(`This is our ${genre} anthem, born right here tonight`);
   body.push("Turn it up and sing along, we're gonna be alright");
   body.push("");
@@ -26,8 +26,8 @@ function fallbackLyrics({ question, genre, answers }) {
     body.push("");
   }
   body.push("[Chorus]");
-  body.push(`We asked the room, "${clean(question)}"`);
-  body.push("And everybody answered, out of tune but true");
+  body.push(`This is the story of ${clean(theme)}`);
+  body.push("Everybody's got a piece, out of tune but true");
   body.push(`This is our ${genre} anthem, born right here tonight`);
   body.push("Turn it up and sing along, we're gonna be alright");
 

@@ -7,9 +7,7 @@ let authed = false;
 let hostKey = new URLSearchParams(location.search).get("key") || "";
 let latestState = null;
 let countdownTimer = null;
-let karaokeTimer = null;
 let scheduledTrackUrl = null;
-let audioUnlocked = false;
 
 function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, (c) => ({
@@ -50,6 +48,7 @@ const socket = PartyGame.createSocket({
       latestState = msg.state;
       render();
       renderDebug(msg.state.debugLog || []);
+      updateAudioDock(msg.state);
     }
   },
   onClose() {},
@@ -110,6 +109,61 @@ function renderDebug(entries) {
   });
 })();
 
+// The fullscreen button lives inside #app and gets recreated by setApp()
+// on every render (wireTopBar() rewires its click handler each time), but
+// the browser can also exit fullscreen without a render happening (e.g.
+// pressing Escape) - keep its label in sync either way.
+document.addEventListener("fullscreenchange", () => {
+  const btn = document.getElementById("fullscreenBtn");
+  if (btn) btn.textContent = document.fullscreenElement ? "⛶ Exit fullscreen" : "⛶ Fullscreen";
+});
+
+// A real, persistent audio player: visible native controls (play/pause/
+// seek/volume - so playback isn't a one-shot autoplay, it can be replayed
+// any time), a download link, and the song title. Lives outside #app so
+// setApp()'s innerHTML wipes never interrupt playback. Only the host plays
+// audio - players' phones just show the lyrics.
+function updateAudioDock(st) {
+  const dock = document.getElementById("audioDock");
+  if (!dock) return;
+
+  if (!st.track) {
+    dock.classList.remove("visible");
+    if (!audioEl.paused) audioEl.pause();
+    audioEl.removeAttribute("src");
+    scheduledTrackUrl = null;
+    return;
+  }
+
+  dock.classList.add("visible");
+  const titleEl = document.getElementById("audioDockTitle");
+  if (titleEl) titleEl.textContent = st.lyrics ? `🎵 ${st.lyrics.title}` : "🎵 Song";
+
+  const link = document.getElementById("downloadLink");
+  if (link) {
+    link.href = st.track.url;
+    const ext = st.track.url.slice(st.track.url.lastIndexOf(".") + 1) || "mp3";
+    const safeTitle = ((st.lyrics && st.lyrics.title) || "song").replace(/[^a-z0-9\- ]+/gi, "").trim() || "song";
+    link.download = `${safeTitle}.${ext}`;
+  }
+
+  schedulePlayback(st);
+}
+
+function schedulePlayback(st) {
+  if (!st.track || scheduledTrackUrl === st.track.url) return;
+  scheduledTrackUrl = st.track.url;
+  audioEl.src = st.track.url;
+  audioEl.load();
+  const delay = st.track.startAt - Date.now();
+  const doPlay = () => audioEl.play().catch(() => {
+    // Autoplay blocked - the dock's native controls are visible, so the
+    // host can just press play themselves. Nothing more to do here.
+  });
+  if (delay <= 0) doPlay();
+  else setTimeout(doPlay, delay);
+}
+
 function joinUrl() {
   return location.origin;
 }
@@ -135,41 +189,6 @@ function updateCountdown(deadline) {
   }
   tick();
   countdownTimer = setInterval(tick, 500);
-}
-
-function schedulePlayback(st) {
-  if (!st.track || scheduledTrackUrl === st.track.url) return;
-  scheduledTrackUrl = st.track.url;
-  audioEl.src = st.track.url;
-  audioEl.load();
-  const delay = st.track.startAt - Date.now();
-  const doPlay = () => audioEl.play().catch(() => {});
-  if (delay <= 0) doPlay();
-  else setTimeout(doPlay, delay);
-}
-
-function startKaraoke(st) {
-  if (karaokeTimer) clearInterval(karaokeTimer);
-  if (!st.track || !st.lyrics) return;
-  const lines = st.lyrics.body.split("\n");
-  const contentLines = lines
-    .map((l, i) => ({ i, isContent: l.trim() && !/^\[.*\]$/.test(l.trim()) }))
-    .filter((l) => l.isContent);
-  const total = contentLines.length || 1;
-
-  function tick() {
-    const el = document.getElementById("lyricsBlock");
-    if (!el) { clearInterval(karaokeTimer); return; }
-    const elapsed = (Date.now() - st.track.startAt) / 1000;
-    const frac = Math.max(0, Math.min(0.999, elapsed / st.track.durationSeconds));
-    const activeEntry = contentLines[Math.floor(frac * total)];
-    const activeIdx = activeEntry ? activeEntry.i : null;
-    el.querySelectorAll("[data-line]").forEach((node) => {
-      node.classList.toggle("active-line", Number(node.dataset.line) === activeIdx);
-    });
-  }
-  tick();
-  karaokeTimer = setInterval(tick, 400);
 }
 
 function playerListHTML(players) {
@@ -226,7 +245,10 @@ function topBar(st) {
   return `
     <div class="row" style="align-items:center;justify-content:space-between">
       <div class="host-title title">🎤 Song Party</div>
-      <div class="muted">Round ${st.roundNumber}</div>
+      <div class="row" style="align-items:center;gap:14px">
+        <div class="muted">Round ${st.roundNumber}</div>
+        <button id="fullscreenBtn" class="ghost small">⛶ Fullscreen</button>
+      </div>
     </div>
     <div class="card join-panel">
       <div>
@@ -237,6 +259,21 @@ function topBar(st) {
       <div class="player-list">${playerListHTML(st.players)}</div>
     </div>
   `;
+}
+
+function wireTopBar() {
+  wireKickButtons();
+  // Fullscreen button is re-created on every setApp(), so its listener
+  // needs rewiring each time too (unlike the debug/panel ones, which are
+  // wired once outside #app).
+  const btn = document.getElementById("fullscreenBtn");
+  if (btn) {
+    btn.textContent = document.fullscreenElement ? "⛶ Exit fullscreen" : "⛶ Fullscreen";
+    btn.addEventListener("click", () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(() => flashError("Fullscreen wasn't allowed - try F11."));
+    });
+  }
 }
 
 function screenLobby(st) {
@@ -251,8 +288,8 @@ function screenLobby(st) {
       <button id="startBtn" ${st.players.length ? "" : "disabled"}>▶️ Start round</button>
     </div>
   `);
+  wireTopBar();
   wireGenreSelect();
-  wireKickButtons();
   document.getElementById("startBtn").addEventListener("click", () => socket.send({ type: "host:start" }));
 }
 
@@ -264,19 +301,29 @@ function screenLoading(st, text) {
       <div class="pulse" style="font-size:1.3rem">${escapeHtml(text)}</div>
     </div>
   `);
-  wireKickButtons();
+  wireTopBar();
 }
 
 function screenAnswering(st) {
   const answeredCount = st.players.filter((p) => p.answered).length;
   const total = st.players.length;
   const pct = total ? Math.round((answeredCount / total) * 100) : 0;
+  const promptRows = st.players
+    .map(
+      (p) => `
+      <div class="row" style="justify-content:space-between;align-items:center;gap:12px">
+        <span class="badge"><span class="dot" style="background:${p.color}"></span>${escapeHtml(p.name)}</span>
+        <span class="muted" style="flex:1;text-align:right">${escapeHtml(p.question || "")}${p.answered ? " ✅" : ""}</span>
+      </div>`
+    )
+    .join("");
   setApp(`
     ${topBar(st)}
     <div class="card col center">
-      <div class="muted">${escapeHtml(st.genreLabel)}</div>
-      <div class="big-question">${escapeHtml(st.question || "")}</div>
+      <div class="muted">${escapeHtml(st.genreLabel)} · themed around: <strong>${escapeHtml(st.questionTheme || "")}</strong></div>
+      <div class="muted" style="font-size:0.9rem">Everyone's got their own related prompt this round</div>
     </div>
+    <div class="card col">${promptRows}</div>
     <div class="card col">
       <div class="progress-bar"><div style="width:${pct}%"></div></div>
       <div class="row center" style="justify-content:space-between">
@@ -286,7 +333,7 @@ function screenAnswering(st) {
       <button id="lockBtn" class="secondary">🔒 Lock answers now</button>
     </div>
   `);
-  wireKickButtons();
+  wireTopBar();
   document.getElementById("lockBtn").addEventListener("click", () => socket.send({ type: "host:lockAnswers" }));
   if (st.deadline) updateCountdown(st.deadline);
 }
@@ -300,7 +347,7 @@ function screenLyricsReady(st) {
     </div>
     <div class="card host-lyrics lyrics">${lyricsLinesHTML(st.lyrics.body)}</div>
   `);
-  wireKickButtons();
+  wireTopBar();
   document.getElementById("makeSongBtn").addEventListener("click", () => socket.send({ type: "host:makeSong" }));
 }
 
@@ -313,7 +360,7 @@ function screenGeneratingMusic(st) {
     </div>
     <div class="card host-lyrics lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
-  wireKickButtons();
+  wireTopBar();
 }
 
 function screenPlayback(st) {
@@ -322,29 +369,14 @@ function screenPlayback(st) {
     <div class="card col center">
       <div class="pulse" style="font-size:1.3rem">🎧 Now playing - ${escapeHtml(st.lyrics ? st.lyrics.title : "")}</div>
       <div class="row center" style="justify-content:center">
-        ${audioUnlocked ? "" : '<button id="unlockAudioBtn" class="secondary">▶️ Tap to play on this screen</button>'}
         <button id="stopBtn" class="ghost">⏹ Stop song</button>
       </div>
+      <div class="muted" style="font-size:0.85rem">Use the player below to pause, replay, or download</div>
     </div>
-    <div class="card host-lyrics lyrics" id="lyricsBlock">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
+    <div class="card host-lyrics lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
-  wireKickButtons();
-  const btn = document.getElementById("unlockAudioBtn");
-  if (btn) {
-    btn.addEventListener("click", () => {
-      if (st.track) {
-        audioEl.src = st.track.url;
-        audioEl.load();
-        audioEl.play().catch(() => {});
-        scheduledTrackUrl = st.track.url;
-      }
-      audioUnlocked = true;
-      render();
-    });
-  }
+  wireTopBar();
   document.getElementById("stopBtn").addEventListener("click", () => socket.send({ type: "host:stopPlayback" }));
-  schedulePlayback(st);
-  startKaraoke(st);
 }
 
 function screenRoundEnd(st) {
@@ -352,6 +384,7 @@ function screenRoundEnd(st) {
     ${topBar(st)}
     <div class="card col center">
       <h2>🎉 Song complete!</h2>
+      <div class="muted" style="font-size:0.85rem">Song's still loaded in the player below - replay or download it any time</div>
       <div class="row center" style="justify-content:center">
         <button id="nextBtn">▶️ Next round</button>
         <button id="newGameBtn" class="secondary">🏁 New game</button>
@@ -359,7 +392,7 @@ function screenRoundEnd(st) {
     </div>
     <div class="card host-lyrics lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
-  wireKickButtons();
+  wireTopBar();
   document.getElementById("nextBtn").addEventListener("click", () => socket.send({ type: "host:next" }));
   document.getElementById("newGameBtn").addEventListener("click", () => socket.send({ type: "host:newGame" }));
 }
@@ -375,12 +408,10 @@ function render() {
     return;
   }
 
-  if (latestState.phase !== "playback" && !audioEl.paused) audioEl.pause();
-
   const st = latestState;
   switch (st.phase) {
     case "lobby": return screenLobby(st);
-    case "question": return screenLoading(st, "🎲 Claude is thinking of a prompt...");
+    case "question": return screenLoading(st, "🎲 Claude is thinking of everyone's prompts...");
     case "answering": return screenAnswering(st);
     case "generating_lyrics": return screenLoading(st, "✍️ Claude is writing your song lyrics...");
     case "lyrics_ready": return screenLyricsReady(st);
