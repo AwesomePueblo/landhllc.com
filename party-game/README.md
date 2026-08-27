@@ -134,7 +134,7 @@ see it.
 | Variable | Default | Notes |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | - | Optional. Without it, prompts/lyrics come from the offline banks. |
-| `CLAUDE_MODEL` | `claude-sonnet-5` | Model used for prompts + lyrics. |
+| `CLAUDE_MODEL` | `claude-haiku-4-5` | Model used for prompts + lyrics (cheapest current Claude model). |
 | `PORT` | `3000` | Port the server listens on. |
 | `ANSWER_SECONDS` | `90` | Soft time limit per round. |
 | `TRACK_SECONDS` | `26` | Target length of the generated track. |

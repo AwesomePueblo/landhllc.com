@@ -12,7 +12,7 @@
 
 const Anthropic = require("@anthropic-ai/sdk");
 
-const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-5";
+const MODEL = process.env.CLAUDE_MODEL || "claude-haiku-4-5";
 
 let client = null;
 function getClient() {
