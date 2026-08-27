@@ -241,12 +241,23 @@ function screenKeyForm() {
   });
 }
 
+const THEME_LABELS = { default: "Default", blue: "Blue", gold: "Gold", silver: "Silver", dark: "Dark", green: "Green", orange: "Orange" };
+
+function themeSelectHTML() {
+  const current = document.documentElement.getAttribute("data-theme") || "default";
+  const options = PartyGame.THEMES.map(
+    (t) => `<option value="${t}" ${t === current ? "selected" : ""}>${THEME_LABELS[t] || t}</option>`
+  ).join("");
+  return `<select id="themeSelect" class="small">${options}</select>`;
+}
+
 function topBar(st) {
   return `
     <div class="row" style="align-items:center;justify-content:space-between">
       <div class="host-title title">🎤 Song Party</div>
       <div class="row" style="align-items:center;gap:14px">
         <div class="muted">Round ${st.roundNumber}</div>
+        ${themeSelectHTML()}
         <button id="fullscreenBtn" class="ghost small">⛶ Fullscreen</button>
       </div>
     </div>
@@ -263,6 +274,7 @@ function topBar(st) {
 
 function wireTopBar() {
   wireKickButtons();
+  PartyGame.wireThemePicker("themeSelect");
   // Fullscreen button is re-created on every setApp(), so its listener
   // needs rewiring each time too (unlike the debug/panel ones, which are
   // wired once outside #app).
@@ -385,6 +397,9 @@ function screenRoundEnd(st) {
     <div class="card col center">
       <h2>🎉 Song complete!</h2>
       <div class="muted" style="font-size:0.85rem">Song's still loaded in the player below - replay or download it any time</div>
+      <div class="row center" style="justify-content:center;align-items:center">
+        <span class="muted">Next round's genre:</span> ${genreSelectHTML(st)}
+      </div>
       <div class="row center" style="justify-content:center">
         <button id="nextBtn">▶️ Next round</button>
         <button id="newGameBtn" class="secondary">🏁 New game</button>
@@ -393,6 +408,7 @@ function screenRoundEnd(st) {
     <div class="card host-lyrics lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
   wireTopBar();
+  wireGenreSelect();
   document.getElementById("nextBtn").addEventListener("click", () => socket.send({ type: "host:next" }));
   document.getElementById("newGameBtn").addEventListener("click", () => socket.send({ type: "host:newGame" }));
 }

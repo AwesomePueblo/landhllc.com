@@ -25,7 +25,14 @@ const { generateTrack } = require("./wavSynth");
 const { getGenre } = require("./genrePresets");
 
 const TRACKS_DIR = path.join(__dirname, "..", "public", "tracks");
-const TRACK_SECONDS = Number(process.env.TRACK_SECONDS) || 26;
+const TRACK_SECONDS = Number(process.env.TRACK_SECONDS) || 60;
+// Floor on how long each lyric section gets in the ElevenLabs composition
+// plan. Dividing a short total (e.g. the old 26s default) across ~4
+// sections left ~6.5s each - not enough time to actually sing a section's
+// lines, which is why generated tracks sounded truncated and didn't use
+// the full lyrics. This guarantees real singing time per section
+// regardless of how TRACK_SECONDS is configured.
+const MIN_SECTION_MS = 14000;
 
 async function mockProvider({ genre }) {
   const { buffer, durationSeconds } = generateTrack({
@@ -72,8 +79,8 @@ async function elevenlabsProvider({ lyrics, genre, genreLabel }) {
     return { error: "no lyrics sections to compose from" };
   }
 
-  const targetMs = TRACK_SECONDS * 1000;
-  const perChunkMs = Math.max(3000, Math.min(120000, Math.round(targetMs / sections.length)));
+  const targetMs = Math.max(TRACK_SECONDS * 1000, sections.length * MIN_SECTION_MS);
+  const perChunkMs = Math.min(120000, Math.round(targetMs / sections.length));
   const chunks = sections.map((s) => ({
     text: [s.label, ...s.lines].join("\n"),
     duration_ms: perChunkMs,

@@ -1,12 +1,8 @@
-// Shared client helpers: a reconnecting WebSocket wrapper and the mobile
-// audio-unlock trick (browsers block audio.play() unless it was triggered
-// by a real user gesture at least once per page session).
+// Shared client helpers: a reconnecting WebSocket wrapper and the
+// per-device color theme picker.
 "use strict";
 
 window.PartyGame = (function () {
-  const SILENCE_WAV =
-    "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
-
   function createSocket({ onOpen, onMessage, onClose } = {}) {
     let ws;
     let backoff = 1000;
@@ -45,22 +41,38 @@ window.PartyGame = (function () {
     };
   }
 
-  // Call from inside a real click/tap handler, once, before you ever need
-  // to autoplay. Reuse the SAME <audio> element for the real playback later.
-  function unlockAudio(audioEl) {
-    try {
-      audioEl.src = SILENCE_WAV;
-      audioEl.muted = true;
-      const p = audioEl.play();
-      if (p && p.catch) p.catch(() => {});
-      setTimeout(() => {
-        audioEl.pause();
-        audioEl.currentTime = 0;
-        audioEl.muted = false;
-      }, 80);
-    } catch {
-      // best effort - if it fails, playback will just require a manual tap
-    }
+  // Color theme: a per-device cosmetic preference (not shared game state),
+  // remembered in localStorage. "default" removes the [data-theme]
+  // attribute, falling back to the built-in purple/pink palette in
+  // style.css's :root.
+  const THEME_KEY = "pg_theme";
+  const THEMES = ["default", "blue", "gold", "silver", "dark", "green", "orange"];
+
+  function applyTheme(name) {
+    if (name && name !== "default") document.documentElement.setAttribute("data-theme", name);
+    else document.documentElement.removeAttribute("data-theme");
+  }
+
+  function initTheme() {
+    const saved = localStorage.getItem(THEME_KEY) || "default";
+    applyTheme(saved);
+    return saved;
+  }
+
+  function setTheme(name) {
+    localStorage.setItem(THEME_KEY, name);
+    applyTheme(name);
+  }
+
+  // Wires up a <select> (by id) as the theme picker: sets its initial
+  // value to the saved theme and applies+persists on change. Safe to call
+  // once at script load - the element lives outside any screen that gets
+  // re-rendered, so it never needs rewiring.
+  function wireThemePicker(selectId) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.value = initTheme();
+    sel.addEventListener("change", () => setTheme(sel.value));
   }
 
   function fmtCountdown(deadline) {
@@ -69,5 +81,5 @@ window.PartyGame = (function () {
     return `${secs}s`;
   }
 
-  return { createSocket, unlockAudio, fmtCountdown };
+  return { createSocket, fmtCountdown, THEMES, wireThemePicker };
 })();

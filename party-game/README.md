@@ -67,7 +67,9 @@ the join URL.
 ## Playing
 
 - On the host screen, pick a genre and hit **Start round**. Click
-  **⛶ Fullscreen** to fill the whole screen (handy on a TV).
+  **⛶ Fullscreen** to fill the whole screen (handy on a TV). The genre
+  dropdown is available again on the **round_end** screen, so you can pick
+  a new one for each round rather than being stuck with your first choice.
 - The host screen shows each player's own prompt as they answer (there's a
   soft time limit, and the round auto-advances once everyone's answered or
   time's up).
@@ -80,6 +82,15 @@ the join URL.
   the track file. It stays loaded and replayable through **round_end**
   too, until the next round starts.
 - **Next round** to go again, or **New game** to reset everyone.
+
+### Color theme
+
+Both the host screen and every player's phone have a small theme picker
+(top-right corner on phones, next to Fullscreen on the host) - Default,
+Blue, Gold, Silver, Dark, Green, Orange. It's a per-device cosmetic
+preference (saved in that browser's `localStorage`), not shared game
+state - everyone can pick their own without affecting anyone else's
+screen.
 
 ## How the pieces fit together
 
@@ -110,11 +121,15 @@ sung vocal track instead, via ElevenLabs' public **Eleven Music API**
 (or the offline template) just wrote, splits them into `[Verse]`/`[Chorus]`
 sections, and sends each section plus genre-flavored style tags
 (`lib/genrePresets.js`) to `POST https://api.elevenlabs.io/v1/music` as a
-composition plan. Requires a paid ElevenLabs plan - music generation costs
-credits (see `.env.example`). If the API call fails for any reason (bad
-key, network error, rate limit), the round automatically falls back to the
-offline synth rather than breaking - check the host screen's debug panel
-(see below) for the actual error.
+composition plan. Each section always gets at least 14s of singing time
+regardless of `TRACK_SECONDS` (`MIN_SECTION_MS` in `lib/music.js`) - a
+short total split across several sections doesn't leave enough time to
+actually sing the lines, which is why early tracks sounded truncated and
+skipped most of the lyrics. Requires a paid ElevenLabs plan - music
+generation costs credits (see `.env.example`). If the API call fails for
+any reason (bad key, network error, rate limit, timeout), the round
+automatically falls back to the offline synth rather than breaking - check
+the host screen's debug panel (see below) for the actual error.
 
 `lib/music.js` remains a small provider interface, so another backend can
 be dropped in later the same way: implement a new branch that calls the
@@ -140,7 +155,7 @@ see it.
 | `CLAUDE_MODEL` | `claude-haiku-4-5` | Model used for prompts + lyrics (cheapest current Claude model). |
 | `PORT` | `3000` | Port the server listens on. |
 | `ANSWER_SECONDS` | `90` | Soft time limit per round. |
-| `TRACK_SECONDS` | `26` | Target length of the generated track. |
+| `TRACK_SECONDS` | `60` | Target length of the generated track (see "On the music generation" above for why this matters more than it sounds). |
 | `MUSIC_PROVIDER` | `mock` | `mock` (built-in synth, instrumental) or `elevenlabs` (real sung vocals) - see above. |
 | `ELEVENLABS_API_KEY` | - | Required when `MUSIC_PROVIDER=elevenlabs`. |
 
