@@ -7,9 +7,20 @@
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body class="host">
-  <div class="host-wrap" id="app">
-    <div class="spinner"></div>
-    <div class="muted center">Connecting...</div>
+  <div class="host-shell">
+    <div class="host-wrap" id="app">
+      <div class="spinner"></div>
+      <div class="muted center">Connecting...</div>
+    </div>
+    <aside class="debug-panel" id="debugPanel">
+      <div class="debug-header">
+        <span>🔍 AI debug log</span>
+        <button id="debugToggle" class="ghost small" type="button">Hide</button>
+      </div>
+      <div class="debug-body" id="debugBody">
+        <div class="muted" style="font-size:0.8rem">No AI/API calls yet.</div>
+      </div>
+    </aside>
   </div>
   <audio id="host-audio" playsinline></audio>
 

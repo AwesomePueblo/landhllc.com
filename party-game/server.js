@@ -45,7 +45,26 @@ const state = {
   lyrics: null, // { title, body }
   track: null, // { url, durationSeconds, startAt }
   previousQuestions: [],
+  debugLog: [], // host-only: raw request/response for each AI + music call, newest first
 };
+
+const DEBUG_LOG_MAX = 20;
+
+// Records one AI/music provider call so the host UI's debug panel can show
+// exactly what was sent and received - the only way to confirm a round
+// actually came from a real API call rather than the offline fallback.
+function logDebug(type, { request, response, error, usedFallback } = {}) {
+  state.debugLog.unshift({
+    id: crypto.randomUUID(),
+    type, // "question" | "lyrics" | "music"
+    at: Date.now(),
+    request: request ?? null,
+    response: response ?? null,
+    error: error ?? null,
+    usedFallback: !!usedFallback,
+  });
+  if (state.debugLog.length > DEBUG_LOG_MAX) state.debugLog.length = DEBUG_LOG_MAX;
+}
 
 let autoLockTimer = null;
 let roundEndTimer = null;
@@ -64,9 +83,9 @@ function pickColor(seed) {
 // State broadcasting
 // ---------------------------------------------------------------------------
 
-function buildState() {
+function buildState(forHost) {
   const revealPhases = ["lyrics_ready", "generating_music", "playback", "round_end"];
-  return {
+  const base = {
     phase: state.phase,
     roundNumber: state.roundNumber,
     genre: state.genre,
@@ -88,6 +107,8 @@ function buildState() {
     lyrics: state.lyrics,
     track: state.track,
   };
+  if (forHost) base.debugLog = state.debugLog;
+  return base;
 }
 
 function sendTo(ws, obj) {
@@ -95,9 +116,11 @@ function sendTo(ws, obj) {
 }
 
 function broadcastState() {
-  const payload = JSON.stringify({ type: "state", state: buildState() });
+  const playerPayload = JSON.stringify({ type: "state", state: buildState(false) });
+  const hostPayload = JSON.stringify({ type: "state", state: buildState(true) });
   wss.clients.forEach((c) => {
-    if (c.readyState === WebSocket.OPEN) c.send(payload);
+    if (c.readyState !== WebSocket.OPEN) return;
+    c.send(c.isHost ? hostPayload : playerPayload);
   });
 }
 
@@ -122,7 +145,8 @@ async function startRound() {
   broadcastState();
 
   const q = await ai.generateQuestion({ previousQuestions: state.previousQuestions });
-  state.question = q || randomQuestion();
+  if (q.request) logDebug("question", q);
+  state.question = q.result || randomQuestion();
   state.previousQuestions.push(state.question);
   state.roundNumber += 1;
   state.deadline = Date.now() + ANSWER_SECONDS * 1000;
@@ -160,9 +184,9 @@ async function lockAnswers() {
   broadcastState();
 
   const genreLabel = getGenre(state.genre).label;
-  const lyrics =
-    (await ai.generateLyrics({ question: state.question, genre: state.genre, genreLabel, answers })) ||
-    fallbackLyrics({ question: state.question, genre: genreLabel, answers });
+  const lyricsCall = await ai.generateLyrics({ question: state.question, genre: state.genre, genreLabel, answers });
+  if (lyricsCall.request) logDebug("lyrics", lyricsCall);
+  const lyrics = lyricsCall.result || fallbackLyrics({ question: state.question, genre: genreLabel, answers });
 
   state.lyrics = lyrics;
   state.phase = "lyrics_ready";
@@ -176,7 +200,11 @@ async function makeSong() {
 
   let track;
   try {
-    track = await music.generateSong({ lyrics: state.lyrics.body, genre: state.genre });
+    const genreLabel = getGenre(state.genre).label;
+    const musicCall = await music.generateSong({ lyrics: state.lyrics.body, genre: state.genre, genreLabel });
+    if (musicCall.request) logDebug("music", musicCall);
+    track = musicCall.result;
+    if (!track) throw new Error(musicCall.error || "music provider returned no track");
   } catch (err) {
     console.error("[server] music generation failed:", err);
     state.phase = "lyrics_ready";
@@ -266,7 +294,7 @@ function handleHostAuth(ws, msg) {
   }
   ws.isHost = true;
   sendTo(ws, { type: "host:authOk" });
-  sendTo(ws, { type: "state", state: buildState() });
+  sendTo(ws, { type: "state", state: buildState(true) });
 }
 
 function handleAnswerSubmit(ws, msg) {

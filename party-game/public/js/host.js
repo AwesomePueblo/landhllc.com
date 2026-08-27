@@ -49,10 +49,66 @@ const socket = PartyGame.createSocket({
     } else if (msg.type === "state") {
       latestState = msg.state;
       render();
+      renderDebug(msg.state.debugLog || []);
     }
   },
   onClose() {},
 });
+
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour12: false });
+}
+
+function debugEntryHTML(entry) {
+  const typeLabel = { question: "🎲 Question call", lyrics: "✍️ Lyrics call", music: "🎧 Music call" }[entry.type] || entry.type;
+  const statusHTML = entry.error
+    ? `<span class="debug-status err">${entry.usedFallback ? "FAILED (fell back)" : "FAILED"}</span>`
+    : `<span class="debug-status ok">OK</span>`;
+  const parts = [
+    `<div class="debug-section">
+       <div class="debug-label">Request</div>
+       <pre>${escapeHtml(JSON.stringify(entry.request, null, 2))}</pre>
+     </div>`,
+  ];
+  if (entry.response) {
+    parts.push(`<div class="debug-section">
+       <div class="debug-label">Response</div>
+       <pre>${escapeHtml(JSON.stringify(entry.response, null, 2))}</pre>
+     </div>`);
+  }
+  if (entry.error) {
+    parts.push(`<div class="debug-section">
+       <div class="debug-label">Error</div>
+       <pre class="debug-error-text">${escapeHtml(entry.error)}</pre>
+     </div>`);
+  }
+  return `
+    <details class="debug-entry ${entry.error ? "debug-error" : ""}">
+      <summary>${typeLabel} · ${fmtTime(entry.at)} ${statusHTML}</summary>
+      ${parts.join("")}
+    </details>
+  `;
+}
+
+function renderDebug(entries) {
+  const body = document.getElementById("debugBody");
+  if (!body) return;
+  if (!entries.length) {
+    body.innerHTML = '<div class="muted" style="font-size:0.8rem">No AI/API calls yet - this stays empty while running fully offline.</div>';
+    return;
+  }
+  body.innerHTML = entries.map(debugEntryHTML).join("");
+}
+
+(function wireDebugToggle() {
+  const panel = document.getElementById("debugPanel");
+  const btn = document.getElementById("debugToggle");
+  if (!panel || !btn) return;
+  btn.addEventListener("click", () => {
+    panel.classList.toggle("collapsed");
+    btn.textContent = panel.classList.contains("collapsed") ? "Show" : "Hide";
+  });
+})();
 
 function joinUrl() {
   return location.origin;

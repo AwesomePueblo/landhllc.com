@@ -94,20 +94,40 @@ party-game/
 
 ### On the music generation
 
-There's no simple, publicly available API today that turns arbitrary
-lyrics into a fully produced *sung* track (services like Suno or Udio
-don't expose an official public REST API). Rather than fake that, this
-game ships with a real, working alternative: `lib/wavSynth.js` procedurally
+By default (`MUSIC_PROVIDER=mock`), `lib/wavSynth.js` procedurally
 generates a short genre-matched instrumental (chords, bassline, arpeggio,
 light percussion) with zero external dependencies or API keys, so the
 whole pipeline - prompt → answers → lyrics → "a song" → synced playback -
-genuinely works out of the box.
+works fully offline out of the box. No sung vocals in this mode, just an
+instrumental loop.
 
-`lib/music.js` is written as a small provider interface specifically so a
-real sung-vocal backend can be dropped in later without touching the rest
-of the game: implement a new branch that calls the provider's API,
-downloads the resulting audio into `public/tracks/`, and returns
-`{ url, durationSeconds }`.
+Set `MUSIC_PROVIDER=elevenlabs` (plus `ELEVENLABS_API_KEY`) to get a real
+sung vocal track instead, via ElevenLabs' public **Eleven Music API**
+(`lib/music.js`, `elevenlabsProvider`). It takes the actual lyrics Claude
+(or the offline template) just wrote, splits them into `[Verse]`/`[Chorus]`
+sections, and sends each section plus genre-flavored style tags
+(`lib/genrePresets.js`) to `POST https://api.elevenlabs.io/v1/music` as a
+composition plan. Requires a paid ElevenLabs plan - music generation costs
+credits (see `.env.example`). If the API call fails for any reason (bad
+key, network error, rate limit), the round automatically falls back to the
+offline synth rather than breaking - check the host screen's debug panel
+(see below) for the actual error.
+
+`lib/music.js` remains a small provider interface, so another backend can
+be dropped in later the same way: implement a new branch that calls the
+provider's API, downloads the resulting audio into `public/tracks/`, and
+returns `{ result: { url, durationSeconds } }`.
+
+## Debug panel (host screen)
+
+The host screen has a collapsible **AI debug log** on the right showing
+the raw request and response for every real API call made that round -
+the prompt-generation call, the lyrics-generation call, and (if enabled)
+the ElevenLabs music call. It's the way to confirm a round actually came
+from Claude/ElevenLabs rather than the offline fallback banks, and to see
+the exact error if a call fails. It only shows real API attempts, so it
+stays empty while running fully offline. It's host-only - players never
+see it.
 
 ## Configuration (`.env`)
 
@@ -117,8 +137,9 @@ downloads the resulting audio into `public/tracks/`, and returns
 | `CLAUDE_MODEL` | `claude-sonnet-5` | Model used for prompts + lyrics. |
 | `PORT` | `3000` | Port the server listens on. |
 | `ANSWER_SECONDS` | `90` | Soft time limit per round. |
-| `TRACK_SECONDS` | `26` | Length of the generated instrumental. |
-| `MUSIC_PROVIDER` | `mock` | Only `mock` (built-in synth) ships today - see above. |
+| `TRACK_SECONDS` | `26` | Target length of the generated track. |
+| `MUSIC_PROVIDER` | `mock` | `mock` (built-in synth, instrumental) or `elevenlabs` (real sung vocals) - see above. |
+| `ELEVENLABS_API_KEY` | - | Required when `MUSIC_PROVIDER=elevenlabs`. |
 
 ## Limitations (it's a proof of concept)
 

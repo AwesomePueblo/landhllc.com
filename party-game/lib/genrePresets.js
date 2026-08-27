@@ -16,6 +16,7 @@ const GENRES = {
     kick: true,
     arpRate: 2, // notes per beat
     brightness: 1,
+    styles: ["upbeat pop", "catchy vocal hook", "bright synths", "120 bpm", "polished production"],
   },
   rock: {
     label: "Rock",
@@ -27,6 +28,7 @@ const GENRES = {
     kick: true,
     arpRate: 2,
     brightness: 1.1,
+    styles: ["driving rock", "electric guitars", "live drums", "powerful vocals", "138 bpm"],
   },
   hiphop: {
     label: "Hip-Hop",
@@ -38,6 +40,7 @@ const GENRES = {
     kick: true,
     arpRate: 1,
     brightness: 0.7,
+    styles: ["hip-hop", "boom bap drums", "rap vocal delivery", "deep 808 bass", "92 bpm"],
   },
   country: {
     label: "Country",
@@ -49,6 +52,7 @@ const GENRES = {
     kick: true,
     arpRate: 2,
     brightness: 0.9,
+    styles: ["country", "acoustic guitar", "twangy vocals", "storytelling", "112 bpm"],
   },
   edm: {
     label: "EDM",
@@ -61,6 +65,7 @@ const GENRES = {
     kick: true,
     arpRate: 4,
     brightness: 1.3,
+    styles: ["EDM", "festival build-up", "four-on-the-floor kick", "processed vocals", "128 bpm"],
   },
   lofi: {
     label: "Lo-fi",
@@ -73,6 +78,7 @@ const GENRES = {
     arpRate: 1.5,
     brightness: 0.55,
     seventh: true,
+    styles: ["lo-fi", "mellow vocals", "warm jazzy chords", "tape hiss", "relaxed 80 bpm"],
   },
   metal: {
     label: "Metal",
@@ -85,6 +91,7 @@ const GENRES = {
     arpRate: 3,
     brightness: 1.2,
     power: true,
+    styles: ["heavy metal", "distorted guitars", "double kick drums", "aggressive vocals", "160 bpm"],
   },
   jazz: {
     label: "Jazz",
@@ -97,6 +104,7 @@ const GENRES = {
     arpRate: 1.5,
     brightness: 0.65,
     seventh: true,
+    styles: ["jazz", "smooth crooner vocals", "swung rhythm", "upright bass", "brushed drums"],
   },
 };
 
