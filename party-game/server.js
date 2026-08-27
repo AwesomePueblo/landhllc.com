@@ -5,10 +5,12 @@
 // a TV, say) opens /host, everyone else opens the printed URL on their
 // phone. No accounts, no passwords - just a nickname.
 //
-// Flow: lobby -> Claude writes a prompt -> everyone answers on their phone
-// -> Claude turns the answers into song lyrics in the chosen genre -> a
-// genre-matched instrumental is generated -> it plays back in sync on
-// every connected device.
+// Flow: each round, the 4 fixed style questions (lib/genreQuestions.js)
+// get distributed among the players and combined into a style profile ->
+// Claude writes each player their own related-but-different story prompt
+// -> everyone answers on their phone -> Claude turns the answers into song
+// lyrics using the crowd-sourced style -> a matching track is generated ->
+// it plays on the host screen.
 "use strict";
 
 require("dotenv").config();
@@ -23,24 +25,26 @@ const ai = require("./lib/ai");
 const music = require("./lib/music");
 const { fallbackLyrics } = require("./lib/fallbackLyrics");
 const { randomQuestionSet } = require("./lib/questions");
-const { GENRE_LIST, getGenre } = require("./lib/genrePresets");
+const { GENRE_QUESTIONS, assignGenreQuestions, combineAnswers } = require("./lib/genreQuestions");
 
 const PORT = Number(process.env.PORT) || 3000;
 const ANSWER_SECONDS = Number(process.env.ANSWER_SECONDS) || 90;
 const PLAYBACK_BUFFER_MS = 4000;
 const HOST_KEY = crypto.randomBytes(3).toString("hex");
 
+const GENRE_DEFAULTS = { style: "pop", vocalGender: "any", weirdness: "medium", styleInfluence: "" };
+
 // ---------------------------------------------------------------------------
 // Game state (single shared room)
 // ---------------------------------------------------------------------------
 
-const players = new Map(); // playerId -> { id, name, color, ws, connected, answer, question }
+const players = new Map(); // playerId -> { id, name, color, ws, connected, answer, question, genreQuestions, genreAnswers }
 
 const state = {
-  phase: "lobby", // lobby | question | answering | generating_lyrics | lyrics_ready | generating_music | playback | round_end
+  phase: "lobby", // lobby | genre_answering | question | answering | generating_lyrics | lyrics_ready | generating_music | playback | round_end
   roundNumber: 0,
-  genre: "pop",
-  questionSet: null, // { theme, questions: [...] } - each player gets their own entry, see startRound()
+  styleProfile: null, // { style, vocalGender, weirdness, styleInfluence } - crowd-sourced, see lockGenreAnswers()
+  questionSet: null, // { theme, questions: [...] } - each player gets their own entry, see startStoryRound()
   deadline: null,
   lyrics: null, // { title, body }
   track: null, // { url, durationSeconds, startAt }
@@ -79,24 +83,29 @@ function pickColor(seed) {
   return `hsl(${Math.round(hue)}, 70%, 55%)`;
 }
 
+function playerGenreAnswered(p) {
+  const qs = p.genreQuestions || [];
+  return qs.length > 0 && qs.every((gq) => p.genreAnswers && p.genreAnswers[gq.key]);
+}
+
 // ---------------------------------------------------------------------------
 // State broadcasting
 // ---------------------------------------------------------------------------
 
-// forHost=true gets the full picture (everyone's individual prompt, the
-// debug log). A player only ever gets their OWN prompt in `question` -
-// never anyone else's - via viewerId.
+// forHost=true gets the full picture (everyone's individual prompts, the
+// debug log). A player only ever gets their OWN prompt/questions in
+// `question`/`genreQuestions` - never anyone else's - via viewerId.
 function buildState(forHost, viewerId) {
   const revealPhases = ["lyrics_ready", "generating_music", "playback", "round_end"];
   const viewer = viewerId ? players.get(viewerId) : null;
   const base = {
     phase: state.phase,
     roundNumber: state.roundNumber,
-    genre: state.genre,
-    genreLabel: getGenre(state.genre).label,
-    genres: GENRE_LIST.map((id) => ({ id, label: getGenre(id).label })),
+    styleProfile: state.styleProfile,
     question: viewer ? viewer.question : null,
     questionTheme: state.questionSet ? state.questionSet.theme : null,
+    genreQuestions: viewer ? viewer.genreQuestions || [] : [],
+    genreAnswers: viewer ? viewer.genreAnswers || {} : {},
     deadline: state.deadline,
     answerSeconds: ANSWER_SECONDS,
     players: [...players.values()].map((p) => ({
@@ -106,6 +115,8 @@ function buildState(forHost, viewerId) {
       connected: !!p.connected,
       answered: !!p.answer,
       question: forHost ? p.question : undefined,
+      genreQuestions: forHost ? p.genreQuestions || [] : undefined,
+      genreAnswered: playerGenreAnswered(p),
     })),
     answers: revealPhases.includes(state.phase)
       ? [...players.values()].filter((p) => p.answer).map((p) => ({ name: p.name, text: p.answer, question: p.question }))
@@ -144,15 +155,72 @@ function clearTimers() {
   roundEndTimer = null;
 }
 
-async function startRound() {
+// Step 1 of a round: distribute the 4 fixed style questions among the
+// connected players and wait for everyone to answer.
+function startRound() {
   if (state.phase !== "lobby" && state.phase !== "round_end") return;
   clearTimers();
   players.forEach((p) => {
     p.answer = null;
     p.question = null;
+    p.genreQuestions = [];
+    p.genreAnswers = {};
   });
   state.lyrics = null;
   state.track = null;
+  state.styleProfile = null;
+  state.questionSet = null;
+
+  const connectedPlayers = [...players.values()].filter((p) => p.connected);
+  const assignments = assignGenreQuestions(connectedPlayers.map((p) => p.id));
+  connectedPlayers.forEach((p) => {
+    p.genreQuestions = assignments.get(p.id) || [];
+    p.genreAnswers = {};
+  });
+
+  state.roundNumber += 1;
+  state.deadline = Date.now() + ANSWER_SECONDS * 1000;
+  state.phase = "genre_answering";
+  broadcastState();
+
+  autoLockTimer = setTimeout(() => {
+    if (state.phase === "genre_answering") lockGenreAnswers();
+  }, ANSWER_SECONDS * 1000);
+}
+
+function maybeAutoLockGenre() {
+  const connected = [...players.values()].filter((p) => p.connected);
+  if (connected.length > 0 && connected.every(playerGenreAnswered)) {
+    lockGenreAnswers();
+  }
+}
+
+function computeStyleProfile() {
+  const byKey = {};
+  GENRE_QUESTIONS.forEach((gq) => (byKey[gq.key] = []));
+  players.forEach((p) => {
+    (p.genreQuestions || []).forEach((gq) => {
+      const ans = p.genreAnswers && p.genreAnswers[gq.key];
+      if (ans) byKey[gq.key].push(ans);
+    });
+  });
+  const profile = {};
+  GENRE_QUESTIONS.forEach((gq) => {
+    profile[gq.key] = combineAnswers(byKey[gq.key]) || GENRE_DEFAULTS[gq.key];
+  });
+  return profile;
+}
+
+function lockGenreAnswers() {
+  if (state.phase !== "genre_answering") return;
+  clearTimers();
+  state.styleProfile = computeStyleProfile();
+  startStoryRound();
+}
+
+// Step 2 of a round: Claude (or the offline bank) invents a scenario and
+// one related-but-different prompt per player, then everyone answers.
+async function startStoryRound() {
   state.phase = "question";
   broadcastState();
 
@@ -165,13 +233,10 @@ async function startRound() {
   state.questionSet = questionSet;
   state.previousThemes.push(questionSet.theme);
 
-  // Each connected player gets their own related-but-different prompt from
-  // the set (cycling through it if there are more players than prompts).
   connectedPlayers.forEach((p, i) => {
     p.question = questionSet.questions[i % questionSet.questions.length];
   });
 
-  state.roundNumber += 1;
   state.deadline = Date.now() + ANSWER_SECONDS * 1000;
   state.phase = "answering";
   broadcastState();
@@ -206,11 +271,10 @@ async function lockAnswers() {
   state.phase = "generating_lyrics";
   broadcastState();
 
-  const genreLabel = getGenre(state.genre).label;
   const theme = state.questionSet ? state.questionSet.theme : "tonight's chaos";
-  const lyricsCall = await ai.generateLyrics({ theme, genre: state.genre, genreLabel, answers });
+  const lyricsCall = await ai.generateLyrics({ theme, styleProfile: state.styleProfile, answers });
   if (lyricsCall.request) logDebug("lyrics", lyricsCall);
-  const lyrics = lyricsCall.result || fallbackLyrics({ theme, genre: genreLabel, answers });
+  const lyrics = lyricsCall.result || fallbackLyrics({ theme, styleProfile: state.styleProfile, answers });
 
   state.lyrics = lyrics;
   state.phase = "lyrics_ready";
@@ -224,8 +288,7 @@ async function makeSong() {
 
   let track;
   try {
-    const genreLabel = getGenre(state.genre).label;
-    const musicCall = await music.generateSong({ lyrics: state.lyrics.body, genre: state.genre, genreLabel });
+    const musicCall = await music.generateSong({ lyrics: state.lyrics.body, styleProfile: state.styleProfile });
     if (musicCall.request) logDebug("music", musicCall);
     track = musicCall.result;
     if (!track) throw new Error(musicCall.error || "music provider returned no track");
@@ -263,9 +326,12 @@ function resetGame() {
   players.forEach((p) => {
     p.answer = null;
     p.question = null;
+    p.genreQuestions = [];
+    p.genreAnswers = {};
   });
   state.phase = "lobby";
   state.roundNumber = 0;
+  state.styleProfile = null;
   state.questionSet = null;
   state.deadline = null;
   state.lyrics = null;
@@ -299,14 +365,19 @@ function handleJoin(ws, msg) {
   let player = msg.playerId && players.get(msg.playerId);
   if (!player) {
     const id = crypto.randomUUID();
-    player = { id, name, color: pickColor(id), ws: null, connected: false, answer: null, question: null };
+    player = { id, name, color: pickColor(id), ws: null, connected: false, answer: null, question: null, genreQuestions: [], genreAnswers: {} };
     players.set(id, player);
   } else {
     player.name = name;
   }
 
-  // A player joining mid-round has no assigned prompt yet - give them one
-  // from the current set (cycling through it) so they're not left blank.
+  // A player joining mid-round has no assignment yet - give them one so
+  // they're not left with nothing to do.
+  if (state.phase === "genre_answering" && (!player.genreQuestions || player.genreQuestions.length === 0)) {
+    const assignedCount = [...players.values()].filter((p) => p.genreQuestions && p.genreQuestions.length).length;
+    player.genreQuestions = [GENRE_QUESTIONS[assignedCount % GENRE_QUESTIONS.length]];
+    player.genreAnswers = {};
+  }
   if (state.phase === "answering" && state.questionSet && !player.question) {
     const assignedCount = [...players.values()].filter((p) => p.question).length;
     player.question = state.questionSet.questions[assignedCount % state.questionSet.questions.length];
@@ -331,6 +402,19 @@ function handleHostAuth(ws, msg) {
   sendTo(ws, { type: "state", state: buildState(true) });
 }
 
+function handleGenreAnswerSubmit(ws, msg) {
+  const player = players.get(ws.playerId);
+  if (!player || state.phase !== "genre_answering") return;
+  if (!msg.answers || typeof msg.answers !== "object") return;
+  player.genreAnswers = player.genreAnswers || {};
+  (player.genreQuestions || []).forEach((gq) => {
+    const text = clean(msg.answers[gq.key], 140);
+    if (text) player.genreAnswers[gq.key] = text;
+  });
+  broadcastState();
+  maybeAutoLockGenre();
+}
+
 function handleAnswerSubmit(ws, msg) {
   const player = players.get(ws.playerId);
   if (!player || state.phase !== "answering") return;
@@ -353,14 +437,14 @@ function handleMessage(ws, msg) {
     case "host:start":
       if (ws.isHost) startRound();
       break;
-    case "host:setGenre":
-      if (ws.isHost && GENRE_LIST.includes(msg.genre)) {
-        state.genre = msg.genre;
-        broadcastState();
-      }
+    case "genre-answer:submit":
+      handleGenreAnswerSubmit(ws, msg);
       break;
     case "answer:submit":
       handleAnswerSubmit(ws, msg);
+      break;
+    case "host:lockGenreAnswers":
+      if (ws.isHost) lockGenreAnswers();
       break;
     case "host:lockAnswers":
       if (ws.isHost) lockAnswers();
@@ -403,9 +487,6 @@ const app = express();
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/host", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "host.html"));
-});
-app.get("/config", (req, res) => {
-  res.json({ genres: GENRE_LIST.map((id) => ({ id, label: getGenre(id).label })) });
 });
 
 const server = app.listen(PORT, "0.0.0.0", () => {

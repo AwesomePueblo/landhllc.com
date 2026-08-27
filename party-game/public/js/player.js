@@ -155,6 +155,86 @@ function screenLobby(st, me) {
   `);
 }
 
+function styleSummaryText(sp) {
+  if (!sp) return "";
+  return [
+    sp.style,
+    sp.vocalGender && `${sp.vocalGender} vocals`,
+    sp.weirdness && `${sp.weirdness} weirdness`,
+    sp.styleInfluence && `like ${sp.styleInfluence}`,
+  ].filter(Boolean).join(" · ");
+}
+
+function screenGenreAnswering(st, me) {
+  const answeredCount = st.players.filter((p) => p.genreAnswered).length;
+  const total = st.players.length;
+  const pct = total ? Math.round((answeredCount / total) * 100) : 0;
+
+  if (me && me.genreAnswered) {
+    currentScreenKey = null;
+    setApp(`
+      <div class="title">🎤 Song Party</div>
+      <div class="card col center">
+        <div style="font-size:2rem">✅</div>
+        <div>Got it! Waiting on the rest of the crew to help decide the sound...</div>
+        <div class="progress-bar"><div style="width:${pct}%"></div></div>
+        <div class="muted">${answeredCount}/${total} done</div>
+      </div>
+    `);
+    return;
+  }
+
+  const questions = st.genreQuestions || [];
+  const screenKey = `genre:${st.roundNumber}:${questions.map((q) => q.key).join(",")}`;
+  if (currentScreenKey === screenKey) return;
+  currentScreenKey = screenKey;
+
+  const fields = questions
+    .map(
+      (gq) => `
+      <div class="col" style="gap:6px">
+        <label class="muted" for="genre_${gq.key}">${escapeHtml(gq.label)}</label>
+        <input type="text" id="genre_${gq.key}" maxlength="60" placeholder="${escapeHtml(gq.question)}" autocomplete="off" />
+      </div>`
+    )
+    .join("");
+
+  setApp(`
+    <div class="title">🎤 Song Party</div>
+    <div class="card col">
+      <div class="muted">Round ${st.roundNumber} · help decide the sound</div>
+      <div class="muted" style="font-size:0.95rem">${questions.length === 1 ? "One question" : questions.length + " questions"} for you - answer in a word or two.</div>
+    </div>
+    <div class="card col">
+      ${fields}
+      <button id="genreSubmitBtn">Submit</button>
+      <div class="muted center" id="countdown"></div>
+    </div>
+  `);
+  const btn = document.getElementById("genreSubmitBtn");
+  function submit() {
+    const answers = {};
+    let anyFilled = false;
+    questions.forEach((gq) => {
+      const el = document.getElementById(`genre_${gq.key}`);
+      const val = el ? el.value.trim() : "";
+      if (val) {
+        answers[gq.key] = val;
+        anyFilled = true;
+      }
+    });
+    if (!anyFilled) return;
+    socket.send({ type: "genre-answer:submit", answers });
+  }
+  btn.addEventListener("click", submit);
+  const firstQuestion = questions[0];
+  if (firstQuestion) {
+    const firstInput = document.getElementById(`genre_${firstQuestion.key}`);
+    if (firstInput) firstInput.focus();
+  }
+  if (st.deadline) updateCountdown(st.deadline);
+}
+
 function screenAnswering(st, me) {
   const answeredCount = st.players.filter((p) => p.answered).length;
   const total = st.players.length;
@@ -185,7 +265,7 @@ function screenAnswering(st, me) {
   setApp(`
     <div class="title">🎤 Song Party</div>
     <div class="card col">
-      <div class="muted">Round ${st.roundNumber} · ${escapeHtml(st.genreLabel)}</div>
+      <div class="muted">Round ${st.roundNumber} · ${escapeHtml(styleSummaryText(st.styleProfile))}</div>
       <div style="font-size:1.3rem;font-weight:700;line-height:1.4">${escapeHtml(st.question || "")}</div>
     </div>
     <div class="card col">
@@ -265,6 +345,7 @@ function render() {
 
   switch (st.phase) {
     case "lobby": return screenLobby(st, me);
+    case "genre_answering": return screenGenreAnswering(st, me);
     case "question": return screenLoading("🎲 Claude is thinking of everyone's prompts...");
     case "answering": return screenAnswering(st, me);
     case "generating_lyrics": return screenLoading("✍️ Claude is writing your song lyrics...");

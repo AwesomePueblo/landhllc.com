@@ -211,16 +211,14 @@ function wireKickButtons() {
   });
 }
 
-function genreSelectHTML(st) {
-  const options = st.genres
-    .map((g) => `<option value="${g.id}" ${g.id === st.genre ? "selected" : ""}>${escapeHtml(g.label)}</option>`)
-    .join("");
-  return `<select id="genreSelect" style="padding:10px 14px;border-radius:10px;font-size:1rem">${options}</select>`;
-}
-
-function wireGenreSelect() {
-  const sel = document.getElementById("genreSelect");
-  if (sel) sel.addEventListener("change", () => socket.send({ type: "host:setGenre", genre: sel.value }));
+function styleSummaryText(sp) {
+  if (!sp) return "";
+  return [
+    sp.style,
+    sp.vocalGender && `${sp.vocalGender} vocals`,
+    sp.weirdness && `${sp.weirdness} weirdness`,
+    sp.styleInfluence && `like ${sp.styleInfluence}`,
+  ].filter(Boolean).join(" · ");
 }
 
 function screenKeyForm() {
@@ -283,16 +281,47 @@ function screenLobby(st) {
     ${topBar(st)}
     <div class="card col center">
       <h2>Ready when you are</h2>
-      <div class="muted">Everyone should join at the URL above first.</div>
-      <div class="row center" style="justify-content:center">
-        <span class="muted">Genre:</span> ${genreSelectHTML(st)}
-      </div>
+      <div class="muted">Everyone should join at the URL above first. The crew decides this round's sound and story - no genre to pick.</div>
       <button id="startBtn" ${st.players.length ? "" : "disabled"}>▶️ Start round</button>
     </div>
   `);
   wireTopBar();
-  wireGenreSelect();
   document.getElementById("startBtn").addEventListener("click", () => socket.send({ type: "host:start" }));
+}
+
+function screenGenreAnswering(st) {
+  const answeredCount = st.players.filter((p) => p.genreAnswered).length;
+  const total = st.players.length;
+  const pct = total ? Math.round((answeredCount / total) * 100) : 0;
+  const rows = st.players
+    .map((p) => {
+      const qs = (p.genreQuestions || []).map((gq) => gq.label).join(", ") || "(none assigned)";
+      return `
+      <div class="row" style="justify-content:space-between;align-items:center;gap:12px">
+        <span class="badge"><span class="dot" style="background:${p.color}"></span>${escapeHtml(p.name)}</span>
+        <span class="muted" style="flex:1;text-align:right">${escapeHtml(qs)}${p.genreAnswered ? " ✅" : ""}</span>
+      </div>`;
+    })
+    .join("");
+  setApp(`
+    ${topBar(st)}
+    <div class="card col center">
+      <div class="muted">🎨 Deciding this round's sound</div>
+      <div class="muted" style="font-size:0.9rem">Everyone's answering a piece of the song's style</div>
+    </div>
+    <div class="card col">${rows}</div>
+    <div class="card col">
+      <div class="progress-bar"><div style="width:${pct}%"></div></div>
+      <div class="row center" style="justify-content:space-between">
+        <span class="muted">${answeredCount}/${total} done</span>
+        <span class="muted" id="countdown"></span>
+      </div>
+      <button id="lockGenreBtn" class="secondary">🔒 Lock it in now</button>
+    </div>
+  `);
+  wireTopBar();
+  document.getElementById("lockGenreBtn").addEventListener("click", () => socket.send({ type: "host:lockGenreAnswers" }));
+  if (st.deadline) updateCountdown(st.deadline);
 }
 
 function screenLoading(st, text) {
@@ -322,7 +351,7 @@ function screenAnswering(st) {
   setApp(`
     ${topBar(st)}
     <div class="card col center">
-      <div class="muted">${escapeHtml(st.genreLabel)} · themed around: <strong>${escapeHtml(st.questionTheme || "")}</strong></div>
+      <div class="muted">${escapeHtml(styleSummaryText(st.styleProfile))} · themed around: <strong>${escapeHtml(st.questionTheme || "")}</strong></div>
       <div class="muted" style="font-size:0.9rem">Everyone's got their own related prompt this round</div>
     </div>
     <div class="card col">${promptRows}</div>
@@ -358,7 +387,7 @@ function screenGeneratingMusic(st) {
     ${topBar(st)}
     <div class="card col center">
       <div class="spinner"></div>
-      <div class="pulse" style="font-size:1.3rem">🎧 Producing your ${escapeHtml(st.genreLabel)} track...</div>
+      <div class="pulse" style="font-size:1.3rem">🎧 Producing your ${escapeHtml(styleSummaryText(st.styleProfile)) || "custom"} track...</div>
     </div>
     <div class="card host-lyrics lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
@@ -383,9 +412,6 @@ function screenRoundEnd(st) {
     <div class="card col center">
       <h2>🎉 Song complete!</h2>
       <div class="muted" style="font-size:0.85rem">Song's still loaded in the player below - replay or download it any time</div>
-      <div class="row center" style="justify-content:center;align-items:center">
-        <span class="muted">Next round's genre:</span> ${genreSelectHTML(st)}
-      </div>
       <div class="row center" style="justify-content:center">
         <button id="nextBtn">▶️ Next round</button>
         <button id="newGameBtn" class="secondary">🏁 New game</button>
@@ -394,7 +420,6 @@ function screenRoundEnd(st) {
     <div class="card host-lyrics lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
   wireTopBar();
-  wireGenreSelect();
   document.getElementById("nextBtn").addEventListener("click", () => socket.send({ type: "host:next" }));
   document.getElementById("newGameBtn").addEventListener("click", () => socket.send({ type: "host:newGame" }));
 }
@@ -413,6 +438,7 @@ function render() {
   const st = latestState;
   switch (st.phase) {
     case "lobby": return screenLobby(st);
+    case "genre_answering": return screenGenreAnswering(st);
     case "question": return screenLoading(st, "🎲 Claude is thinking of everyone's prompts...");
     case "answering": return screenAnswering(st);
     case "generating_lyrics": return screenLoading(st, "✍️ Claude is writing your song lyrics...");

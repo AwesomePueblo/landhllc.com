@@ -4,15 +4,18 @@ A local Wi-Fi party game, Jackbox-style. One device (a laptop hooked up to
 a TV works great) runs the **host screen** and plays the song. Everyone
 else joins the same URL on their phone. Each round:
 
-1. Claude invents a silly shared scenario and writes each player their own
+1. There's no host-picked genre - the 4 fixed style questions (style,
+   vocal, weirdness, influence) get split across the connected players
+   (see "Style questions" below) and combined into this round's sound.
+2. Claude invents a silly shared scenario and writes each player their own
    related-but-different prompt about it (not one shared question) - so
    their answers naturally read as different beats of one story.
-2. Everyone answers their own prompt on their phone, without seeing
+3. Everyone answers their own prompt on their phone, without seeing
    anyone else's prompt or answer.
-3. Claude weaves everyone's answers into one coherent set of original song
-   lyrics, in whatever genre the host picked.
-4. The server generates a matching track.
-5. It plays back **on the host screen** (the one with the TV/speakers) -
+4. Claude weaves everyone's answers into one coherent set of original song
+   lyrics, in the crowd-sourced style.
+5. The server generates a matching track.
+6. It plays back **on the host screen** (the one with the TV/speakers) -
    phones just show the lyrics, no audio, no autoplay permission prompts.
 
 Everything runs on one machine on your local network. No accounts, no
@@ -66,15 +69,16 @@ the join URL.
 
 ## Playing
 
-- On the host screen, pick a genre and hit **Start round**. Click
-  **⛶ Fullscreen** to fill the whole screen (handy on a TV). The genre
-  dropdown is available again on the **round_end** screen, so you can pick
-  a new one for each round rather than being stuck with your first choice.
-- The host screen shows each player's own prompt as they answer (there's a
-  soft time limit, and the round auto-advances once everyone's answered or
-  time's up).
-- Claude turns everyone's answers into one set of lyrics - shown on the
-  host screen.
+- On the host screen, hit **Start round**. Click **⛶ Fullscreen** to fill
+  the whole screen (handy on a TV).
+- First, everyone answers their piece of this round's **style questions**
+  (see below) - the host screen shows who's got which question and who's
+  done.
+- Then the host screen shows each player's own story prompt as they answer
+  (there's a soft time limit, and each stage auto-advances once everyone's
+  answered or time's up).
+- Claude turns everyone's answers into one set of lyrics, in the
+  crowd-sourced style - shown on the host screen.
 - Hit **Make it a song!** to generate the track. It starts playing
   automatically on the host screen a few seconds later, with a real audio
   player (play/pause/seek/replay) docked at the bottom - use its own pause
@@ -82,6 +86,27 @@ the join URL.
   loaded and replayable through **round_end** too, until the next round
   starts.
 - **Next round** to go again, or **New game** to reset everyone.
+
+### Style questions (replaces the old genre picker)
+
+There's no host-picked genre dropdown anymore - each round, the group
+decides the sound together via 4 fixed questions (`lib/genreQuestions.js`):
+**Style**, **Vocal**, **Weirdness**, **Influence**. They're distributed
+across the connected players, balanced by player count:
+
+- 4 players → one question each.
+- More than 4 → still one question each, cycling back through the 4
+  (so some questions get asked to more than one player - their answers
+  are combined into a single value, e.g. "female and male").
+- Fewer than 4 → the questions are split across the players as evenly as
+  possible (a solo player answers all 4).
+
+The combined answers become this round's style profile, which steers both
+the lyrics (Claude is told the vocal/weirdness/influence direction
+directly) and the music generation - for `MUSIC_PROVIDER=elevenlabs` the
+players' own words go straight into the composition's style tags; for the
+offline synth, the free-text style answer gets matched to the closest of
+the 8 built-in genre presets.
 
 ### Color theme
 
@@ -98,9 +123,10 @@ screen.
 party-game/
   server.js          Express + WebSocket server, the whole game state machine
   lib/ai.js           Claude calls: generateQuestionSet(), generateLyrics()
+  lib/genreQuestions.js Fixed style questions + assignGenreQuestions()/combineAnswers()
   lib/music.js         Pluggable "turn lyrics into a track" interface
   lib/wavSynth.js       Built-in instrumental synthesizer (the default provider)
-  lib/genrePresets.js    Tempo/key/chord/waveform settings per genre
+  lib/genrePresets.js    Tempo/key/chord/waveform settings per genre + free-text matching
   lib/questions.js        Offline fallback prompt bank
   lib/fallbackLyrics.js    Offline fallback lyrics templater
   public/               Player + host front ends (plain HTML/CSS/JS, no build step)
@@ -119,9 +145,10 @@ Set `MUSIC_PROVIDER=elevenlabs` (plus `ELEVENLABS_API_KEY`) to get a real
 sung vocal track instead, via ElevenLabs' public **Eleven Music API**
 (`lib/music.js`, `elevenlabsProvider`). It takes the actual lyrics Claude
 (or the offline template) just wrote, splits them into `[Verse]`/`[Chorus]`
-sections, and sends each section plus genre-flavored style tags
-(`lib/genrePresets.js`) to `POST https://api.elevenlabs.io/v1/music` as a
-composition plan. Each section always gets at least 14s of singing time
+sections, and sends each section plus style tags built from the players'
+own style-question answers (topped up with the matched preset's canned
+tags) to `POST https://api.elevenlabs.io/v1/music` as a composition plan.
+Each section always gets at least 14s of singing time
 regardless of `TRACK_SECONDS` (`MIN_SECTION_MS` in `lib/music.js`) - a
 short total split across several sections doesn't leave enough time to
 actually sing the lines, which is why early tracks sounded truncated and

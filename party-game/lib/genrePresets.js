@@ -114,4 +114,30 @@ function getGenre(id) {
   return GENRES[id] || GENRES.pop;
 }
 
-module.exports = { GENRES, GENRE_LIST, getGenre };
+// Players now describe the song's style in free text (see
+// lib/genreQuestions.js) rather than picking one of these IDs from a
+// dropdown. The offline mock synth still needs a discrete preset to pick
+// a tempo/key/chord progression, so this maps free text to the closest
+// match by keyword, falling back to "pop". lib/music.js's ElevenLabs path
+// doesn't need this - it sends the player's actual free-text style
+// straight through instead.
+const GENRE_ALIASES = {
+  pop: ["pop"],
+  rock: ["rock", "punk", "grunge", "alternative", "indie rock"],
+  hiphop: ["hip hop", "hip-hop", "hiphop", "rap", "trap"],
+  country: ["country", "folk", "bluegrass", "americana"],
+  edm: ["edm", "electronic", "dance", "techno", "house", "dubstep", "trance"],
+  lofi: ["lo-fi", "lofi", "lo fi", "chill", "ambient"],
+  metal: ["metal", "hardcore", "screamo", "death metal"],
+  jazz: ["jazz", "swing", "blues", "soul", "funk"],
+};
+
+function matchGenreFromText(text) {
+  const lower = String(text || "").toLowerCase();
+  for (const id of GENRE_LIST) {
+    if ((GENRE_ALIASES[id] || []).some((alias) => lower.includes(alias))) return id;
+  }
+  return "pop";
+}
+
+module.exports = { GENRES, GENRE_LIST, getGenre, matchGenreFromText };

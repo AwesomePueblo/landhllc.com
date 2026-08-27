@@ -88,32 +88,43 @@ async function generateQuestionSet({ playerCount = 4, previousThemes = [] } = {}
   }
 }
 
-async function generateLyrics({ theme, genre, genreLabel, answers }) {
+async function generateLyrics({ theme, styleProfile, answers }) {
   const c = getClient();
   if (!c) return { result: null };
 
   const answerLines = answers
     .map((a) => `- ${a.name} was asked "${a.question}" and answered: "${a.text}"`)
     .join("\n");
+  const style = styleProfile || {};
+  const styleLines = [
+    style.style && `Musical style: ${style.style}`,
+    style.vocalGender && `Vocal delivery: ${style.vocalGender}`,
+    style.weirdness && `Weirdness level: ${style.weirdness}`,
+    style.styleInfluence && `Sounds like: ${style.styleInfluence}`,
+  ].filter(Boolean).join("\n");
+
   const request = {
     model: MODEL,
     max_tokens: 1200,
     system:
       `You are a witty songwriter for a party game. Players were each asked a different ` +
       `question about one shared scenario, and answered separately without seeing each ` +
-      `other's answers. Given the scenario and everyone's question+answer pairs, write ` +
-      `original, family-friendly, funny song lyrics in the ${genreLabel} genre that weave ` +
-      `all the answers together into ONE coherent story about the scenario, in the order ` +
-      `that makes it read as a single narrative. Use standard section labels like ` +
-      `[Verse 1], [Chorus], [Verse 2], [Bridge]. Keep it tight - roughly 16-24 lines total. ` +
-      `Respond in EXACTLY this format, nothing else:\n` +
+      `other's answers. A separate group of players also crowd-sourced the song's style - ` +
+      `treat their answers below as direct creative direction, even if they're silly or ` +
+      `contradictory (lean into contradictions rather than ignoring them). Given the ` +
+      `scenario, the style direction, and everyone's question+answer pairs, write original, ` +
+      `family-friendly, funny song lyrics that weave all the answers together into ONE ` +
+      `coherent story about the scenario, in the order that makes it read as a single ` +
+      `narrative. Use standard section labels like [Verse 1], [Chorus], [Verse 2], [Bridge]. ` +
+      `Keep it tight - roughly 16-24 lines total. Respond in EXACTLY this format, nothing ` +
+      `else:\n` +
       `TITLE: <song title>\n` +
       `---\n` +
       `<lyrics with section labels, one line per lyric line>`,
     messages: [
       {
         role: "user",
-        content: `Scenario: "${theme}"\nGenre: ${genreLabel}\nPlayer prompts and answers:\n${answerLines}`,
+        content: `Scenario: "${theme}"\nStyle direction:\n${styleLines || "(none given - use your own judgment)"}\nPlayer prompts and answers:\n${answerLines}`,
       },
     ],
   };

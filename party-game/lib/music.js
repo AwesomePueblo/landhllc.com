@@ -1,15 +1,20 @@
 // Pluggable "music generation" backend. The game asks this module for a
-// track given lyrics + a genre and gets back a URL the browser can play.
+// track given lyrics + the crowd-sourced style profile (see
+// lib/genreQuestions.js) and gets back a URL the browser can play.
 //
 // Two providers ship here:
 //   - "mock" (default): a procedurally generated instrumental
 //     (lib/wavSynth.js), written to public/tracks/ and served statically.
-//     Works fully offline, zero API keys, zero cost.
+//     Works fully offline, zero API keys, zero cost. It needs a discrete
+//     preset (tempo/key/chords), so styleProfile.style gets matched to the
+//     closest of the 8 built-in genres (lib/genrePresets.js).
 //   - "elevenlabs": calls ElevenLabs' Eleven Music API
 //     (https://elevenlabs.io/docs/api-reference/music/compose) with the
-//     actual generated lyrics, producing a real sung vocal track in the
-//     chosen genre. Requires ELEVENLABS_API_KEY and a paid ElevenLabs plan
-//     (music generation costs credits - see their pricing page).
+//     actual generated lyrics and the players' own free-text style answers
+//     (no need to match them to a fixed genre - the real API just takes
+//     descriptive style tags). Requires ELEVENLABS_API_KEY and a paid
+//     ElevenLabs plan (music generation costs credits - see their pricing
+//     page).
 //
 // Every provider returns { result, request, response, error } so the
 // caller can log the raw request/response for the host's debug panel, the
@@ -22,7 +27,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { generateTrack } = require("./wavSynth");
-const { getGenre } = require("./genrePresets");
+const { getGenre, matchGenreFromText } = require("./genrePresets");
 
 const TRACKS_DIR = path.join(__dirname, "..", "public", "tracks");
 const TRACK_SECONDS = Number(process.env.TRACK_SECONDS) || 60;
@@ -34,9 +39,10 @@ const TRACK_SECONDS = Number(process.env.TRACK_SECONDS) || 60;
 // regardless of how TRACK_SECONDS is configured.
 const MIN_SECTION_MS = 14000;
 
-async function mockProvider({ genre }) {
+async function mockProvider({ styleProfile }) {
+  const genreId = matchGenreFromText(styleProfile && styleProfile.style);
   const { buffer, durationSeconds } = generateTrack({
-    genreId: genre,
+    genreId,
     seconds: TRACK_SECONDS,
   });
   const id = crypto.randomBytes(6).toString("hex");
@@ -67,24 +73,41 @@ function parseLyricsSections(body) {
   return sections;
 }
 
-async function elevenlabsProvider({ lyrics, genre, genreLabel }) {
+// Turns the players' crowd-sourced style answers into ElevenLabs style
+// tags, falling back to the matched discrete genre's canned tags for
+// anything the players didn't actually answer.
+function buildPositiveStyles(styleProfile) {
+  const sp = styleProfile || {};
+  const fromPlayers = [
+    sp.style,
+    sp.vocalGender && `${sp.vocalGender} vocals`,
+    sp.weirdness && `${sp.weirdness} vibe`,
+    sp.styleInfluence && `influenced by ${sp.styleInfluence}`,
+  ].filter(Boolean);
+  const genreId = matchGenreFromText(sp.style);
+  const preset = getGenre(genreId);
+  const combined = [...fromPlayers, ...(preset.styles || [])];
+  return [...new Set(combined)].slice(0, 12);
+}
+
+async function elevenlabsProvider({ lyrics, styleProfile }) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
     return { error: "MUSIC_PROVIDER=elevenlabs but ELEVENLABS_API_KEY is not set" };
   }
 
-  const preset = getGenre(genre);
   const sections = parseLyricsSections(lyrics);
   if (sections.length === 0) {
     return { error: "no lyrics sections to compose from" };
   }
 
+  const positiveStyles = buildPositiveStyles(styleProfile);
   const targetMs = Math.max(TRACK_SECONDS * 1000, sections.length * MIN_SECTION_MS);
   const perChunkMs = Math.min(120000, Math.round(targetMs / sections.length));
   const chunks = sections.map((s) => ({
     text: [s.label, ...s.lines].join("\n"),
     duration_ms: perChunkMs,
-    positive_styles: preset.styles || [genreLabel],
+    positive_styles: positiveStyles,
     context_adherence: "high",
   }));
 
@@ -135,19 +158,19 @@ async function elevenlabsProvider({ lyrics, genre, genreLabel }) {
   };
 }
 
-async function generateSong({ lyrics, genre, genreLabel }) {
+async function generateSong({ lyrics, styleProfile }) {
   const provider = process.env.MUSIC_PROVIDER || "mock";
   switch (provider) {
     case "elevenlabs": {
-      const out = await elevenlabsProvider({ lyrics, genre, genreLabel });
+      const out = await elevenlabsProvider({ lyrics, styleProfile });
       if (out.result) return out;
       console.error("[music] elevenlabs provider failed, falling back to mock:", out.error);
-      const fallback = await mockProvider({ genre });
+      const fallback = await mockProvider({ styleProfile });
       return { ...fallback, request: out.request, response: out.response, error: out.error, usedFallback: true };
     }
     case "mock":
     default:
-      return mockProvider({ genre });
+      return mockProvider({ styleProfile });
   }
 }
 
