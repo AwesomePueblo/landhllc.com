@@ -1,0 +1,19 @@
+{
+  "name": "party-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Wi-Fi party game: everyone answers a prompt, Claude turns the answers into song lyrics, and a genre-matched track plays in sync on every device.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  }
+}
