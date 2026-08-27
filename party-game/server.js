@@ -229,6 +229,13 @@ async function makeSong() {
   }, totalMs);
 }
 
+function stopPlayback() {
+  if (state.phase !== "playback") return;
+  clearTimers();
+  state.phase = "round_end";
+  broadcastState();
+}
+
 function nextRound() {
   if (state.phase !== "round_end") return;
   startRound();
@@ -333,6 +340,9 @@ function handleMessage(ws, msg) {
       break;
     case "host:makeSong":
       if (ws.isHost) makeSong();
+      break;
+    case "host:stopPlayback":
+      if (ws.isHost) stopPlayback();
       break;
     case "host:next":
       if (ws.isHost) nextRound();

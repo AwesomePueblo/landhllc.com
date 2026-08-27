@@ -87,15 +87,22 @@ async function elevenlabsProvider({ lyrics, genre, genreLabel }) {
     body: { composition_plan: { chunks }, model_id: "music_v2" },
   };
 
+  const controller = new AbortController();
+  const timeoutMs = 90000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let res;
   try {
     res = await fetch(request.url, {
       method: "POST",
       headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify(request.body),
+      signal: controller.signal,
     });
   } catch (err) {
-    return { error: `network error calling ElevenLabs: ${err.message || err}`, request };
+    const msg = err.name === "AbortError" ? `request timed out after ${timeoutMs / 1000}s` : err.message || String(err);
+    return { error: `network error calling ElevenLabs: ${msg}`, request };
+  } finally {
+    clearTimeout(timeout);
   }
 
   if (!res.ok) {

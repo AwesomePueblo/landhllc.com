@@ -317,6 +317,8 @@ function render() {
   }
   if (!latestState) return screenSpinner("Loading game...");
 
+  if (latestState.phase !== "playback" && !audioEl.paused) audioEl.pause();
+
   const st = latestState;
   const me = st.players.find((p) => p.id === myId);
 

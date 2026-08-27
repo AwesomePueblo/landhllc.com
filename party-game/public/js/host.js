@@ -321,7 +321,10 @@ function screenPlayback(st) {
     ${topBar(st)}
     <div class="card col center">
       <div class="pulse" style="font-size:1.3rem">🎧 Now playing - ${escapeHtml(st.lyrics ? st.lyrics.title : "")}</div>
-      ${audioUnlocked ? "" : '<button id="unlockAudioBtn" class="secondary">▶️ Tap to play on this screen</button>'}
+      <div class="row center" style="justify-content:center">
+        ${audioUnlocked ? "" : '<button id="unlockAudioBtn" class="secondary">▶️ Tap to play on this screen</button>'}
+        <button id="stopBtn" class="ghost">⏹ Stop song</button>
+      </div>
     </div>
     <div class="card host-lyrics lyrics" id="lyricsBlock">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
@@ -339,6 +342,7 @@ function screenPlayback(st) {
       render();
     });
   }
+  document.getElementById("stopBtn").addEventListener("click", () => socket.send({ type: "host:stopPlayback" }));
   schedulePlayback(st);
   startKaraoke(st);
 }
@@ -370,6 +374,8 @@ function render() {
     `);
     return;
   }
+
+  if (latestState.phase !== "playback" && !audioEl.paused) audioEl.pause();
 
   const st = latestState;
   switch (st.phase) {
