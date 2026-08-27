@@ -5,7 +5,8 @@ const ID_KEY = "pg_playerId";
 
 const app = document.getElementById("app");
 
-PartyGame.wireThemePicker("themeSelect");
+document.getElementById("themePicker").innerHTML = PartyGame.themeSwatchesHTML("themeSwatches");
+PartyGame.wireThemeSwatches("themeSwatches");
 
 let myId = null;
 let awaitingJoin = false;

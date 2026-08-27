@@ -241,23 +241,13 @@ function screenKeyForm() {
   });
 }
 
-const THEME_LABELS = { default: "Default", blue: "Blue", gold: "Gold", silver: "Silver", dark: "Dark", green: "Green", orange: "Orange" };
-
-function themeSelectHTML() {
-  const current = document.documentElement.getAttribute("data-theme") || "default";
-  const options = PartyGame.THEMES.map(
-    (t) => `<option value="${t}" ${t === current ? "selected" : ""}>${THEME_LABELS[t] || t}</option>`
-  ).join("");
-  return `<select id="themeSelect" class="small">${options}</select>`;
-}
-
 function topBar(st) {
   return `
     <div class="row" style="align-items:center;justify-content:space-between">
       <div class="host-title title">🎤 Song Party</div>
       <div class="row" style="align-items:center;gap:14px">
         <div class="muted">Round ${st.roundNumber}</div>
-        ${themeSelectHTML()}
+        ${PartyGame.themeSwatchesHTML("themeSwatches")}
         <button id="fullscreenBtn" class="ghost small">⛶ Fullscreen</button>
       </div>
     </div>
@@ -274,7 +264,7 @@ function topBar(st) {
 
 function wireTopBar() {
   wireKickButtons();
-  PartyGame.wireThemePicker("themeSelect");
+  PartyGame.wireThemeSwatches("themeSwatches");
   // Fullscreen button is re-created on every setApp(), so its listener
   // needs rewiring each time too (unlike the debug/panel ones, which are
   // wired once outside #app).
@@ -380,15 +370,11 @@ function screenPlayback(st) {
     ${topBar(st)}
     <div class="card col center">
       <div class="pulse" style="font-size:1.3rem">🎧 Now playing - ${escapeHtml(st.lyrics ? st.lyrics.title : "")}</div>
-      <div class="row center" style="justify-content:center">
-        <button id="stopBtn" class="ghost">⏹ Stop song</button>
-      </div>
       <div class="muted" style="font-size:0.85rem">Use the player below to pause, replay, or download</div>
     </div>
     <div class="card host-lyrics lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
   wireTopBar();
-  document.getElementById("stopBtn").addEventListener("click", () => socket.send({ type: "host:stopPlayback" }));
 }
 
 function screenRoundEnd(st) {

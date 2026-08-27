@@ -14,6 +14,11 @@
 const Anthropic = require("@anthropic-ai/sdk");
 
 const MODEL = process.env.CLAUDE_MODEL || "claude-haiku-4-5";
+// No output_config.effort here on purpose: Haiku 4.5 (the default) rejects
+// it with a 400 ("This model does not support the effort parameter").
+// Only Sonnet 5/Opus 5-tier models support it, and it's not required for
+// these short prompt/lyrics calls - dropping it keeps one request shape
+// that works regardless of which model CLAUDE_MODEL points at.
 
 let client = null;
 function getClient() {
@@ -49,7 +54,6 @@ async function generateQuestionSet({ playerCount = 4, previousThemes = [] } = {}
     model: MODEL,
     max_tokens: 500,
     temperature: 1,
-    output_config: { effort: "low" },
     system:
       `You write party-game prompts for a group of friends playing on their phones. ` +
       `Invent one silly shared scenario, then write ${n} DIFFERENT short prompts about ` +
@@ -94,7 +98,6 @@ async function generateLyrics({ theme, genre, genreLabel, answers }) {
   const request = {
     model: MODEL,
     max_tokens: 1200,
-    output_config: { effort: "medium" },
     system:
       `You are a witty songwriter for a party game. Players were each asked a different ` +
       `question about one shared scenario, and answered separately without seeing each ` +

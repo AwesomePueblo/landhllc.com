@@ -77,10 +77,10 @@ the join URL.
   host screen.
 - Hit **Make it a song!** to generate the track. It starts playing
   automatically on the host screen a few seconds later, with a real audio
-  player (play/pause/seek/replay) docked at the bottom - use **⏹ Stop
-  song** to end it early, or just let it play out. **⬇ Download** saves
-  the track file. It stays loaded and replayable through **round_end**
-  too, until the next round starts.
+  player (play/pause/seek/replay) docked at the bottom - use its own pause
+  button to stop early. **⬇ Download** saves the track file. It stays
+  loaded and replayable through **round_end** too, until the next round
+  starts.
 - **Next round** to go again, or **New game** to reset everyone.
 
 ### Color theme
