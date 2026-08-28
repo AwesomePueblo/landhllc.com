@@ -13,10 +13,14 @@ else joins the same URL on their phone. Each round:
 3. Everyone answers their own prompt on their phone, without seeing
    anyone else's prompt or answer.
 4. Claude weaves everyone's answers into one coherent set of original song
-   lyrics, in the crowd-sourced style.
+   lyrics, in the crowd-sourced style - every player who answered is
+   verified to be named in the result (retried, then guaranteed by the
+   offline template if the AI still misses someone).
 5. The server generates a matching track.
 6. It plays back **on the host screen** (the one with the TV/speakers) -
    phones just show the lyrics, no audio, no autoplay permission prompts.
+7. Anyone can leave 👍/👎 feedback on the round from their phone - see
+   "Feedback" below.
 
 Everything runs on one machine on your local network. No accounts, no
 passwords - just a nickname.
@@ -86,6 +90,9 @@ the join URL.
   loaded and replayable through **round_end** too, until the next round
   starts.
 - **Next round** to go again, or **New game** to reset everyone.
+- On **round_end**, each player's phone offers a one-tap 👍/👎 for the
+  round (once per round, per player) - see "Feedback" below. The host
+  screen shows the running tally for the room.
 
 ### Style questions (replaces the old genre picker)
 
@@ -158,6 +165,14 @@ any reason (bad key, network error, rate limit, timeout), the round
 automatically falls back to the offline synth rather than breaking - check
 the host screen's debug panel (see below) for the actual error.
 
+If ElevenLabs specifically rejects the request for a copyright/Terms-of-
+Service reason (`bad_composition_plan`), the server doesn't just give up -
+it auto-corrects and retries once: drops every player-supplied style tag
+down to just the matched genre's safe canned tags, and strips any literal
+occurrence of the player's named artist/band/era out of the actual lyrics
+text, then resends. Only falls back to the offline synth if that
+corrected retry also fails.
+
 `lib/music.js` remains a small provider interface, so another backend can
 be dropped in later the same way: implement a new branch that calls the
 provider's API, downloads the resulting audio into `public/tracks/`, and
@@ -173,6 +188,23 @@ from Claude/ElevenLabs rather than the offline fallback banks, and to see
 the exact error if a call fails. It only shows real API attempts, so it
 stays empty while running fully offline. It's host-only - players never
 see it.
+
+## Feedback
+
+Each round_end screen offers a one-tap 👍/👎 per player (`feedback:submit`
+over the WebSocket, handled in `server.js`). It's opt-in and per-round -
+nobody's forced to rate, and rounds nobody rates are never logged.
+
+Whenever someone *does* rate a round, the server appends one JSON object
+to `party-game/data/feedback.jsonl` (created on first use, gitignored) -
+not just the thumb, but everything about that round: the theme, the
+crowd-sourced style profile, the full lyrics, the track info, and every
+player's story prompt/answer and style-question answers. That's the
+"document everything about the experience" record - each line is a
+complete, self-contained snapshot of one rated round, so you can review
+later what worked and what didn't without needing the server still
+running. It survives restarts (unlike the rest of the game state, which
+is in-memory only).
 
 ## Configuration (`.env`)
 

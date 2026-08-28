@@ -1,4 +1,6 @@
 node_modules/
 .env
 public/tracks/*.wav
+public/tracks/*.mp3
 !public/tracks/.gitkeep
+data/

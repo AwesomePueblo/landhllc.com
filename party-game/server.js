@@ -15,6 +15,7 @@
 
 require("dotenv").config();
 
+const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
@@ -70,6 +71,52 @@ function logDebug(type, { request, response, error, usedFallback } = {}) {
   if (state.debugLog.length > DEBUG_LOG_MAX) state.debugLog.length = DEBUG_LOG_MAX;
 }
 
+// ---------------------------------------------------------------------------
+// Feedback (thumbs up/down)
+// ---------------------------------------------------------------------------
+//
+// Feedback is opt-in, per player, once per round, on the round_end screen.
+// Every time someone actually rates a round, the full round context - not
+// just the thumb - gets appended to data/feedback.jsonl (one JSON object
+// per line) so it survives server restarts: the theme, the crowd-sourced
+// style, the final lyrics, the track, and every player's questions and
+// answers (both the story prompts and the genre/style questions). Rounds
+// nobody rates are never logged - this is an explicit record of the
+// experience, not a full play-by-play transcript.
+
+const FEEDBACK_DIR = path.join(__dirname, "data");
+const FEEDBACK_FILE = path.join(FEEDBACK_DIR, "feedback.jsonl");
+
+function buildFeedbackRecord({ player, rating, comment }) {
+  return {
+    at: new Date().toISOString(),
+    roundNumber: state.roundNumber,
+    rating,
+    comment: comment || null,
+    submittedBy: player.name,
+    theme: state.questionSet ? state.questionSet.theme : null,
+    styleProfile: state.styleProfile,
+    musicProvider: process.env.MUSIC_PROVIDER || "mock",
+    lyrics: state.lyrics,
+    track: state.track ? { url: state.track.url, durationSeconds: state.track.durationSeconds } : null,
+    players: [...players.values()].map((p) => ({
+      name: p.name,
+      storyQuestion: p.question,
+      storyAnswer: p.answer,
+      genreAnswers: p.genreAnswers || {},
+    })),
+  };
+}
+
+function appendFeedback(record) {
+  try {
+    fs.mkdirSync(FEEDBACK_DIR, { recursive: true });
+    fs.appendFileSync(FEEDBACK_FILE, JSON.stringify(record) + "\n");
+  } catch (err) {
+    console.error("[server] failed to write feedback:", err);
+  }
+}
+
 let autoLockTimer = null;
 let roundEndTimer = null;
 
@@ -81,6 +128,15 @@ function pickColor(seed) {
   const hash = crypto.createHash("md5").update(seed).digest();
   const hue = hash[0] * (360 / 255);
   return `hsl(${Math.round(hue)}, 70%, 55%)`;
+}
+
+// Checks that every answering player got named in the generated lyrics -
+// Claude is instructed to include everyone, but large groups make it easy
+// to drop someone, so this is verified rather than trusted. Returns the
+// list of names that got skipped (empty if everyone made it in).
+function missingPlayerNames(lyricsBody, answers) {
+  const lower = String(lyricsBody || "").toLowerCase();
+  return answers.filter((a) => !lower.includes(a.name.toLowerCase())).map((a) => a.name);
 }
 
 function playerGenreAnswered(p) {
@@ -106,6 +162,11 @@ function buildState(forHost, viewerId) {
     questionTheme: state.questionSet ? state.questionSet.theme : null,
     genreQuestions: viewer ? viewer.genreQuestions || [] : [],
     genreAnswers: viewer ? viewer.genreAnswers || {} : {},
+    myFeedbackRating: viewer ? viewer.feedbackRating || null : null,
+    feedbackSummary: {
+      up: [...players.values()].filter((p) => p.feedbackRating === "up").length,
+      down: [...players.values()].filter((p) => p.feedbackRating === "down").length,
+    },
     deadline: state.deadline,
     answerSeconds: ANSWER_SECONDS,
     players: [...players.values()].map((p) => ({
@@ -165,6 +226,7 @@ function startRound() {
     p.question = null;
     p.genreQuestions = [];
     p.genreAnswers = {};
+    p.feedbackRating = null;
   });
   state.lyrics = null;
   state.track = null;
@@ -274,7 +336,18 @@ async function lockAnswers() {
   const theme = state.questionSet ? state.questionSet.theme : "tonight's chaos";
   const lyricsCall = await ai.generateLyrics({ theme, styleProfile: state.styleProfile, answers });
   if (lyricsCall.request) logDebug("lyrics", lyricsCall);
-  const lyrics = lyricsCall.result || fallbackLyrics({ theme, styleProfile: state.styleProfile, answers });
+
+  let lyrics = lyricsCall.result;
+  const missing = lyrics ? missingPlayerNames(lyrics.body, answers) : [];
+  if (lyrics && missing.length > 0) {
+    const retryCall = await ai.generateLyrics({ theme, styleProfile: state.styleProfile, answers, mustInclude: missing });
+    if (retryCall.request) logDebug("lyrics", retryCall);
+    lyrics = retryCall.result && missingPlayerNames(retryCall.result.body, answers).length === 0 ? retryCall.result : null;
+  }
+  // fallbackLyrics is deterministic and always includes every answer, so
+  // it's the guaranteed-complete option whenever the AI path didn't
+  // produce a version that named everyone.
+  lyrics = lyrics || fallbackLyrics({ theme, styleProfile: state.styleProfile, answers });
 
   state.lyrics = lyrics;
   state.phase = "lyrics_ready";
@@ -300,7 +373,11 @@ async function makeSong() {
 
   let track;
   try {
-    const musicCall = await music.generateSong({ lyrics: state.lyrics.body, styleProfile: musicStyleProfile });
+    const musicCall = await music.generateSong({
+      lyrics: state.lyrics.body,
+      styleProfile: musicStyleProfile,
+      rawStyleInfluence: state.styleProfile ? state.styleProfile.styleInfluence : "",
+    });
     if (musicCall.request) logDebug("music", musicCall);
     track = musicCall.result;
     if (!track) throw new Error(musicCall.error || "music provider returned no track");
@@ -340,6 +417,7 @@ function resetGame() {
     p.question = null;
     p.genreQuestions = [];
     p.genreAnswers = {};
+    p.feedbackRating = null;
   });
   state.phase = "lobby";
   state.roundNumber = 0;
@@ -377,7 +455,7 @@ function handleJoin(ws, msg) {
   let player = msg.playerId && players.get(msg.playerId);
   if (!player) {
     const id = crypto.randomUUID();
-    player = { id, name, color: pickColor(id), ws: null, connected: false, answer: null, question: null, genreQuestions: [], genreAnswers: {} };
+    player = { id, name, color: pickColor(id), ws: null, connected: false, answer: null, question: null, genreQuestions: [], genreAnswers: {}, feedbackRating: null };
     players.set(id, player);
   } else {
     player.name = name;
@@ -437,6 +515,17 @@ function handleAnswerSubmit(ws, msg) {
   maybeAutoLock();
 }
 
+function handleFeedbackSubmit(ws, msg) {
+  const player = players.get(ws.playerId);
+  if (!player || state.phase !== "round_end") return;
+  if (msg.rating !== "up" && msg.rating !== "down") return;
+  if (player.feedbackRating) return; // one rating per round, per player
+  const comment = clean(msg.comment, 300);
+  player.feedbackRating = msg.rating;
+  appendFeedback(buildFeedbackRecord({ player, rating: msg.rating, comment }));
+  broadcastState();
+}
+
 function handleMessage(ws, msg) {
   if (!msg || typeof msg.type !== "string") return;
   switch (msg.type) {
@@ -454,6 +543,9 @@ function handleMessage(ws, msg) {
       break;
     case "answer:submit":
       handleAnswerSubmit(ws, msg);
+      break;
+    case "feedback:submit":
+      handleFeedbackSubmit(ws, msg);
       break;
     case "host:lockGenreAnswers":
       if (ws.isHost) lockGenreAnswers();

@@ -407,11 +407,13 @@ function screenPlayback(st) {
 }
 
 function screenRoundEnd(st) {
+  const fb = st.feedbackSummary || { up: 0, down: 0 };
   setApp(`
     ${topBar(st)}
     <div class="card col center">
       <h2>🎉 Song complete!</h2>
       <div class="muted" style="font-size:0.85rem">Song's still loaded in the player below - replay or download it any time</div>
+      ${fb.up + fb.down > 0 ? `<div class="muted">Crew feedback: 👍 ${fb.up}&nbsp;&nbsp;👎 ${fb.down}</div>` : ""}
       <div class="row center" style="justify-content:center">
         <button id="nextBtn">▶️ Next round</button>
         <button id="newGameBtn" class="secondary">🏁 New game</button>

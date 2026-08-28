@@ -326,13 +326,36 @@ function screenPlayback(st) {
 
 function screenRoundEnd(st) {
   currentScreenKey = null;
+
+  if (st.myFeedbackRating) {
+    setApp(`
+      <div class="title">🎉 Song complete!</div>
+      <div class="card col center">
+        <div>Nice work, crew. Waiting for the host to start the next round...</div>
+        <div class="muted">Thanks for the feedback! ${st.myFeedbackRating === "up" ? "👍" : "👎"}</div>
+      </div>
+      <div class="card lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
+    `);
+    return;
+  }
+
   setApp(`
     <div class="title">🎉 Song complete!</div>
     <div class="card col center">
       <div>Nice work, crew. Waiting for the host to start the next round...</div>
+      <div class="muted">How was this one?</div>
+      <div class="row center" style="justify-content:center">
+        <button id="thumbsUpBtn" class="secondary">👍</button>
+        <button id="thumbsDownBtn" class="secondary">👎</button>
+      </div>
     </div>
     <div class="card lyrics">${st.lyrics ? lyricsLinesHTML(st.lyrics.body) : ""}</div>
   `);
+  function submitFeedback(rating) {
+    socket.send({ type: "feedback:submit", rating });
+  }
+  document.getElementById("thumbsUpBtn").addEventListener("click", () => submitFeedback("up"));
+  document.getElementById("thumbsDownBtn").addEventListener("click", () => submitFeedback("down"));
 }
 
 function render() {

@@ -88,7 +88,7 @@ async function generateQuestionSet({ playerCount = 4, previousThemes = [] } = {}
   }
 }
 
-async function generateLyrics({ theme, styleProfile, answers }) {
+async function generateLyrics({ theme, styleProfile, answers, mustInclude }) {
   const c = getClient();
   if (!c) return { result: null };
 
@@ -103,6 +103,16 @@ async function generateLyrics({ theme, styleProfile, answers }) {
     style.styleInfluence && `Sounds like: ${style.styleInfluence}`,
   ].filter(Boolean).join("\n");
 
+  // mustInclude is set on a retry, after a first attempt skipped someone -
+  // every player who submitted an answer paid the same "wait for the
+  // round" cost, so the lyrics should never quietly drop one of them.
+  const inclusionNote = mustInclude && mustInclude.length
+    ? `\n\nIMPORTANT: your previous attempt did not mention these players by name: ` +
+      `${mustInclude.join(", ")}. This version MUST reference every single player by name ` +
+      `and use their specific answer somewhere in the lyrics - do not omit anyone, even if a ` +
+      `rhyme suffers for it.`
+    : "";
+
   const request = {
     model: MODEL,
     max_tokens: 1200,
@@ -115,16 +125,18 @@ async function generateLyrics({ theme, styleProfile, answers }) {
       `scenario, the style direction, and everyone's question+answer pairs, write original, ` +
       `family-friendly, funny song lyrics that weave all the answers together into ONE ` +
       `coherent story about the scenario, in the order that makes it read as a single ` +
-      `narrative. Use standard section labels like [Verse 1], [Chorus], [Verse 2], [Bridge]. ` +
-      `Keep it tight - roughly 16-24 lines total. Respond in EXACTLY this format, nothing ` +
-      `else:\n` +
+      `narrative. EVERY player must be named at least once in the lyrics, with their specific ` +
+      `answer referenced somewhere - nobody gets left out, even in a large group. Use standard ` +
+      `section labels like [Verse 1], [Chorus], [Verse 2], [Bridge]. Keep it tight - roughly ` +
+      `16-24 lines total (add more verses rather than dropping players if the group is large). ` +
+      `Respond in EXACTLY this format, nothing else:\n` +
       `TITLE: <song title>\n` +
       `---\n` +
       `<lyrics with section labels, one line per lyric line>`,
     messages: [
       {
         role: "user",
-        content: `Scenario: "${theme}"\nStyle direction:\n${styleLines || "(none given - use your own judgment)"}\nPlayer prompts and answers:\n${answerLines}`,
+        content: `Scenario: "${theme}"\nStyle direction:\n${styleLines || "(none given - use your own judgment)"}\nPlayer prompts and answers:\n${answerLines}${inclusionNote}`,
       },
     ],
   };
