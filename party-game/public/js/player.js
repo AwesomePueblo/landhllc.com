@@ -193,8 +193,9 @@ function screenGenreAnswering(st, me) {
     .map(
       (gq) => `
       <div class="col" style="gap:6px">
-        <label class="muted" for="genre_${gq.key}">${escapeHtml(gq.label)}</label>
-        <input type="text" id="genre_${gq.key}" maxlength="60" placeholder="${escapeHtml(gq.question)}" autocomplete="off" />
+        <label style="font-weight:700" for="genre_${gq.key}">${escapeHtml(gq.label)}</label>
+        <div class="muted" style="font-size:0.9rem">${escapeHtml(gq.question)}</div>
+        <input type="text" id="genre_${gq.key}" maxlength="60" placeholder="Your answer..." autocomplete="off" />
       </div>`
     )
     .join("");

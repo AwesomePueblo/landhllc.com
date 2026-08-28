@@ -76,13 +76,21 @@ function parseLyricsSections(body) {
 // Turns the players' crowd-sourced style answers into ElevenLabs style
 // tags, falling back to the matched discrete genre's canned tags for
 // anything the players didn't actually answer.
+//
+// Deliberately excludes styleInfluence (the "name an artist/band/era"
+// answer): ElevenLabs' own docs say a composition's style prompt "cannot
+// include copyrighted artist/band names," and passing a real artist name
+// straight through (e.g. "influenced by Nirvana") is exactly what tripped
+// a real "bad_composition_plan / violated our Terms of Service" 400 in
+// testing. It's still used for lyrics generation (lib/ai.js), which is a
+// text-writing context, not a music-generation one, and isn't subject to
+// the same restriction.
 function buildPositiveStyles(styleProfile) {
   const sp = styleProfile || {};
   const fromPlayers = [
     sp.style,
     sp.vocalGender && `${sp.vocalGender} vocals`,
     sp.weirdness && `${sp.weirdness} vibe`,
-    sp.styleInfluence && `influenced by ${sp.styleInfluence}`,
   ].filter(Boolean);
   const genreId = matchGenreFromText(sp.style);
   const preset = getGenre(genreId);
