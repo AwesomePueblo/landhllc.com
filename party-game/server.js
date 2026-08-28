@@ -60,7 +60,7 @@ const DEBUG_LOG_MAX = 20;
 function logDebug(type, { request, response, error, usedFallback } = {}) {
   state.debugLog.unshift({
     id: crypto.randomUUID(),
-    type, // "question" | "lyrics" | "music"
+    type, // "question" | "lyrics" | "influence" | "music"
     at: Date.now(),
     request: request ?? null,
     response: response ?? null,
@@ -286,9 +286,21 @@ async function makeSong() {
   state.phase = "generating_music";
   broadcastState();
 
+  // The influence answer names a real artist/band/era, which is fine for
+  // lyrics (a text-writing context) but ElevenLabs' music API rejects
+  // copyrighted names in its style prompts. Paraphrase it into safe
+  // descriptive language before it reaches the music provider - never the
+  // raw name, even if the paraphrase call fails (see ai.js describeInfluence).
+  let musicStyleProfile = state.styleProfile;
+  if (state.styleProfile && state.styleProfile.styleInfluence) {
+    const influenceCall = await ai.describeInfluence({ styleInfluence: state.styleProfile.styleInfluence });
+    if (influenceCall.request) logDebug("influence", influenceCall);
+    musicStyleProfile = { ...state.styleProfile, styleInfluence: influenceCall.result || "" };
+  }
+
   let track;
   try {
-    const musicCall = await music.generateSong({ lyrics: state.lyrics.body, styleProfile: state.styleProfile });
+    const musicCall = await music.generateSong({ lyrics: state.lyrics.body, styleProfile: musicStyleProfile });
     if (musicCall.request) logDebug("music", musicCall);
     track = musicCall.result;
     if (!track) throw new Error(musicCall.error || "music provider returned no track");

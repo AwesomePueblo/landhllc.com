@@ -59,7 +59,7 @@ function fmtTime(ts) {
 }
 
 function debugEntryHTML(entry) {
-  const typeLabel = { question: "🎲 Question call", lyrics: "✍️ Lyrics call", music: "🎧 Music call" }[entry.type] || entry.type;
+  const typeLabel = { question: "🎲 Question call", lyrics: "✍️ Lyrics call", influence: "🎨 Influence paraphrase", music: "🎧 Music call" }[entry.type] || entry.type;
   const statusHTML = entry.error
     ? `<span class="debug-status err">${entry.usedFallback ? "FAILED (fell back)" : "FAILED"}</span>`
     : `<span class="debug-status ok">OK</span>`;

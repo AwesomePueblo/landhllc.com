@@ -145,4 +145,52 @@ async function generateLyrics({ theme, styleProfile, answers }) {
   }
 }
 
-module.exports = { isConfigured, generateQuestionSet, generateLyrics };
+// Players are asked to "name an artist, band, or era" for the song's
+// influence, and that raw name gets used directly in lyrics generation
+// (a text-writing context - fine). But ElevenLabs' music API explicitly
+// disallows copyrighted artist/band names in its style prompts, and
+// passing one straight through caused a real "violated our Terms of
+// Service" rejection. This paraphrases the reference into generic
+// descriptive language (instrumentation, era, mood, vocal style) with no
+// proper nouns, so the influence still shapes the generated music safely.
+async function describeInfluence({ styleInfluence }) {
+  const c = getClient();
+  if (!c || !styleInfluence) return { result: null };
+
+  const request = {
+    model: MODEL,
+    max_tokens: 150,
+    temperature: 0.7,
+    system:
+      `You describe a musical influence in plain, generic descriptive terms - ` +
+      `instrumentation, era, tempo, mood, vocal style - so it can be used safely as a ` +
+      `music-generation style prompt. NEVER include the artist's name, band name, song ` +
+      `titles, or any other trademarked/copyrighted proper noun, even though one is given to ` +
+      `you - describe only the SOUND, in your own words, as one short phrase under 15 words. ` +
+      `If you don't recognize the reference, describe it as a generic, era-appropriate style ` +
+      `based on any clues in the text. Reply with ONLY the descriptive phrase - no quotes, no ` +
+      `preamble, no the artist's name anywhere in your answer.`,
+    messages: [{ role: "user", content: `Influence: "${styleInfluence}"` }],
+  };
+
+  try {
+    const message = await c.messages.create(request);
+    const text = firstText(message).replace(/^["']|["']$/g, "");
+    // Defensive check: models don't always follow "never say the name"
+    // instructions perfectly. If the paraphrase still contains the
+    // original reference (or a word from it), treat it as failed rather
+    // than risk sending a name through to ElevenLabs after all.
+    const leaked = String(styleInfluence)
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 3)
+      .some((word) => text.toLowerCase().includes(word));
+    if (!text || leaked) return { result: null, request, response: message, error: leaked ? "paraphrase still contained the original name" : undefined };
+    return { result: text, request, response: message };
+  } catch (err) {
+    console.error("[ai] describeInfluence failed:", err.message || err);
+    return { result: null, request, error: err.message || String(err) };
+  }
+}
+
+module.exports = { isConfigured, generateQuestionSet, generateLyrics, describeInfluence };
