@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Civette | Tobacco, Cigars & Coffee — Paris</title>
-    <meta name="description" content="La Civette is a Left Bank tobacco shop and espresso counter in Paris — a curated humidor, tobacco, and the coffee regulars swear by.">
+    <title data-i18n="meta.title">La Civette | Tabac, Cigares &amp; Café — Paris</title>
+    <meta name="description" data-i18n-attr="content" data-i18n="meta.description" content="La Civette est un bureau de tabac et bar à café rive gauche à Paris — une cave à cigares soignée et le café que les habitués adorent.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -20,12 +20,16 @@
             </div>
             <nav>
                 <ul>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="#offerings">What We Carry</a></li>
-                    <li><a href="#visit">Hours &amp; Visit</a></li>
-                    <li><a href="#reviews">Reviews</a></li>
+                    <li><a href="#about" data-i18n="nav.about">À propos</a></li>
+                    <li><a href="#offerings" data-i18n="nav.offerings">Ce que nous proposons</a></li>
+                    <li><a href="#visit" data-i18n="nav.visit">Horaires &amp; Accès</a></li>
+                    <li><a href="#reviews" data-i18n="nav.reviews">Avis</a></li>
                 </ul>
             </nav>
+            <div class="lang-switch" role="group" aria-label="Langue / Language">
+                <button type="button" class="lang-btn" data-lang="fr" aria-pressed="true">FR</button>
+                <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+            </div>
             <div class="menu-toggle" id="menuToggle"><span></span></div>
         </div>
     </header>
@@ -33,21 +37,21 @@
     <section class="hero">
         <div class="hero-emblem" aria-hidden="true"></div>
         <div class="container">
-            <p class="eyebrow">Tobacco Shop · Left Bank, Paris</p>
-            <h2>A stop for every cigar lover — and not only.</h2>
-            <p class="lede">A neighborhood tabac near Rue Bonaparte and Rue de Seine, keeping a proper humidor and a coffee counter regulars come back for.</p>
+            <p class="eyebrow" data-i18n="hero.eyebrow">Bureau de tabac · Rive Gauche, Paris</p>
+            <h2 data-i18n="hero.h2">Un arrêt pour tout amateur de cigares — et pas que.</h2>
+            <p class="lede" data-i18n="hero.lede">Un tabac de quartier près de la rue Bonaparte et de la rue de Seine, avec une vraie cave à cigares et un comptoir à café que les habitués ne manqueraient pour rien au monde.</p>
             <div class="rating-badge">
                 <span class="stars">★★★★☆</span>
-                <span>3.8 on Google · 43 reviews</span>
+                <span data-i18n="hero.rating">3,8 sur Google · 43 avis</span>
             </div>
             <div class="hero-ctas">
                 <a class="btn btn-primary" href="https://maps.app.goo.gl/3kQ5e3jerABMwPat7?g_st=ic" target="_blank" rel="noopener">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                    Get Directions
+                    <span data-i18n="hero.cta.directions">Itinéraire</span>
                 </a>
                 <a class="btn btn-outline" href="tel:+33000000000">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>
-                    Call the Shop
+                    <span data-i18n="hero.cta.call">Appeler la boutique</span>
                 </a>
             </div>
         </div>
@@ -56,16 +60,16 @@
     <section id="about">
         <div class="container about">
             <div>
-                <p class="eyebrow">About La Civette</p>
-                <h3>Where the humidor meets the espresso machine.</h3>
-                <p>Tucked into the streets near Rue Bonaparte and Rue de Seine, La Civette is a classic Parisian tabac with a twist: alongside the cigarettes, rolling tobacco, and a well-kept selection of cigars, there's a small coffee counter that's become the real reason people stop in.</p>
-                <p>It's the kind of shop that rewards a second visit — ask what's good in the humidor that week, or just come for the espresso and stay for the conversation.</p>
+                <p class="eyebrow" data-i18n="about.eyebrow">À propos de La Civette</p>
+                <h3 data-i18n="about.h3">Là où la cave à cigares rencontre la machine à espresso.</h3>
+                <p data-i18n="about.p1">Nichée dans les rues près de la rue Bonaparte et de la rue de Seine, La Civette est un tabac parisien classique avec un supplément : aux côtés des cigarettes, du tabac à rouler et d'une belle sélection de cigares, un petit comptoir à café est devenu la vraie raison pour laquelle on s'y arrête.</p>
+                <p data-i18n="about.p2">C'est le genre de boutique qui récompense une seconde visite — demandez ce qu'il y a de bon dans la cave cette semaine-là, ou venez simplement pour l'espresso et restez pour la conversation.</p>
             </div>
             <div class="about-quote">
                 <p>"Tony got me a great cigar and the best coffee I have had in Paris."</p>
                 <cite>
                     <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                    Google review
+                    <span data-i18n="about.quote.cite">Avis Google</span>
                 </cite>
             </div>
         </div>
@@ -74,30 +78,30 @@
     <section id="offerings" class="offerings">
         <div class="container">
             <div class="section-head">
-                <p class="eyebrow">What We Carry</p>
-                <h3>Two counters, one shop.</h3>
-                <p>A proper tabac assortment, kept alongside a coffee bar most cigar shops don't bother with.</p>
+                <p class="eyebrow" data-i18n="offerings.eyebrow">Ce que nous proposons</p>
+                <h3 data-i18n="offerings.h3">Deux comptoirs, une seule boutique.</h3>
+                <p data-i18n="offerings.p">Un assortiment de tabac dans les règles de l'art, avec un comptoir à café que peu de bureaux de tabac proposent.</p>
             </div>
             <div class="offer-grid">
                 <div class="offer-card">
                     <div class="icon-wrap"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="9" width="16" height="6" rx="3"/><path d="M18 10.5h2a1.5 1.5 0 0 1 0 3h-2"/></svg></div>
-                    <h4>Cigars &amp; Humidor</h4>
-                    <p>A curated rotation of cigars, kept properly and sold by people who smoke them too.</p>
+                    <h4 data-i18n="offer.1.title">Cigares &amp; Cave</h4>
+                    <p data-i18n="offer.1.desc">Une sélection de cigares en rotation, conservés comme il se doit et vendus par des gens qui les fument aussi.</p>
                 </div>
                 <div class="offer-card">
                     <div class="icon-wrap"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>
-                    <h4>Tobacco &amp; Cigarettes</h4>
-                    <p>The everyday tabac counter — cigarettes, rolling tobacco, and the usual essentials.</p>
+                    <h4 data-i18n="offer.2.title">Tabac &amp; Cigarettes</h4>
+                    <p data-i18n="offer.2.desc">Le comptoir tabac du quotidien — cigarettes, tabac à rouler et l'essentiel habituel.</p>
                 </div>
                 <div class="offer-card">
                     <div class="icon-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
-                    <h4>Espresso Bar</h4>
-                    <p>The counter reviewers keep mentioning — a short, strong coffee to go with your smoke.</p>
+                    <h4 data-i18n="offer.3.title">Bar à Espresso</h4>
+                    <p data-i18n="offer.3.desc">Le comptoir dont parlent les avis — un café court et serré pour accompagner votre cigare.</p>
                 </div>
                 <div class="offer-card">
                     <div class="icon-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7S9 1 5 3s3 4 7 4Z"/><path d="M12 7s3-6 7-4-3 4-7 4Z"/></svg></div>
-                    <h4>Gifts &amp; Accessories</h4>
-                    <p>Lighters, cutters, and small gifts for the smoker who has everything.</p>
+                    <h4 data-i18n="offer.4.title">Cadeaux &amp; Accessoires</h4>
+                    <p data-i18n="offer.4.desc">Briquets, coupe-cigares et petits cadeaux pour le fumeur qui a déjà tout.</p>
                 </div>
             </div>
         </div>
@@ -106,29 +110,29 @@
     <section id="visit">
         <div class="container">
             <div class="section-head">
-                <p class="eyebrow">Hours &amp; Visit</p>
-                <h3>Find us on the Left Bank.</h3>
+                <p class="eyebrow" data-i18n="visit.eyebrow">Horaires &amp; Accès</p>
+                <h3 data-i18n="visit.h3">Retrouvez-nous rive gauche.</h3>
             </div>
             <div class="visit">
                 <div class="ticket">
-                    <h4>Hours</h4>
-                    <div class="hours-row"><span>Monday</span><span>10:00 – 20:00*</span></div>
-                    <div class="hours-row"><span>Tuesday</span><span>10:00 – 20:00*</span></div>
-                    <div class="hours-row"><span>Wednesday</span><span>10:00 – 20:00*</span></div>
-                    <div class="hours-row"><span>Thursday</span><span>10:00 – 20:00*</span></div>
-                    <div class="hours-row"><span>Friday</span><span>10:00 – 20:00*</span></div>
-                    <div class="hours-row"><span>Saturday</span><span>10:00 – 20:00*</span></div>
-                    <div class="hours-row"><span>Sunday</span><span>Check ahead*</span></div>
-                    <p class="status-line">*Confirmed opening time is 10:00 via Google. Closing hours and Sunday schedule should be confirmed with the shop before publishing.</p>
+                    <h4 data-i18n="visit.ticket.title">Horaires</h4>
+                    <div class="hours-row"><span data-i18n="day.mon">Lundi</span><span data-i18n="hours.weekday">10h00 – 20h00*</span></div>
+                    <div class="hours-row"><span data-i18n="day.tue">Mardi</span><span data-i18n="hours.weekday">10h00 – 20h00*</span></div>
+                    <div class="hours-row"><span data-i18n="day.wed">Mercredi</span><span data-i18n="hours.weekday">10h00 – 20h00*</span></div>
+                    <div class="hours-row"><span data-i18n="day.thu">Jeudi</span><span data-i18n="hours.weekday">10h00 – 20h00*</span></div>
+                    <div class="hours-row"><span data-i18n="day.fri">Vendredi</span><span data-i18n="hours.weekday">10h00 – 20h00*</span></div>
+                    <div class="hours-row"><span data-i18n="day.sat">Samedi</span><span data-i18n="hours.weekday">10h00 – 20h00*</span></div>
+                    <div class="hours-row"><span data-i18n="day.sun">Dimanche</span><span data-i18n="hours.sunday">À confirmer*</span></div>
+                    <p class="status-line" data-i18n="visit.status">*L'heure d'ouverture (10h00) est confirmée via Google. L'heure de fermeture et les horaires du dimanche sont à confirmer avec la boutique avant la mise en ligne.</p>
                 </div>
                 <div class="map-card">
                     <div>
-                        <h4>Near Rue Bonaparte &amp; Rue de Seine</h4>
-                        <p>6th arrondissement, Paris — three minutes on foot from the Seine. Full address to be added once confirmed with the owner.</p>
+                        <h4 data-i18n="visit.map.title">Près de la rue Bonaparte &amp; rue de Seine</h4>
+                        <p data-i18n="visit.map.desc">6e arrondissement, Paris — à trois minutes à pied de la Seine. L'adresse complète sera ajoutée une fois confirmée avec le propriétaire.</p>
                     </div>
                     <a class="btn btn-outline" href="https://maps.app.goo.gl/3kQ5e3jerABMwPat7?g_st=ic" target="_blank" rel="noopener">
                         <svg class="icon" viewBox="0 0 24 24"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
-                        Open in Google Maps
+                        <span data-i18n="visit.map.cta">Ouvrir dans Google Maps</span>
                     </a>
                 </div>
             </div>
@@ -138,24 +142,24 @@
     <section id="reviews" class="reviews">
         <div class="container">
             <div class="section-head">
-                <p class="eyebrow">From Google Reviews</p>
-                <h3>3.8 stars, 43 reviews and counting.</h3>
+                <p class="eyebrow" data-i18n="reviews.eyebrow">Avis Google</p>
+                <h3 data-i18n="reviews.h3">3,8 étoiles, 43 avis et ça continue.</h3>
             </div>
             <div class="review-grid">
                 <div class="review-card">
                     <span class="stars">★★★★★</span>
                     <p class="quote">"Tony got me a great cigar and the best coffee I have had in Paris."</p>
-                    <cite>Tony · via Google</cite>
+                    <cite data-i18n="reviews.1.cite">Tony · via Google</cite>
                 </div>
                 <div class="review-card">
                     <span class="stars">★★★★☆</span>
-                    <p class="quote">A proper neighborhood tabac — good selection, and the coffee counter is a nice surprise.</p>
-                    <cite>Placeholder — swap in a second real review</cite>
+                    <p class="quote" data-i18n="reviews.2.quote">Un vrai tabac de quartier — bon choix, et le comptoir à café est une agréable surprise.</p>
+                    <cite data-i18n="reviews.2.cite">Emplacement à remplacer par un vrai avis</cite>
                 </div>
                 <div class="review-card">
                     <span class="stars">★★★★☆</span>
-                    <p class="quote">Worth the stop if you're near the Seine and want something better than a vending-machine espresso.</p>
-                    <cite>Placeholder — swap in a third real review</cite>
+                    <p class="quote" data-i18n="reviews.3.quote">Ça vaut le détour si vous êtes près de la Seine et que vous voulez mieux qu'un espresso de distributeur.</p>
+                    <cite data-i18n="reviews.3.cite">Emplacement à remplacer par un second avis</cite>
                 </div>
             </div>
         </div>
@@ -169,16 +173,16 @@
                         <span class="diamond"></span>
                         <h1>La Civette</h1>
                     </div>
-                    <p class="footer-note" style="margin-top:10px;">Tobacco, cigars &amp; coffee near Rue Bonaparte, Paris.</p>
+                    <p class="footer-note" style="margin-top:10px;" data-i18n="footer.tagline">Tabac, cigares &amp; café près de la rue Bonaparte, Paris.</p>
                 </div>
                 <div>
-                    <p class="footer-note">This is a proof-of-concept site built from La Civette's public Google Business listing, to show what a real website could look like. Address, phone, full hours, and photos should be confirmed directly with the owner before this goes live.</p>
-                    <span class="poc-flag">Proof of Concept — Not Yet Published</span>
+                    <p class="footer-note" data-i18n="footer.note">Ceci est un site de démonstration conçu à partir de la fiche Google Business publique de La Civette, pour montrer à quoi pourrait ressembler un vrai site. L'adresse, le téléphone, les horaires complets et les photos doivent être confirmés directement avec le propriétaire avant la mise en ligne.</p>
+                    <span class="poc-flag" data-i18n="footer.flag">Avant-projet — Pas encore publié</span>
                 </div>
             </div>
             <div class="footer-bottom">
                 <span>&copy; 2026 La Civette</span>
-                <span>Concept site by Land H LLC</span>
+                <span data-i18n="footer.credit">Site concept par Land H LLC</span>
             </div>
         </div>
     </footer>

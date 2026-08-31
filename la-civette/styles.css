@@ -110,6 +110,37 @@ nav a {
 
 nav a:hover { color: var(--carotte); border-color: var(--carotte); }
 
+.lang-switch {
+    display: flex;
+    border: 1px solid rgba(43, 29, 20, 0.2);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+    margin-left: 24px;
+    flex-shrink: 0;
+}
+
+.lang-btn {
+    border: none;
+    background: transparent;
+    color: var(--walnut-soft);
+    font-family: 'Work Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.lang-btn:hover { color: var(--carotte); }
+
+.lang-btn.active {
+    background: var(--carotte);
+    color: #fff;
+}
+
 .menu-toggle {
     display: none;
     width: 36px;
