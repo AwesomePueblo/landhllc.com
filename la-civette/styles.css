@@ -397,7 +397,22 @@ section { padding: 88px 0; }
 .map-card > * { position: relative; }
 
 .map-card h4 { color: #fff; font-size: 1.3rem; margin-bottom: 10px; }
-.map-card p { color: rgba(247, 240, 226, 0.75); margin-bottom: 26px; font-size: 0.95rem; }
+.map-card p { color: rgba(247, 240, 226, 0.75); margin-bottom: 14px; font-size: 0.95rem; }
+.map-card p:last-of-type { margin-bottom: 26px; }
+
+.phone-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.phone-line .icon { color: var(--brass-light); flex-shrink: 0; }
+.phone-line a {
+    color: #fff;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+.phone-line a:hover { border-color: var(--brass-light); color: var(--brass-light); }
 
 /* Reviews strip */
 .reviews { background: var(--carotte); color: #fff; }
