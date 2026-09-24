@@ -109,17 +109,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Form submission (prevent default for demo)
+    // Form submission
     const forms = document.querySelectorAll('form');
-    
+
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             // Get form inputs
             const formInputs = this.querySelectorAll('input, textarea');
             let isValid = true;
-            
+
             // Simple validation
             formInputs.forEach(input => {
                 if (input.hasAttribute('required') && !input.value.trim()) {
@@ -129,28 +129,51 @@ document.addEventListener('DOMContentLoaded', function() {
                     input.style.borderColor = '#ddd';
                 }
             });
-            
-            if (isValid) {
-                // For demo purposes, just reset the form
-                this.reset();
-                
-                // Show success message (you would typically handle this with AJAX)
-                const formParent = this.parentElement;
-                const successMessage = document.createElement('div');
-                successMessage.className = 'success-message';
-                successMessage.textContent = 'Thank you for your message! We will get back to you soon.';
-                successMessage.style.color = '#04844b';
-                successMessage.style.padding = '15px';
-                successMessage.style.marginTop = '15px';
-                successMessage.style.backgroundColor = 'rgba(4, 132, 75, 0.1)';
-                successMessage.style.borderRadius = '5px';
-                
-                formParent.appendChild(successMessage);
-                
-                // Remove success message after 5 seconds
+
+            if (!isValid) {
+                return;
+            }
+
+            const formParent = this.parentElement;
+            const showMessage = (text, isError) => {
+                const message = document.createElement('div');
+                message.className = 'success-message';
+                message.textContent = text;
+                message.style.color = isError ? '#b00020' : '#04844b';
+                message.style.padding = '15px';
+                message.style.marginTop = '15px';
+                message.style.backgroundColor = isError ? 'rgba(176, 0, 32, 0.1)' : 'rgba(4, 132, 75, 0.1)';
+                message.style.borderRadius = '5px';
+
+                formParent.appendChild(message);
+
                 setTimeout(() => {
-                    successMessage.remove();
+                    message.remove();
                 }, 5000);
+            };
+
+            if (this.action && this.action.includes('formsubmit.co')) {
+                // Real submission: emails the form contents via FormSubmit
+                fetch(this.action, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    body: new FormData(this)
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            this.reset();
+                            showMessage('Thank you for your message! We will get back to you soon.', false);
+                        } else {
+                            showMessage('Something went wrong sending your message. Please email us directly.', true);
+                        }
+                    })
+                    .catch(() => {
+                        showMessage('Something went wrong sending your message. Please email us directly.', true);
+                    });
+            } else {
+                // No backend wired up yet for this form
+                this.reset();
+                showMessage('Thank you for your message! We will get back to you soon.', false);
             }
         });
     });
