@@ -190,6 +190,70 @@ nav ul li a.active::after {
     width: 100%;
 }
 
+/* Projects Nav Dropdown */
+.nav-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-toggle {
+    background: none;
+    border: none;
+    color: var(--dark-color);
+    font-size: 0.65rem;
+    padding: 10px 6px;
+    min-width: 24px;
+    min-height: 24px;
+    cursor: pointer;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 15px;
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: var(--box-shadow);
+    padding: 10px 0;
+    min-width: 240px;
+    z-index: 1001;
+}
+
+.dropdown-menu li {
+    margin-left: 0;
+}
+
+.dropdown-menu li a {
+    display: block;
+    padding: 8px 20px;
+    color: var(--dark-color);
+    font-weight: 400;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.dropdown-menu li a::after {
+    display: none;
+}
+
+.dropdown-menu li a:hover {
+    background-color: var(--light-color);
+    color: var(--primary-color);
+}
+
+.nav-dropdown.open .dropdown-menu {
+    display: block;
+}
+
+@media (hover: hover) {
+    .nav-dropdown:hover .dropdown-menu {
+        display: block;
+    }
+}
+
 .menu-toggle {
     display: none;
     cursor: pointer;
@@ -749,6 +813,19 @@ footer {
         margin: 0 0 20px 0;
     }
 
+    .nav-dropdown {
+        flex-wrap: wrap;
+    }
+
+    .dropdown-menu {
+        position: static;
+        box-shadow: none;
+        margin-top: 10px;
+        padding: 0 0 0 15px;
+        min-width: 0;
+        width: 100%;
+    }
+
     .theme-panel {
         right: auto;
         left: 0;
@@ -808,47 +885,6 @@ footer {
     margin: 0 auto;
 }
 
-/* Projects Sub-Navigation */
-.project-subnav {
-    position: sticky;
-    top: 70px;
-    z-index: 900;
-    background-color: var(--white);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.project-subnav .container {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding-top: 14px;
-    padding-bottom: 14px;
-    scrollbar-width: none;
-}
-
-.project-subnav .container::-webkit-scrollbar {
-    display: none;
-}
-
-.project-subnav a {
-    flex: 0 0 auto;
-    color: var(--dark-color);
-    font-size: 0.9rem;
-    font-weight: 500;
-    padding: 8px 16px;
-    border-radius: 50px;
-    border: 1px solid var(--light-color);
-    white-space: nowrap;
-}
-
-.project-subnav a:hover,
-.project-subnav a.active {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: var(--white);
-}
-
 /* Projects */
 .projects {
     background-color: var(--light-color);
@@ -859,6 +895,7 @@ footer {
     border-radius: 10px;
     box-shadow: var(--box-shadow);
     padding: 45px;
+    scroll-margin-top: 90px;
 }
 
 .project-card + .project-card {

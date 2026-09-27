@@ -46,7 +46,21 @@
                     <li><a href="index.html#services">Services</a></li>
                     <li><a href="index.html#about">About</a></li>
                     <li><a href="index.html#expertise">Expertise</a></li>
-                    <li><a href="projects.html" class="active">Projects</a></li>
+                    <li class="nav-dropdown">
+                        <a href="projects.html" class="active">Projects</a>
+                        <button type="button" class="dropdown-toggle" aria-label="Show project list" aria-expanded="false">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a href="projects.html#song-party">Song Party</a></li>
+                            <li><a href="projects.html#ai-simulation-game">AI Simulation Game</a></li>
+                            <li><a href="projects.html#email-agent">Email Management Agent</a></li>
+                            <li><a href="projects.html#tonys-land-clearing">Tony's Land Clearing</a></li>
+                            <li><a href="projects.html#ai-dev-enablement">AI Dev Enablement Pilot</a></li>
+                            <li><a href="projects.html#data-integrity-initiative">Data Integrity Initiative</a></li>
+                            <li><a href="projects.html#integration-architecture">Integration Architecture</a></li>
+                        </ul>
+                    </li>
                     <li><a href="index.html#contact">Contact</a></li>
                     <li class="theme-switcher">
                         <button type="button" class="theme-toggle" aria-label="Change theme color" aria-expanded="false" title="Change theme color">
@@ -84,16 +98,6 @@
             <p>Independent engineering work outside day-to-day Salesforce consulting</p>
         </div>
     </section>
-
-    <!-- Projects Sub-Navigation -->
-    <div class="project-subnav">
-        <div class="container">
-            <a href="#song-party">Song Party</a>
-            <a href="#ai-simulation-game">AI Simulation Game</a>
-            <a href="#email-agent">Email Management Agent</a>
-            <a href="#tonys-land-clearing">Tony's Land Clearing</a>
-        </div>
-    </div>
 
     <!-- Projects Section -->
     <section class="projects">
@@ -191,6 +195,63 @@
                     <span class="tech-tag">Netlify Forms</span>
                     <span class="tech-tag">DNS/SSL Troubleshooting</span>
                     <span class="tech-tag">Headless Browser QA</span>
+                </div>
+            </div>
+
+            <div class="project-card" id="ai-dev-enablement">
+                <div class="project-card-header">
+                    <h2>AI-Assisted Development Enablement Pilot</h2>
+                    <p class="project-subtitle">Enterprise AI Coding Assistant Rollout</p>
+                </div>
+                <ul class="project-bullets">
+                    <li>Proposed and led adoption of an AI coding assistant (Cline) connected to an enterprise AWS Bedrock account for a Salesforce development team, building the business case, guardrails, and rollout plan from scratch.</li>
+                    <li>Authored a leadership-facing proposal deck covering scope, cost controls (per-developer usage caps), data-handling guardrails (no PII to any AI tool), and a phased pilot-to-rollout timeline.</li>
+                    <li>Ran a 4-developer pilot against real backlog work rather than sandbox tasks, then quantified aggregate time savings from self-reported developer feedback across roughly 9 tracked work items, explicitly caveating the figures as self-reported rather than independently measured.</li>
+                    <li>Iterated the proposal through multiple stakeholder review rounds (peer, then leadership), compressing and later correcting the timeline as real external dependencies (cloud access provisioning) came into focus.</li>
+                </ul>
+                <div class="tech-tags">
+                    <span class="tech-tag">AI-Assisted Development</span>
+                    <span class="tech-tag">AWS Bedrock</span>
+                    <span class="tech-tag">Change Management</span>
+                    <span class="tech-tag">Technical Proposal Writing</span>
+                    <span class="tech-tag">Stakeholder Communication</span>
+                </div>
+            </div>
+
+            <div class="project-card" id="data-integrity-initiative">
+                <div class="project-card-header">
+                    <h2>Data Integrity &amp; Observability Initiative</h2>
+                    <p class="project-subtitle">Cross-System Data Reconciliation Architecture</p>
+                </div>
+                <ul class="project-bullets">
+                    <li>Proposed a proactive data-monitoring approach for a Salesforce-to-data-warehouse pipeline, tracking daily record-update volume by status and alerting on significant drops before issues reached the business.</li>
+                    <li>Designed a five-part field-level reconciliation architecture (snapshot extract, field-mapping registry, comparison engine, historical results store, dashboard) to validate that records published from Salesforce were landing correctly downstream.</li>
+                    <li>Evaluated build-vs-buy paths for a broader data-observability capability &mdash; native data-warehouse monitoring functions vs. an AI reasoning agent layered on top vs. a third-party observability platform &mdash; and produced a recommended path forward.</li>
+                    <li>Identified and documented key technical risks in cross-system reconciliation, including timing/staleness false-positives, append-only vs. upserted data shapes, and fields with no clean one-to-one equivalent across systems.</li>
+                </ul>
+                <div class="tech-tags">
+                    <span class="tech-tag">Data Architecture</span>
+                    <span class="tech-tag">Snowflake</span>
+                    <span class="tech-tag">Data Reconciliation</span>
+                    <span class="tech-tag">Observability</span>
+                    <span class="tech-tag">Technical Evaluation</span>
+                </div>
+            </div>
+
+            <div class="project-card" id="integration-architecture">
+                <div class="project-card-header">
+                    <h2>Enterprise Integration Architecture Design</h2>
+                </div>
+                <ul class="project-bullets">
+                    <li>Produced an 11-slide high-level design deck for a multi-system account-merge process spanning a CRM, an integration layer, an identity-management system, and a downstream operational system &mdash; covering both manual and automated merge flows, approval workflows, and cross-system event notification.</li>
+                    <li>Designed and diagrammed an end-to-end real-time integration architecture for ingesting external exchange-rate data through an integration platform and event broker into a CRM system, defining the role of each system in the pipeline.</li>
+                    <li>Specified a full technical design (data model, scheduled job, configurable alert threshold, dashboard component) for a change-monitoring dashboard and alerting system, handed off as an implementation-ready spec.</li>
+                </ul>
+                <div class="tech-tags">
+                    <span class="tech-tag">Solution Architecture</span>
+                    <span class="tech-tag">System Integration Design</span>
+                    <span class="tech-tag">Event-Driven Architecture</span>
+                    <span class="tech-tag">Technical Specification</span>
                 </div>
             </div>
         </div>
