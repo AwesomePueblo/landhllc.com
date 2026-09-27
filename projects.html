@@ -116,6 +116,30 @@
                     <span class="tech-tag">Defensive Error Handling & Fallback Design</span>
                 </div>
             </div>
+
+            <div class="project-card">
+                <div class="project-card-header">
+                    <h2>AI Simulation Game</h2>
+                    <p class="project-subtitle">Interactive NPC Simulation with Claude-Powered Dialogue</p>
+                    <a href="https://aisimgame.netlify.app/simulation" target="_blank" rel="noopener" class="project-live-link">
+                        <i class="fas fa-arrow-up-right-from-square"></i> Live Demo
+                    </a>
+                </div>
+                <ul class="project-bullets">
+                    <li>Built a browser-based simulation game from scratch &mdash; HTML/CSS front end driving a real-time JS game loop with animated agents moving through a scene.</li>
+                    <li>Designed a proximity-triggered dialogue system: agents generate contextual conversation when they approach specific scene landmarks, using landmark identity to shape the prompt sent to the LLM.</li>
+                    <li>Integrated the Claude API via a Netlify serverless function (<code>chat.js</code>) acting as a secure proxy, keeping the API key server-side and off the client.</li>
+                    <li>Provisioned and configured the hosting infrastructure end-to-end: created the Netlify site, linked it to the GitHub repo for CI-style deploys, and set the <code>ANTHROPIC_API_KEY</code> environment variable.</li>
+                    <li>Shipped and documented the deploy process, then integrated the game as a linked feature from the main site homepage.</li>
+                </ul>
+                <div class="tech-tags">
+                    <span class="tech-tag">JavaScript (Game Loop, DOM/Canvas)</span>
+                    <span class="tech-tag">HTML/CSS</span>
+                    <span class="tech-tag">Netlify Functions (Node.js Serverless)</span>
+                    <span class="tech-tag">Anthropic Claude API</span>
+                    <span class="tech-tag">Git/GitHub</span>
+                </div>
+            </div>
         </div>
     </section>
 
