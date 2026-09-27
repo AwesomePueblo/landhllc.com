@@ -248,7 +248,7 @@ nav ul li a.active::after {
     display: block;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (min-width: 769px) {
     .nav-dropdown:hover .dropdown-menu {
         display: block;
     }
