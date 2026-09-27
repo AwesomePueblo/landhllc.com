@@ -91,29 +91,25 @@
             <div class="project-card">
                 <div class="project-card-header">
                     <h2>Song Party</h2>
-                    <p class="project-subtitle">Local Multiplayer AI Party Game</p>
+                    <p class="project-subtitle">Local Wi-Fi Multiplayer AI Party Game</p>
                 </div>
-                <p class="project-summary">Built a Jackbox-style local-network multiplayer party game with a real-time Node.js/WebSocket backend, an LLM-driven content-generation pipeline, and a third-party AI music API integration with automated content-policy remediation and multi-tier offline fallbacks.</p>
                 <ul class="project-bullets">
-                    <li>Designed and built a real-time multiplayer web game (Node.js, Express, WebSocket) supporting an arbitrary number of concurrent phone clients against a single host display, with a server-authoritative state machine and per-client personalized broadcasts (each player receives only their own data over a shared connection pool).</li>
-                    <li>Integrated the Anthropic Claude API to dynamically generate game content each round: player-specific prompts that combine into one coherent narrative, and full original song lyrics synthesized from crowd-sourced player answers &mdash; with automated self-verification (checks that every contributor is represented in the output, auto-correcting via a second model call before falling back to a deterministic template).</li>
-                    <li>Designed a custom load-balancing algorithm to distribute a fixed question set across a variable number of players (1 to N), evenly splitting or cycling questions as needed and merging duplicate responses &mdash; verified correct across all group-size edge cases with automated tests.</li>
-                    <li>Integrated a third-party generative audio API (ElevenLabs Music) to produce vocal music from AI-written lyrics and player-supplied style parameters, including automatic detection and one-shot remediation of content-policy rejections (stripping/paraphrasing flagged content and resubmitting) before falling back to a self-written, dependency-free procedural audio synthesizer.</li>
-                    <li>Built a live debug/observability panel exposing raw request/response payloads for every external API call, enabling real-time verification of AI-generated vs. fallback content during testing and demos.</li>
-                    <li>Implemented a lightweight feedback and analytics system: opt-in per-round ratings that trigger structured JSON logging of the full round context (prompts, answers, generated content, style parameters) for post-hoc review, persisted independently of in-memory game state.</li>
-                    <li>Engineered for reliability under real third-party API constraints: request timeouts with abort handling, model-compatibility fixes across provider parameter changes, and layered fallbacks ensuring the game never hard-fails on an external service error.</li>
-                    <li>Built the entire front end in vanilla JavaScript/CSS with no build step or framework, including a reactive rendering layer that avoids redundant re-renders to prevent data loss during concurrent user input on shared state updates.</li>
+                    <li>Designed and shipped a Jackbox-style, real-time multiplayer web game supporting simultaneous local-network play across an arbitrary number of phones and a shared host display, using Node.js, Express, and WebSockets.</li>
+                    <li>Architected a server-driven game state machine coordinating a multi-phase round lifecycle (lobby &rarr; prompt &rarr; answer collection &rarr; AI content generation &rarr; synchronized playback) with automatic reconnection handling for dropped clients.</li>
+                    <li>Integrated the Anthropic Claude API to dynamically generate creative prompts and transform crowdsourced player input into structured, genre-specific song lyrics in real time.</li>
+                    <li>Built a dependency-free procedural audio synthesis engine in pure Node.js &mdash; custom oscillators, WAV encoding, and genre-tuned chord/tempo presets &mdash; generating original instrumental tracks with zero third-party audio APIs or paid services.</li>
+                    <li>Solved cross-device synchronized media playback using scheduled wall-clock timestamps and browser autoplay-policy workarounds, delivering consistent audio start times across every connected device.</li>
+                    <li>Designed the system for graceful degradation: full offline fallback (prompt bank + template lyrics generator) keeps the game fully playable with zero API keys configured.</li>
+                    <li>Managed the feature through a standard GitHub PR workflow (branch, PR, review, merge) into a live production site.</li>
                 </ul>
                 <div class="tech-tags">
                     <span class="tech-tag">Node.js</span>
                     <span class="tech-tag">Express</span>
                     <span class="tech-tag">WebSocket (ws)</span>
                     <span class="tech-tag">Anthropic Claude API</span>
-                    <span class="tech-tag">ElevenLabs API</span>
+                    <span class="tech-tag">Procedural Audio Synthesis</span>
                     <span class="tech-tag">Real-time State Sync</span>
-                    <span class="tech-tag">REST API Integration</span>
-                    <span class="tech-tag">Vanilla JS/CSS</span>
-                    <span class="tech-tag">Defensive Error Handling & Fallback Design</span>
+                    <span class="tech-tag">Git/GitHub</span>
                 </div>
             </div>
 
