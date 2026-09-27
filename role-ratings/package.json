@@ -1,0 +1,17 @@
+{
+  "name": "role-ratings",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rate a person's specific performance on a specific title, not just the title as a whole.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}

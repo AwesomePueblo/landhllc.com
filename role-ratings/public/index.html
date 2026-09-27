@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Role Ratings</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site">
+    <div>
+      <div class="brand">Role Ratings</div>
+      <div class="tagline">Rate the performance, not just the movie.</div>
+    </div>
+  </header>
+
+  <main>
+    <form id="search-form" class="search-row">
+      <input type="search" id="search-input" placeholder="Search a movie, show, or person&hellip;" autofocus />
+      <button type="submit">Search</button>
+    </form>
+
+    <ul class="results" id="results"></ul>
+    <div class="empty-state" id="empty" hidden>No results. Try a different search.</div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/search.js"></script>
+</body>
+</html>
