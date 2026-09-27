@@ -489,54 +489,6 @@ nav ul li a.active::after {
     color: var(--text-light);
 }
 
-/* Testimonials Section */
-.testimonials {
-    background-color: var(--white);
-}
-
-.testimonial-slider {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 30px;
-}
-
-.testimonial {
-    background-color: var(--light-color);
-    border-radius: 10px;
-    padding: 30px;
-    box-shadow: var(--box-shadow);
-    position: relative;
-}
-
-.testimonial::before {
-    content: '"';
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    font-size: 5rem;
-    color: rgba(0, 102, 204, 0.1);
-    font-family: serif;
-    line-height: 1;
-}
-
-.testimonial-content p {
-    font-style: italic;
-    margin-bottom: 20px;
-    position: relative;
-    z-index: 1;
-}
-
-.client-info h4 {
-    font-size: 1.1rem;
-    color: var(--dark-color);
-}
-
-.client-info p {
-    font-style: normal;
-    color: var(--text-light);
-    font-size: 0.9rem;
-}
-
 /* Contact Section */
 .contact {
     background-color: var(--light-color);
