@@ -856,6 +856,47 @@ footer {
     margin: 0 auto;
 }
 
+/* Projects Sub-Navigation */
+.project-subnav {
+    position: sticky;
+    top: 70px;
+    z-index: 900;
+    background-color: var(--white);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.project-subnav .container {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    scrollbar-width: none;
+}
+
+.project-subnav .container::-webkit-scrollbar {
+    display: none;
+}
+
+.project-subnav a {
+    flex: 0 0 auto;
+    color: var(--dark-color);
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 50px;
+    border: 1px solid var(--light-color);
+    white-space: nowrap;
+}
+
+.project-subnav a:hover,
+.project-subnav a.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--white);
+}
+
 /* Projects */
 .projects {
     background-color: var(--light-color);

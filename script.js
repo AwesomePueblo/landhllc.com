@@ -265,4 +265,38 @@ document.addEventListener('DOMContentLoaded', function() {
             themeCustomColor.value = saved.primary;
         }
     } catch (e) {}
+
+    // Projects page sub-navigation (independent of the main site nav above)
+    const projectSubnavLinks = document.querySelectorAll('.project-subnav a');
+
+    if (projectSubnavLinks.length) {
+        projectSubnavLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.offsetTop - 130,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        const projectCards = document.querySelectorAll('.project-card[id]');
+        const setActiveSubnavLink = () => {
+            let currentId = null;
+            projectCards.forEach(card => {
+                if (window.scrollY >= card.offsetTop - 150) {
+                    currentId = card.id;
+                }
+            });
+            projectSubnavLinks.forEach(link => {
+                link.classList.toggle('active', link.getAttribute('href') === `#${currentId}`);
+            });
+        };
+
+        window.addEventListener('scroll', setActiveSubnavLink);
+        setActiveSubnavLink();
+    }
 });
