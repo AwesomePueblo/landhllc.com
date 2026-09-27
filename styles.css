@@ -907,6 +907,13 @@ footer {
 .project-subtitle {
     color: var(--primary-color);
     font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.project-byline {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    font-style: italic;
     margin-bottom: 20px;
 }
 
