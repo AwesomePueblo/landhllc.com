@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - Land H LLC</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        (function () {
+            try {
+                var saved = JSON.parse(localStorage.getItem('landh-theme'));
+                if (saved && saved.primary && saved.secondary) {
+                    var root = document.documentElement.style;
+                    root.setProperty('--primary-color', saved.primary);
+                    root.setProperty('--secondary-color', saved.secondary);
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3R5NJ422YS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-3R5NJ422YS');
+</script>
+
+</head>
+<body>
+    <!-- Header & Navigation -->
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1>Land H <span>LLC</span></h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="index.html#services">Services</a></li>
+                    <li><a href="index.html#about">About</a></li>
+                    <li><a href="index.html#expertise">Expertise</a></li>
+                    <li><a href="projects.html" class="active">Projects</a></li>
+                    <li><a href="index.html#contact">Contact</a></li>
+                    <li class="theme-switcher">
+                        <button type="button" class="theme-toggle" aria-label="Change theme color" aria-expanded="false" title="Change theme color">
+                            <i class="fas fa-palette"></i>
+                        </button>
+                        <div class="theme-panel">
+                            <p class="theme-panel-label">Theme color</p>
+                            <div class="theme-swatches">
+                                <button type="button" class="theme-swatch" data-primary="#0066cc" data-secondary="#00a1e0" style="background:#0066cc" title="Salesforce Blue (default)"></button>
+                                <button type="button" class="theme-swatch" data-primary="#6a1fc7" data-secondary="#9147e6" style="background:#6a1fc7" title="Purple"></button>
+                                <button type="button" class="theme-swatch" data-primary="#c1121f" data-secondary="#e5383b" style="background:#c1121f" title="Red"></button>
+                                <button type="button" class="theme-swatch" data-primary="#04844b" data-secondary="#2dc653" style="background:#04844b" title="Green"></button>
+                                <button type="button" class="theme-swatch" data-primary="#e85d04" data-secondary="#f48c06" style="background:#e85d04" title="Orange"></button>
+                                <button type="button" class="theme-swatch" data-primary="#212529" data-secondary="#495057" style="background:#212529" title="Charcoal"></button>
+                            </div>
+                            <label class="theme-custom">
+                                Custom
+                                <input type="color" id="theme-custom-color" value="#0066cc" aria-label="Pick a custom theme color">
+                            </label>
+                            <button type="button" class="theme-reset">Reset to default</button>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+            <div class="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Hero -->
+    <section class="page-hero">
+        <div class="container">
+            <h1>Projects</h1>
+            <p>Independent engineering work outside day-to-day Salesforce consulting</p>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section class="projects">
+        <div class="container">
+            <div class="project-card">
+                <div class="project-card-header">
+                    <h2>Song Party</h2>
+                    <p class="project-subtitle">Local Multiplayer AI Party Game</p>
+                </div>
+                <p class="project-summary">Built a Jackbox-style local-network multiplayer party game with a real-time Node.js/WebSocket backend, an LLM-driven content-generation pipeline, and a third-party AI music API integration with automated content-policy remediation and multi-tier offline fallbacks.</p>
+                <ul class="project-bullets">
+                    <li>Designed and built a real-time multiplayer web game (Node.js, Express, WebSocket) supporting an arbitrary number of concurrent phone clients against a single host display, with a server-authoritative state machine and per-client personalized broadcasts (each player receives only their own data over a shared connection pool).</li>
+                    <li>Integrated the Anthropic Claude API to dynamically generate game content each round: player-specific prompts that combine into one coherent narrative, and full original song lyrics synthesized from crowd-sourced player answers &mdash; with automated self-verification (checks that every contributor is represented in the output, auto-correcting via a second model call before falling back to a deterministic template).</li>
+                    <li>Designed a custom load-balancing algorithm to distribute a fixed question set across a variable number of players (1 to N), evenly splitting or cycling questions as needed and merging duplicate responses &mdash; verified correct across all group-size edge cases with automated tests.</li>
+                    <li>Integrated a third-party generative audio API (ElevenLabs Music) to produce vocal music from AI-written lyrics and player-supplied style parameters, including automatic detection and one-shot remediation of content-policy rejections (stripping/paraphrasing flagged content and resubmitting) before falling back to a self-written, dependency-free procedural audio synthesizer.</li>
+                    <li>Built a live debug/observability panel exposing raw request/response payloads for every external API call, enabling real-time verification of AI-generated vs. fallback content during testing and demos.</li>
+                    <li>Implemented a lightweight feedback and analytics system: opt-in per-round ratings that trigger structured JSON logging of the full round context (prompts, answers, generated content, style parameters) for post-hoc review, persisted independently of in-memory game state.</li>
+                    <li>Engineered for reliability under real third-party API constraints: request timeouts with abort handling, model-compatibility fixes across provider parameter changes, and layered fallbacks ensuring the game never hard-fails on an external service error.</li>
+                    <li>Built the entire front end in vanilla JavaScript/CSS with no build step or framework, including a reactive rendering layer that avoids redundant re-renders to prevent data loss during concurrent user input on shared state updates.</li>
+                </ul>
+                <div class="tech-tags">
+                    <span class="tech-tag">Node.js</span>
+                    <span class="tech-tag">Express</span>
+                    <span class="tech-tag">WebSocket (ws)</span>
+                    <span class="tech-tag">Anthropic Claude API</span>
+                    <span class="tech-tag">ElevenLabs API</span>
+                    <span class="tech-tag">Real-time State Sync</span>
+                    <span class="tech-tag">REST API Integration</span>
+                    <span class="tech-tag">Vanilla JS/CSS</span>
+                    <span class="tech-tag">Defensive Error Handling & Fallback Design</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h2>Land H <span>LLC</span></h2>
+                    <p>Salesforce Consulting Experts</p>
+                </div>
+                <div class="footer-links">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="index.html#services">Services</a></li>
+                        <li><a href="index.html#about">About</a></li>
+                        <li><a href="index.html#expertise">Expertise</a></li>
+                        <li><a href="projects.html">Projects</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-newsletter">
+                    <h3>Stay Updated</h3>
+                    <p>Subscribe to our newsletter for the latest Salesforce insights</p>
+                    <form>
+                        <input type="email" placeholder="Your Email">
+                        <button type="submit">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Land H LLC. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
