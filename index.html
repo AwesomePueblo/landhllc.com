@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Land H LLC - Salesforce Consulting Experts</title>
     <link rel="stylesheet" href="styles.css">
+    <script>
+        (function () {
+            try {
+                var saved = JSON.parse(localStorage.getItem('landh-theme'));
+                if (saved && saved.primary && saved.secondary) {
+                    var root = document.documentElement.style;
+                    root.setProperty('--primary-color', saved.primary);
+                    root.setProperty('--secondary-color', saved.secondary);
+                }
+            } catch (e) {}
+        })();
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,6 +47,27 @@
                     <li><a href="#about">About</a></li>
                     <li><a href="#expertise">Expertise</a></li>
                     <li><a href="#contact">Contact</a></li>
+                    <li class="theme-switcher">
+                        <button type="button" class="theme-toggle" aria-label="Change theme color" aria-expanded="false" title="Change theme color">
+                            <i class="fas fa-palette"></i>
+                        </button>
+                        <div class="theme-panel">
+                            <p class="theme-panel-label">Theme color</p>
+                            <div class="theme-swatches">
+                                <button type="button" class="theme-swatch" data-primary="#0066cc" data-secondary="#00a1e0" style="background:#0066cc" title="Salesforce Blue (default)"></button>
+                                <button type="button" class="theme-swatch" data-primary="#6a1fc7" data-secondary="#9147e6" style="background:#6a1fc7" title="Purple"></button>
+                                <button type="button" class="theme-swatch" data-primary="#c1121f" data-secondary="#e5383b" style="background:#c1121f" title="Red"></button>
+                                <button type="button" class="theme-swatch" data-primary="#04844b" data-secondary="#2dc653" style="background:#04844b" title="Green"></button>
+                                <button type="button" class="theme-swatch" data-primary="#e85d04" data-secondary="#f48c06" style="background:#e85d04" title="Orange"></button>
+                                <button type="button" class="theme-swatch" data-primary="#212529" data-secondary="#495057" style="background:#212529" title="Charcoal"></button>
+                            </div>
+                            <label class="theme-custom">
+                                Custom
+                                <input type="color" id="theme-custom-color" value="#0066cc" aria-label="Pick a custom theme color">
+                            </label>
+                            <button type="button" class="theme-reset">Reset to default</button>
+                        </div>
+                    </li>
                 </ul>
             </nav>
             <div class="menu-toggle">

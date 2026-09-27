@@ -184,4 +184,85 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Theme color switcher
+    const themeToggle = document.querySelector('.theme-toggle');
+    const themePanel = document.querySelector('.theme-panel');
+    const themeSwatches = document.querySelectorAll('.theme-swatch');
+    const themeCustomColor = document.getElementById('theme-custom-color');
+    const themeReset = document.querySelector('.theme-reset');
+    const THEME_STORAGE_KEY = 'landh-theme';
+    const DEFAULT_THEME = { primary: '#0066cc', secondary: '#00a1e0' };
+
+    const shadeColor = (hex, percent) => {
+        const num = parseInt(hex.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const r = Math.min(255, Math.max(0, (num >> 16) + amt));
+        const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00ff) + amt));
+        const b = Math.min(255, Math.max(0, (num & 0x0000ff) + amt));
+        return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+    };
+
+    const applyTheme = (primary, secondary) => {
+        document.documentElement.style.setProperty('--primary-color', primary);
+        document.documentElement.style.setProperty('--secondary-color', secondary);
+        if (themeCustomColor) {
+            themeCustomColor.value = primary;
+        }
+    };
+
+    const saveTheme = (primary, secondary) => {
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ primary, secondary }));
+        } catch (e) {}
+    };
+
+    if (themeToggle && themePanel) {
+        themeToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isOpen = themePanel.classList.toggle('open');
+            themeToggle.setAttribute('aria-expanded', isOpen);
+        });
+
+        document.addEventListener('click', function(event) {
+            if (themePanel.classList.contains('open') && !event.target.closest('.theme-switcher')) {
+                themePanel.classList.remove('open');
+                themeToggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    themeSwatches.forEach(swatch => {
+        swatch.addEventListener('click', function() {
+            const primary = this.dataset.primary;
+            const secondary = this.dataset.secondary;
+            applyTheme(primary, secondary);
+            saveTheme(primary, secondary);
+        });
+    });
+
+    if (themeCustomColor) {
+        themeCustomColor.addEventListener('input', function() {
+            const primary = this.value;
+            const secondary = shadeColor(primary, 20);
+            applyTheme(primary, secondary);
+            saveTheme(primary, secondary);
+        });
+    }
+
+    if (themeReset) {
+        themeReset.addEventListener('click', function() {
+            applyTheme(DEFAULT_THEME.primary, DEFAULT_THEME.secondary);
+            try {
+                localStorage.removeItem(THEME_STORAGE_KEY);
+            } catch (e) {}
+        });
+    }
+
+    try {
+        const saved = JSON.parse(localStorage.getItem(THEME_STORAGE_KEY));
+        if (saved && saved.primary && themeCustomColor) {
+            themeCustomColor.value = saved.primary;
+        }
+    } catch (e) {}
 });
