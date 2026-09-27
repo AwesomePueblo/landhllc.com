@@ -152,12 +152,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 5000);
             };
 
-            if (this.action && this.action.includes('formsubmit.co')) {
-                // Real submission: emails the form contents via FormSubmit
-                fetch(this.action, {
+            if (this.hasAttribute('data-netlify')) {
+                // Real submission: handled by Netlify Forms
+                const encode = (data) => {
+                    return Object.keys(data)
+                        .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
+                        .join('&');
+                };
+                const data = Object.fromEntries(new FormData(this).entries());
+
+                fetch('/', {
                     method: 'POST',
-                    headers: { 'Accept': 'application/json' },
-                    body: new FormData(this)
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: encode(data)
                 })
                     .then(response => {
                         if (response.ok) {

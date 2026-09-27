@@ -234,7 +234,11 @@
                     </div>
                 </div>
                 <div class="contact-form">
-                    <form action="https://formsubmit.co/ajax/lukehigg@gmail.com" method="POST">
+                    <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+                        <input type="hidden" name="form-name" value="contact">
+                        <p class="hidden" style="display:none;">
+                            <label>Don't fill this out if you're human: <input name="bot-field"></label>
+                        </p>
                         <div class="form-group">
                             <input type="text" name="name" placeholder="Your Name" required>
                         </div>
@@ -247,8 +251,6 @@
                         <div class="form-group">
                             <textarea name="message" placeholder="Your Message" required></textarea>
                         </div>
-                        <input type="hidden" name="_subject" value="New inquiry from landhllc.com">
-                        <input type="hidden" name="_captcha" value="false">
                         <button type="submit" class="btn btn-primary">Send Message</button>
                     </form>
                 </div>
