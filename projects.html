@@ -140,6 +140,24 @@
                     <span class="tech-tag">Git/GitHub</span>
                 </div>
             </div>
+
+            <div class="project-card">
+                <div class="project-card-header">
+                    <h2>Autonomous Email Management Agent</h2>
+                </div>
+                <ul class="project-bullets">
+                    <li>Built an agentic AI system using the Claude API and tool use pattern to autonomously process Gmail inbox &mdash; classifying, deleting, and unsubscribing from unwanted emails without human intervention.</li>
+                    <li>Defined a structured tool schema (list, read, delete, unsubscribe, flag) enabling Claude to reason over email content and take targeted actions via the Gmail API.</li>
+                    <li>Implemented a safe-by-default design with dry-run mode and conservative flagging logic, ensuring personal or ambiguous emails are always surfaced for human review rather than deleted.</li>
+                    <li>Secured credentials using OAuth2 (Google) and environment variable isolation, with sensitive files excluded from version control via <code>.gitignore</code>.</li>
+                </ul>
+                <div class="tech-tags">
+                    <span class="tech-tag">Python</span>
+                    <span class="tech-tag">Anthropic Claude API</span>
+                    <span class="tech-tag">Gmail API</span>
+                    <span class="tech-tag">OAuth2</span>
+                </div>
+            </div>
         </div>
     </section>
 
