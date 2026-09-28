@@ -1,16 +1,2 @@
 [build]
   publish = "."
-
-# Signal Broadcast runs on its own server at signalbroadcast.landhllc.com.
-# Keep its source files in this repo from being served on the main site.
-[[redirects]]
-  from = "/signal-broadcast"
-  to = "https://signalbroadcast.landhllc.com/"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/signal-broadcast/*"
-  to = "https://signalbroadcast.landhllc.com/"
-  status = 301
-  force = true

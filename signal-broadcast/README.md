@@ -22,7 +22,8 @@ go out from your own number and show up in your phone's chats like
 anything else you send.
 
 signal-cli has to keep running and keep its link to your account on
-disk, which the Netlify site can't do. So this runs on a small always-on
+disk, which a static website host (like GitHub Pages, which serves
+landhllc.com) can't do. So this runs on a small always-on
 cloud server:
 
 ```
@@ -31,9 +32,7 @@ phone browser ──HTTPS──> signalbroadcast.landhllc.com (your server)
                            └─ app.py: password check, runs signal-cli ──> Signal
 ```
 
-The main landhllc.com site on Netlify is not involved. (`netlify.toml`
-redirects `landhllc.com/signal-broadcast/` to the subdomain so these source
-files aren't served from the main site.)
+The main landhllc.com site is not involved.
 
 ## One-time setup
 
@@ -49,7 +48,7 @@ Any cloud provider works. You need:
 
 ### 2. Point the subdomain at it
 
-Wherever landhllc.com's DNS is managed (Netlify, or the company you bought
+Wherever landhllc.com's DNS is managed (usually the company you bought
 the domain from), add a record:
 
 | Type | Name | Value |
