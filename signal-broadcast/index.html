@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3a76f0">
 <title>Signal Broadcast</title>
 <style>
   :root {
@@ -59,18 +61,40 @@
   .results .err { color: var(--bad); font-size: 12px; overflow-wrap: anywhere; }
   .banner { background: var(--warn-bg); border: 1px solid var(--border); border-radius: 8px;
             padding: 10px 12px; margin-bottom: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .hidden { display: none; }
+  .hidden { display: none !important; }
+  .tag { font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px;
+         padding: 1px 7px; white-space: nowrap; }
+  .login { max-width: 360px; margin: 12vh auto 0; padding: 20px; }
+  @media (max-width: 400px) { .login { margin: 12vh 16px 0; } }
+  .login form { display: flex; flex-direction: column; gap: 10px; }
+  .login input { width: 100%; font-size: 16px; }
+  .login .err { color: var(--bad); font-size: 13px; min-height: 1.2em; }
+  @media (max-width: 760px) {
+    main, header { padding-left: 16px; padding-right: 16px; }
+    input, textarea, select { font-size: 16px; } /* stops iPhone zooming in on focus */
+    button { padding: 9px 14px; }
+  }
 </style>
 </head>
 <body>
-<header>
+<header id="appHeader" class="hidden">
   <h1>Signal Broadcast</h1>
   <span class="acct" id="acct"></span>
   <span class="spacer"></span>
   <button id="refresh" title="Pull the latest group list from Signal">Refresh groups</button>
+  <button id="logout">Log out</button>
 </header>
 
-<main>
+<section class="login card hidden" id="login">
+  <h2>Signal Broadcast</h2>
+  <form id="loginForm">
+    <input type="password" id="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="primary" type="submit" id="loginBtn">Log in</button>
+    <div class="err" id="loginErr"></div>
+  </form>
+</section>
+
+<main id="app" class="hidden">
   <section class="card">
     <h2>1. Pick groups <span class="muted" id="selCount"></span></h2>
     <div id="groupError" class="banner hidden"></div>
@@ -128,11 +152,26 @@ async function api(path, body) {
   const res = await fetch(path, opts);
   let data = {};
   try { data = await res.json(); } catch {}
+  if (res.status === 401 && path !== "/api/login") { showLogin(); throw new Error("Please log in."); }
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
 }
 
+function showLogin() {
+  $("app").classList.add("hidden");
+  $("appHeader").classList.add("hidden");
+  $("login").classList.remove("hidden");
+  $("password").focus();
+}
+
+function showApp() {
+  $("login").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  $("appHeader").classList.remove("hidden");
+}
+
 function showGroups(data) {
+  showApp();
   groups = data.groups;
   $("acct").textContent = data.account;
   const ids = new Set(groups.map(g => g.id));
@@ -148,6 +187,8 @@ async function loadGroups(refresh) {
   try {
     showGroups(refresh ? await api("/api/refresh", {}) : await api("/api/groups"));
   } catch (e) {
+    if (!$("login").classList.contains("hidden")) return;
+    showApp();
     $("groupError").textContent = "Couldn't load groups from signal-cli:\n" + e.message;
     $("groupError").classList.remove("hidden");
     if (!groups.length) $("groups").innerHTML = "";
@@ -188,7 +229,15 @@ function render() {
     const count = document.createElement("span");
     count.className = "count";
     count.textContent = g.memberCount ? `${g.memberCount} member${g.memberCount === 1 ? "" : "s"}` : "";
-    label.append(cb, name, count);
+    label.append(cb, name);
+    if (g.adminsOnly) {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = "admins only";
+      tag.title = "Only admins can post in this group. Sending fails unless you're an admin.";
+      label.append(tag);
+    }
+    label.append(count);
     li.append(label);
     list.append(li);
   }
@@ -303,6 +352,26 @@ $("presetDelete").addEventListener("click", () => {
   delete p[name];
   savePresets(p);
   renderPresets();
+});
+
+$("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("loginBtn").disabled = true;
+  $("loginErr").textContent = "";
+  try {
+    await api("/api/login", { password: $("password").value });
+    $("password").value = "";
+    await loadGroups(false);
+  } catch (err) {
+    $("loginErr").textContent = err.message;
+  } finally {
+    $("loginBtn").disabled = false;
+  }
+});
+$("logout").addEventListener("click", async () => {
+  try { await api("/api/logout", {}); } catch {}
+  groups = []; selected.clear(); $("message").value = ""; $("results").innerHTML = "";
+  showLogin();
 });
 
 renderPresets();

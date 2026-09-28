@@ -1,0 +1,30 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      BROADCAST_SECURE_COOKIES: "1"
+    volumes:
+      # Your linked Signal account lives here. Back it up; don't share it.
+      - signal-data:/home/app/.local/share/signal-cli
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  signal-data:
+  caddy-data:
+  caddy-config:
