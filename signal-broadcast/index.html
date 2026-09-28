@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signal Broadcast</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #fff; --text: #1b1d21; --muted: #6b7280;
+    --border: #dfe2e7; --accent: #3a76f0; --accent-text: #fff;
+    --ok: #15803d; --bad: #b91c1c; --warn-bg: #fff7e6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121316; --card: #1c1e22; --text: #e8e9ec; --muted: #9aa0aa;
+      --border: #30333a; --accent: #5b8ff5; --ok: #4ade80; --bad: #f87171;
+      --warn-bg: #2b2414;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+         background: var(--bg); color: var(--text); }
+  header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--card);
+           display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; }
+  header .acct { color: var(--muted); font-size: 13px; }
+  header .spacer { flex: 1; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px;
+         padding: 16px 20px; max-width: 1100px; margin: 0 auto; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .card h2 { font-size: 15px; margin: 0 0 10px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input[type=search], input[type=text], textarea, select {
+    font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; }
+  input[type=search] { flex: 1; min-width: 140px; }
+  textarea { width: 100%; min-height: 180px; resize: vertical; }
+  button { font: inherit; border: 1px solid var(--border); background: var(--card); color: var(--text);
+           border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.link { border: none; background: none; color: var(--accent); padding: 4px 6px; }
+  .groups { list-style: none; margin: 10px 0 0; padding: 0; max-height: 55vh; overflow: auto;
+            border: 1px solid var(--border); border-radius: 8px; }
+  .groups li { border-bottom: 1px solid var(--border); }
+  .groups li:last-child { border-bottom: none; }
+  .groups label { display: flex; gap: 10px; align-items: center; padding: 8px 10px; cursor: pointer; }
+  .groups label:hover { background: var(--bg); }
+  .groups .name { flex: 1; overflow-wrap: anywhere; }
+  .groups .count { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .presets { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .results { list-style: none; padding: 0; margin: 10px 0 0; }
+  .results li { display: flex; gap: 8px; padding: 4px 0; align-items: baseline; }
+  .results .st { width: 1.4em; text-align: center; flex: none; }
+  .results .ok { color: var(--ok); } .results .bad { color: var(--bad); }
+  .results .err { color: var(--bad); font-size: 12px; overflow-wrap: anywhere; }
+  .banner { background: var(--warn-bg); border: 1px solid var(--border); border-radius: 8px;
+            padding: 10px 12px; margin-bottom: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Signal Broadcast</h1>
+  <span class="acct" id="acct"></span>
+  <span class="spacer"></span>
+  <button id="refresh" title="Pull the latest group list from Signal">Refresh groups</button>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1. Pick groups <span class="muted" id="selCount"></span></h2>
+    <div id="groupError" class="banner hidden"></div>
+    <div class="row">
+      <input type="search" id="filter" placeholder="Search groups…" autocomplete="off">
+      <button class="link" id="selAll">Select shown</button>
+      <button class="link" id="selNone">Clear</button>
+    </div>
+    <ul class="groups" id="groups"><li class="muted" style="padding:10px">Loading groups…</li></ul>
+
+    <div class="presets">
+      <div class="row">
+        <select id="presetSelect"><option value="">Saved lists…</option></select>
+        <button id="presetLoad">Load</button>
+        <button id="presetDelete">Delete</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input type="text" id="presetName" placeholder="Name this selection" style="flex:1;min-width:140px">
+        <button id="presetSave">Save list</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. Write your message</h2>
+    <textarea id="message" placeholder="Type the message to send to every selected group…"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" id="send" disabled>Send</button>
+      <button id="retry" class="hidden">Retry failed</button>
+      <span class="muted" id="sendStatus"></span>
+    </div>
+    <ul class="results" id="results"></ul>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const PRESET_KEY = "signalBroadcast.presets";
+let groups = [];
+const selected = new Set();
+let sending = false;
+let lastFailed = [];
+
+function loadPresets() {
+  try { return JSON.parse(localStorage.getItem(PRESET_KEY)) || {}; } catch { return {}; }
+}
+function savePresets(p) {
+  try { localStorage.setItem(PRESET_KEY, JSON.stringify(p)); } catch {}
+}
+
+async function api(path, body) {
+  const opts = body === undefined ? {} : {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  };
+  const res = await fetch(path, opts);
+  let data = {};
+  try { data = await res.json(); } catch {}
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function showGroups(data) {
+  groups = data.groups;
+  $("acct").textContent = data.account;
+  const ids = new Set(groups.map(g => g.id));
+  for (const id of [...selected]) if (!ids.has(id)) selected.delete(id);
+  $("groupError").classList.add("hidden");
+  render();
+}
+
+async function loadGroups(refresh) {
+  const btn = $("refresh");
+  btn.disabled = true;
+  if (refresh) btn.textContent = "Refreshing…";
+  try {
+    showGroups(refresh ? await api("/api/refresh", {}) : await api("/api/groups"));
+  } catch (e) {
+    $("groupError").textContent = "Couldn't load groups from signal-cli:\n" + e.message;
+    $("groupError").classList.remove("hidden");
+    if (!groups.length) $("groups").innerHTML = "";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Refresh groups";
+  }
+}
+
+function visibleGroups() {
+  const q = $("filter").value.trim().toLowerCase();
+  return q ? groups.filter(g => g.name.toLowerCase().includes(q)) : groups;
+}
+
+function render() {
+  const list = $("groups");
+  list.innerHTML = "";
+  const shown = visibleGroups();
+  if (!groups.length) {
+    list.innerHTML = '<li class="muted" style="padding:10px">No groups found. If you just linked, click "Refresh groups".</li>';
+  } else if (!shown.length) {
+    list.innerHTML = '<li class="muted" style="padding:10px">No groups match your search.</li>';
+  }
+  for (const g of shown) {
+    const li = document.createElement("li");
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = selected.has(g.id);
+    cb.disabled = sending;
+    cb.addEventListener("change", () => {
+      cb.checked ? selected.add(g.id) : selected.delete(g.id);
+      updateCounts();
+    });
+    const name = document.createElement("span");
+    name.className = "name";
+    name.textContent = g.name;
+    const count = document.createElement("span");
+    count.className = "count";
+    count.textContent = g.memberCount ? `${g.memberCount} member${g.memberCount === 1 ? "" : "s"}` : "";
+    label.append(cb, name, count);
+    li.append(label);
+    list.append(li);
+  }
+  updateCounts();
+}
+
+function updateCounts() {
+  $("selCount").textContent = selected.size ? `(${selected.size} selected)` : "";
+  $("send").disabled = sending || !selected.size || !$("message").value.trim();
+  $("send").textContent = selected.size ? `Send to ${selected.size} group${selected.size === 1 ? "" : "s"}` : "Send";
+}
+
+function renderPresets() {
+  const sel = $("presetSelect");
+  const presets = loadPresets();
+  sel.innerHTML = '<option value="">Saved lists…</option>';
+  for (const name of Object.keys(presets).sort()) {
+    const o = document.createElement("option");
+    o.value = name;
+    o.textContent = `${name} (${presets[name].length})`;
+    sel.append(o);
+  }
+}
+
+async function sendTo(targets) {
+  const message = $("message").value;
+  sending = true;
+  lastFailed = [];
+  $("retry").classList.add("hidden");
+  render();
+  const results = $("results");
+  results.innerHTML = "";
+  const rows = new Map();
+  for (const g of targets) {
+    const li = document.createElement("li");
+    li.innerHTML = '<span class="st muted">…</span><span class="nm"></span>';
+    li.querySelector(".nm").textContent = g.name;
+    results.append(li);
+    rows.set(g.id, li);
+  }
+  let ok = 0;
+  for (let i = 0; i < targets.length; i++) {
+    const g = targets[i];
+    const li = rows.get(g.id);
+    const st = li.querySelector(".st");
+    $("sendStatus").textContent = `Sending ${i + 1} of ${targets.length}…`;
+    st.textContent = "⏳";
+    try {
+      await api("/api/send", { groupId: g.id, message });
+      st.textContent = "✓"; st.className = "st ok";
+      ok++;
+    } catch (e) {
+      st.textContent = "✕"; st.className = "st bad";
+      const err = document.createElement("div");
+      err.className = "err";
+      err.textContent = e.message;
+      li.querySelector(".nm").append(err);
+      lastFailed.push(g);
+    }
+  }
+  sending = false;
+  $("sendStatus").textContent = lastFailed.length
+    ? `Sent to ${ok} of ${targets.length}. ${lastFailed.length} failed.`
+    : `Sent to all ${ok} group${ok === 1 ? "" : "s"}.`;
+  $("retry").classList.toggle("hidden", !lastFailed.length);
+  render();
+}
+
+$("filter").addEventListener("input", render);
+$("message").addEventListener("input", updateCounts);
+$("refresh").addEventListener("click", () => loadGroups(true));
+$("selAll").addEventListener("click", () => { visibleGroups().forEach(g => selected.add(g.id)); render(); });
+$("selNone").addEventListener("click", () => { selected.clear(); render(); });
+
+$("send").addEventListener("click", () => {
+  const targets = groups.filter(g => selected.has(g.id));
+  const names = targets.map(g => "• " + g.name).join("\n");
+  if (confirm(`Send this message to ${targets.length} group${targets.length === 1 ? "" : "s"}?\n\n${names}`)) {
+    sendTo(targets);
+  }
+});
+$("retry").addEventListener("click", () => {
+  if (confirm(`Retry sending to ${lastFailed.length} failed group(s)?`)) sendTo(lastFailed.slice());
+});
+
+$("presetSave").addEventListener("click", () => {
+  const name = $("presetName").value.trim();
+  if (!name) return alert("Give the list a name first.");
+  if (!selected.size) return alert("Select at least one group first.");
+  const p = loadPresets();
+  p[name] = [...selected];
+  savePresets(p);
+  $("presetName").value = "";
+  renderPresets();
+  $("presetSelect").value = name;
+});
+$("presetLoad").addEventListener("click", () => {
+  const name = $("presetSelect").value;
+  if (!name) return;
+  const ids = new Set(groups.map(g => g.id));
+  const saved = loadPresets()[name] || [];
+  selected.clear();
+  saved.filter(id => ids.has(id)).forEach(id => selected.add(id));
+  const missing = saved.length - selected.size;
+  render();
+  if (missing) alert(`${missing} group(s) in "${name}" are no longer available and were skipped.`);
+});
+$("presetDelete").addEventListener("click", () => {
+  const name = $("presetSelect").value;
+  if (!name || !confirm(`Delete saved list "${name}"?`)) return;
+  const p = loadPresets();
+  delete p[name];
+  savePresets(p);
+  renderPresets();
+});
+
+renderPresets();
+loadGroups(false);
+</script>
+</body>
+</html>
