@@ -36,6 +36,11 @@ The main landhllc.com site is not involved.
 
 ## One-time setup
 
+These steps are for a cloud server. To run it on a home computer instead,
+see [HOME-SETUP.md](HOME-SETUP.md), written so Claude Code on that
+computer can follow it.
+
+
 ### 1. Get a server
 
 Any cloud provider works. You need:

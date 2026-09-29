@@ -144,6 +144,7 @@ class Handler(BaseHTTPRequestHandler):
     signal: SignalCli = None
     auth: Auth = None
     secure_cookies = False
+    public_origin = None
 
     def log_message(self, fmt, *args):
         sys.stderr.write("  %s\n" % (fmt % args))
@@ -182,7 +183,8 @@ class Handler(BaseHTTPRequestHandler):
         # app to send messages on your behalf.
         host = self.headers.get("Host", "")
         origin = self.headers.get("Origin")
-        return origin is None or origin in (f"https://{host}", f"http://{host}")
+        return origin is None or origin in (f"https://{host}", f"http://{host}",
+                                            self.public_origin)
 
     def do_GET(self):
         if self.path in ("/", "/index.html"):
@@ -278,6 +280,9 @@ def main():
     p.add_argument("--secure-cookies", action="store_true",
                    default=os.environ.get("BROADCAST_SECURE_COOKIES") == "1",
                    help="Mark the login cookie HTTPS-only (use when behind HTTPS)")
+    p.add_argument("--public-url", default=os.environ.get("BROADCAST_PUBLIC_URL"),
+                   help="Public address when behind a tunnel or proxy that changes the Host "
+                        "header, e.g. https://signalbroadcast.landhllc.com")
     args = p.parse_args()
 
     if not args.account:
@@ -294,6 +299,7 @@ def main():
     Handler.signal = SignalCli(binary, args.account)
     Handler.auth = Auth(password)
     Handler.secure_cookies = args.secure_cookies
+    Handler.public_origin = args.public_url.rstrip("/") if args.public_url else None
 
     threading.Thread(target=background_sync, args=(Handler.signal,), daemon=True).start()
 
