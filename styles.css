@@ -612,6 +612,16 @@ nav ul li a.active::after {
     transform: translateY(-5px);
 }
 
+.footer-social {
+    margin-top: 20px;
+}
+
+.footer-social a {
+    width: 36px;
+    height: 36px;
+    margin-right: 0;
+}
+
 .contact-form {
     background-color: var(--white);
     padding: 30px;
