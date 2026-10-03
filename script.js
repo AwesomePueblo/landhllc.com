@@ -192,7 +192,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const themeCustomColor = document.getElementById('theme-custom-color');
     const themeReset = document.querySelector('.theme-reset');
     const THEME_STORAGE_KEY = 'landh-theme';
-    const DEFAULT_THEME = { primary: '#0066cc', secondary: '#00a1e0' };
+    const darkModeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+    // Each preset's light-mode colors (as designed) and a brighter/lighter
+    // dark-mode counterpart tuned for contrast against a dark surface.
+    const THEME_PRESETS = {
+        default: { light: { primary: '#0066cc', secondary: '#00a1e0' }, dark: { primary: '#4da6ff', secondary: '#7cc4ff' } },
+        purple: { light: { primary: '#6a1fc7', secondary: '#9147e6' }, dark: { primary: '#a76bff', secondary: '#c9a0ff' } },
+        red: { light: { primary: '#c1121f', secondary: '#e5383b' }, dark: { primary: '#ff6b6b', secondary: '#ff9999' } },
+        green: { light: { primary: '#04844b', secondary: '#2dc653' }, dark: { primary: '#3ddc84', secondary: '#7dffb3' } },
+        orange: { light: { primary: '#e85d04', secondary: '#f48c06' }, dark: { primary: '#ffa94d', secondary: '#ffc87a' } },
+        charcoal: { light: { primary: '#212529', secondary: '#495057' }, dark: { primary: '#ced4da', secondary: '#eef1f3' } }
+    };
+
+    const isDarkMode = () => !!(darkModeQuery && darkModeQuery.matches);
 
     const shadeColor = (hex, percent) => {
         const num = parseInt(hex.replace('#', ''), 16);
@@ -211,10 +224,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    const saveTheme = (primary, secondary) => {
+    // entry: { key, light: {primary, secondary}, dark: {primary, secondary} }
+    const resolveAndApply = (entry) => {
+        const pair = isDarkMode() ? entry.dark : entry.light;
+        applyTheme(pair.primary, pair.secondary);
+    };
+
+    const saveTheme = (entry) => {
         try {
-            localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ primary, secondary }));
+            localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(entry));
         } catch (e) {}
+    };
+
+    const updateSwatchPreviews = () => {
+        themeSwatches.forEach(swatch => {
+            const preset = THEME_PRESETS[swatch.dataset.themeKey];
+            if (preset) {
+                swatch.style.backgroundColor = isDarkMode() ? preset.dark.primary : preset.light.primary;
+            }
+        });
+    };
+
+    const loadSavedTheme = () => {
+        try {
+            const saved = JSON.parse(localStorage.getItem(THEME_STORAGE_KEY));
+            if (!saved) return null;
+            // Backfill older {primary, secondary}-only entries saved before dark mode support existed.
+            if (saved.primary && saved.secondary && !saved.light) {
+                return { key: 'custom', light: { primary: saved.primary, secondary: saved.secondary }, dark: { primary: saved.primary, secondary: saved.secondary } };
+            }
+            return saved;
+        } catch (e) {
+            return null;
+        }
     };
 
     if (themeToggle && themePanel) {
@@ -234,10 +276,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     themeSwatches.forEach(swatch => {
         swatch.addEventListener('click', function() {
-            const primary = this.dataset.primary;
-            const secondary = this.dataset.secondary;
-            applyTheme(primary, secondary);
-            saveTheme(primary, secondary);
+            const preset = THEME_PRESETS[this.dataset.themeKey];
+            if (!preset) return;
+            const entry = { key: this.dataset.themeKey, light: preset.light, dark: preset.dark };
+            resolveAndApply(entry);
+            saveTheme(entry);
         });
     });
 
@@ -245,26 +288,46 @@ document.addEventListener('DOMContentLoaded', function() {
         themeCustomColor.addEventListener('input', function() {
             const primary = this.value;
             const secondary = shadeColor(primary, 20);
+            const pair = { primary, secondary };
             applyTheme(primary, secondary);
-            saveTheme(primary, secondary);
+            saveTheme({ key: 'custom', light: pair, dark: pair });
         });
     }
 
     if (themeReset) {
         themeReset.addEventListener('click', function() {
-            applyTheme(DEFAULT_THEME.primary, DEFAULT_THEME.secondary);
+            // Clear the inline override entirely so the cascade falls back to
+            // styles.css, which already has the right default for either
+            // color scheme -- no need to guess the mode here.
+            document.documentElement.style.removeProperty('--primary-color');
+            document.documentElement.style.removeProperty('--secondary-color');
+            if (themeCustomColor) {
+                themeCustomColor.value = isDarkMode() ? THEME_PRESETS.default.dark.primary : THEME_PRESETS.default.light.primary;
+            }
             try {
                 localStorage.removeItem(THEME_STORAGE_KEY);
             } catch (e) {}
         });
     }
 
-    try {
-        const saved = JSON.parse(localStorage.getItem(THEME_STORAGE_KEY));
-        if (saved && saved.primary && themeCustomColor) {
-            themeCustomColor.value = saved.primary;
-        }
-    } catch (e) {}
+    updateSwatchPreviews();
+
+    const savedTheme = loadSavedTheme();
+    if (savedTheme && savedTheme.light && savedTheme.dark) {
+        resolveAndApply(savedTheme);
+    } else if (themeCustomColor) {
+        themeCustomColor.value = isDarkMode() ? THEME_PRESETS.default.dark.primary : THEME_PRESETS.default.light.primary;
+    }
+
+    if (darkModeQuery) {
+        darkModeQuery.addEventListener('change', function() {
+            updateSwatchPreviews();
+            const current = loadSavedTheme();
+            if (current && current.light && current.dark) {
+                resolveAndApply(current);
+            }
+        });
+    }
 
     // Projects nav dropdown (in the main site nav)
     const navDropdown = document.querySelector('.nav-dropdown');

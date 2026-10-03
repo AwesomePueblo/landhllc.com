@@ -24,10 +24,13 @@
         (function () {
             try {
                 var saved = JSON.parse(localStorage.getItem('landh-theme'));
-                if (saved && saved.primary && saved.secondary) {
+                if (!saved) return;
+                var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var pair = (saved.light && saved.dark) ? (isDark ? saved.dark : saved.light) : saved;
+                if (pair && pair.primary && pair.secondary) {
                     var root = document.documentElement.style;
-                    root.setProperty('--primary-color', saved.primary);
-                    root.setProperty('--secondary-color', saved.secondary);
+                    root.setProperty('--primary-color', pair.primary);
+                    root.setProperty('--secondary-color', pair.secondary);
                 }
             } catch (e) {}
         })();
@@ -85,12 +88,12 @@
                         <div class="theme-panel">
                             <p class="theme-panel-label">Theme color</p>
                             <div class="theme-swatches">
-                                <button type="button" class="theme-swatch" data-primary="#0066cc" data-secondary="#00a1e0" style="background:#0066cc" title="Salesforce Blue (default)"></button>
-                                <button type="button" class="theme-swatch" data-primary="#6a1fc7" data-secondary="#9147e6" style="background:#6a1fc7" title="Purple"></button>
-                                <button type="button" class="theme-swatch" data-primary="#c1121f" data-secondary="#e5383b" style="background:#c1121f" title="Red"></button>
-                                <button type="button" class="theme-swatch" data-primary="#04844b" data-secondary="#2dc653" style="background:#04844b" title="Green"></button>
-                                <button type="button" class="theme-swatch" data-primary="#e85d04" data-secondary="#f48c06" style="background:#e85d04" title="Orange"></button>
-                                <button type="button" class="theme-swatch" data-primary="#212529" data-secondary="#495057" style="background:#212529" title="Charcoal"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="default" style="background:#0066cc" title="Salesforce Blue (default)"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="purple" style="background:#6a1fc7" title="Purple"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="red" style="background:#c1121f" title="Red"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="green" style="background:#04844b" title="Green"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="orange" style="background:#e85d04" title="Orange"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="charcoal" style="background:#212529" title="Charcoal"></button>
                             </div>
                             <label class="theme-custom">
                                 Custom
