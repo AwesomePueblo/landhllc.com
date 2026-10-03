@@ -611,7 +611,7 @@ nav ul li a.active::after {
 
 .social-links {
     display: flex;
-    margin-top: 30px;
+    margin-top: 0;
 }
 
 .social-links a {
