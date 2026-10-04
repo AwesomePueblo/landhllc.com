@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Bar Queue</title>
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="bar.css">
+</head>
+<body>
+<main class="wrap wide" id="app">
+    <p class="muted">Loading…</p>
+</main>
+
+<template id="tpl-staff">
+    <header class="row" style="justify-content:space-between">
+        <div style="display:grid;gap:4px">
+            <p class="eyebrow">Staff view · keep this link private</p>
+            <h1 id="q-name"></h1>
+        </div>
+        <div class="row">
+            <span class="pill" id="q-open-pill"></span>
+            <button id="q-share-toggle">Guest link &amp; QR</button>
+        </div>
+    </header>
+
+    <section class="panel" id="q-share" hidden>
+        <h2>Guests order here</h2>
+        <p class="muted small">Print or show this QR code at the bar and on tables. Anyone with it can order.</p>
+        <div class="qr" id="q-qr"></div>
+        <div class="copy">
+            <input id="q-guest-link" readonly aria-label="Guest ordering link">
+            <button data-copy="q-guest-link">Copy</button>
+        </div>
+        <h2>Staff link</h2>
+        <p class="muted small">Send this to bartenders and runners only. It shows guests' names and locations.</p>
+        <div class="copy">
+            <input id="q-staff-link" readonly aria-label="Staff link">
+            <button data-copy="q-staff-link">Copy</button>
+        </div>
+        <h2>Menu</h2>
+        <label for="q-menu">One drink per line
+            <textarea id="q-menu" rows="6"></textarea>
+        </label>
+        <div class="row">
+            <button id="q-save-menu">Save menu</button>
+            <button id="q-toggle-open"></button>
+        </div>
+    </section>
+
+    <section class="panel" id="q-runner-panel">
+        <div class="row" style="justify-content:space-between">
+            <div style="display:grid;gap:2px">
+                <strong>Runner mode</strong>
+                <span class="small muted" id="q-me-status">Turn on to see distance and direction to each guest from where you stand.</span>
+            </div>
+            <button id="q-me">Use my location</button>
+        </div>
+        <label for="q-runner-name">Your name <span class="hint">Shown on orders you pick up.</span>
+            <input id="q-runner-name" maxlength="40">
+        </label>
+    </section>
+
+    <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="bar" aria-selected="true">To make <span class="count" id="c-bar"></span></button>
+        <button role="tab" data-tab="run" aria-selected="false">To deliver <span class="count" id="c-run"></span></button>
+        <button role="tab" data-tab="done" aria-selected="false">Done <span class="count" id="c-done"></span></button>
+    </nav>
+    <p class="err" id="q-err" hidden></p>
+    <div class="grid" id="q-list"></div>
+    <p class="small muted" id="q-updated"></p>
+</template>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="bar.js"></script>
+<script src="staff.js"></script>
+</body>
+</html>

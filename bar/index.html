@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Order a Drink</title>
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="bar.css">
+</head>
+<body>
+<main class="wrap" id="app">
+    <p class="muted">Loading…</p>
+</main>
+
+<!-- Setup: shown when there is no ?e= in the link -->
+<template id="tpl-setup">
+    <header>
+        <p class="eyebrow">Drink runner</p>
+        <h1>Start a bar</h1>
+        <p class="muted">Guests order from their phone and share their location. Your bartender sees the queue, and a runner walks the drink over.</p>
+    </header>
+    <form class="panel" id="setup-form">
+        <label for="s-name">Bar name
+            <input id="s-name" maxlength="80" placeholder="Smith wedding bar" required>
+        </label>
+        <label for="s-menu">Menu <span class="hint">One drink per line. Guests can also type their own.</span>
+            <textarea id="s-menu" rows="7">Beer
+Red wine
+White wine
+Margarita
+Old fashioned
+Vodka soda
+Water</textarea>
+        </label>
+        <p class="err" id="s-err" hidden></p>
+        <button class="primary big" id="s-go">Start bar</button>
+    </form>
+    <section class="panel" id="s-recent" hidden>
+        <h2>Bars on this phone</h2>
+        <div id="s-recent-list" class="row"></div>
+    </section>
+</template>
+
+<!-- Guest order form -->
+<template id="tpl-order">
+    <header>
+        <p class="eyebrow" id="o-bar"></p>
+        <h1>Order a drink</h1>
+        <p class="muted">We'll bring it to you. Keep this page open so the runner can find you.</p>
+    </header>
+    <form class="panel" id="order-form" novalidate>
+        <label for="o-name">Your name
+            <input id="o-name" maxlength="40" autocomplete="given-name" required>
+        </label>
+        <div style="display:grid;gap:8px">
+            <span style="font-weight:600">Drink</span>
+            <div class="menu" id="o-menu"></div>
+            <input id="o-drink" maxlength="80" placeholder="Or type what you'd like" aria-label="Drink">
+        </div>
+        <label for="o-notes">Notes <span class="hint">Optional. Ice, garnish, no salt…</span>
+            <input id="o-notes" maxlength="200">
+        </label>
+        <label for="o-where">How will the runner spot you? <span class="hint">Table number, what you're wearing, nearby landmark. GPS indoors can be off by 10 to 30 meters, so this helps a lot.</span>
+            <input id="o-where" maxlength="120" placeholder="Table 6, green dress, near the stage">
+        </label>
+        <p class="small muted" id="o-loc-note">When you tap Send, your phone will ask to share your location. Tap Allow.</p>
+        <p class="err" id="o-err" hidden></p>
+        <button class="primary big" id="o-go">Send order</button>
+    </form>
+</template>
+
+<!-- Guest order status -->
+<template id="tpl-status">
+    <header>
+        <p class="eyebrow" id="st-bar"></p>
+        <h1 id="st-title">Order sent</h1>
+    </header>
+    <section class="panel">
+        <div class="row" style="justify-content:space-between">
+            <span class="status-big" id="st-drink"></span>
+            <span class="pill" id="st-pill"></span>
+        </div>
+        <div class="step" id="st-steps">
+            <span data-s="new">Received</span>
+            <span data-s="making">Making</span>
+            <span data-s="ready">On its way</span>
+            <span data-s="delivered">Delivered</span>
+        </div>
+        <p id="st-msg"></p>
+        <p class="small" id="st-loc"></p>
+    </section>
+    <section class="panel">
+        <label for="st-where">How will the runner spot you?
+            <input id="st-where" maxlength="120">
+        </label>
+        <div class="row">
+            <button id="st-save-where">Update</button>
+            <button id="st-reloc">Re-share my location</button>
+        </div>
+    </section>
+    <div class="row">
+        <button id="st-cancel">Cancel order</button>
+        <button id="st-again" class="primary" hidden>Order another</button>
+    </div>
+    <p class="err" id="st-err" hidden></p>
+</template>
+
+<script src="bar.js"></script>
+<script src="guest.js"></script>
+</body>
+</html>
