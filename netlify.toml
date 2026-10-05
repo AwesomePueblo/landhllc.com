@@ -1,2 +1,9 @@
 [build]
   publish = "."
+
+# The drink runner app lives on its own subdomain.
+[[redirects]]
+  from = "/drink-runner/*"
+  to = "https://bar.landhllc.com/"
+  status = 301
+  force = true

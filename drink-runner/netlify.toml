@@ -1,0 +1,4 @@
+# Deployed as its own Netlify site (base directory: drink-runner).
+[build]
+  publish = "public"
+  functions = "netlify/functions"
