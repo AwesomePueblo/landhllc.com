@@ -152,8 +152,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 5000);
             };
 
-            if (this.hasAttribute('data-netlify')) {
-                // Real submission: handled by Netlify Forms
+            if (this.getAttribute('name') === 'contact') {
+                // Real submission: handled by Netlify Forms.
+                // Note: Netlify strips the data-netlify attribute from the
+                // served HTML after detecting the form at deploy time, so
+                // it can't be used as a runtime check here -- name can.
                 const encode = (data) => {
                     return Object.keys(data)
                         .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
