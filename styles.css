@@ -898,6 +898,21 @@ footer {
     background-color: var(--light-color);
 }
 
+.project-group-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--heading-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-bottom: 12px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.project-group-title:not(:first-child) {
+    margin-top: 60px;
+}
+
 .project-card {
     background-color: var(--surface-color);
     border-radius: 10px;
@@ -908,6 +923,26 @@ footer {
 
 .project-card + .project-card {
     margin-top: 40px;
+}
+
+.project-card--featured {
+    position: relative;
+    border: 2px solid var(--primary-color);
+}
+
+.project-card--featured::before {
+    content: 'Flagship Project';
+    position: absolute;
+    top: -14px;
+    left: 40px;
+    background-color: var(--primary-color);
+    color: var(--white);
+    padding: 5px 16px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .project-live-link {

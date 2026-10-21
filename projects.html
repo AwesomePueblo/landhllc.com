@@ -71,13 +71,13 @@
                         </button>
                         <ul class="dropdown-menu">
                             <li><a href="projects.html#siebel-migration">Enterprise CRM Migration</a></li>
+                            <li><a href="projects.html#ai-dev-enablement">AI Dev Enablement Pilot</a></li>
+                            <li><a href="projects.html#data-integrity-initiative">Data Integrity Initiative</a></li>
+                            <li><a href="projects.html#integration-architecture">Integration Architecture</a></li>
                             <li><a href="projects.html#song-party">Song Party</a></li>
                             <li><a href="projects.html#ai-simulation-game">AI Simulation Game</a></li>
                             <li><a href="projects.html#email-agent">Email Management Agent</a></li>
                             <li><a href="projects.html#tonys-land-clearing">Tony's Land Clearing</a></li>
-                            <li><a href="projects.html#ai-dev-enablement">AI Dev Enablement Pilot</a></li>
-                            <li><a href="projects.html#data-integrity-initiative">Data Integrity Initiative</a></li>
-                            <li><a href="projects.html#integration-architecture">Integration Architecture</a></li>
                         </ul>
                     </li>
                     <li><a href="index.html#contact">Contact</a></li>
@@ -121,7 +121,9 @@
     <!-- Projects Section -->
     <section class="projects">
         <div class="container">
-            <div class="project-card" id="siebel-migration">
+            <h2 class="project-group-title">Enterprise Salesforce Work</h2>
+
+            <div class="project-card project-card--featured" id="siebel-migration">
                 <div class="project-card-header">
                     <h2>Enterprise CRM Migration</h2>
                     <p class="project-subtitle">Siebel (On-Prem) to Salesforce &middot; Lead Architect</p>
@@ -130,8 +132,6 @@
                     <li>Served as lead architect on a two-year, enterprise-wide migration of a legacy on-premise Siebel CRM to Salesforce, covering roughly 1,800 users, 50+ million records, and half a dozen business units.</li>
                     <li>Personally defined the target Salesforce data model, replacing legacy Siebel structures across core account, lead, and opportunity objects.</li>
                     <li>Personally designed the MuleSoft-to-Salesforce integration mediation layer, defining request/response payload structures for inbound data delivery into Salesforce.</li>
-                    <li>Produced technical and training documentation translating legacy Siebel concepts into their Salesforce equivalents for both business stakeholders and internal teams adapting to the new platform.</li>
-                    <li>Contributed to a broader modernization roadmap (crawl/walk/run) defining near-term parity with the legacy system and a longer-term target architecture.</li>
                 </ul>
                 <div class="tech-tags">
                     <span class="tech-tag">Enterprise CRM Migration</span>
@@ -139,99 +139,6 @@
                     <span class="tech-tag">MuleSoft Integration</span>
                     <span class="tech-tag">Legacy System Modernization</span>
                     <span class="tech-tag">Solution Architecture</span>
-                </div>
-            </div>
-
-            <div class="project-card" id="song-party">
-                <div class="project-card-header">
-                    <h2>Song Party</h2>
-                    <p class="project-subtitle">Local Wi-Fi Multiplayer AI Party Game</p>
-                </div>
-                <ul class="project-bullets">
-                    <li>Designed and shipped a Jackbox-style, real-time multiplayer web game supporting simultaneous local-network play across an arbitrary number of phones and a shared host display, using Node.js, Express, and WebSockets.</li>
-                    <li>Architected a server-driven game state machine coordinating a multi-phase round lifecycle (lobby &rarr; prompt &rarr; answer collection &rarr; AI content generation &rarr; synchronized playback) with automatic reconnection handling for dropped clients.</li>
-                    <li>Integrated the Anthropic Claude API to dynamically generate creative prompts and transform crowdsourced player input into structured, genre-specific song lyrics in real time.</li>
-                    <li>Built a dependency-free procedural audio synthesis engine in pure Node.js &mdash; custom oscillators, WAV encoding, and genre-tuned chord/tempo presets &mdash; generating original instrumental tracks with zero third-party audio APIs or paid services.</li>
-                    <li>Solved cross-device synchronized media playback using scheduled wall-clock timestamps and browser autoplay-policy workarounds, delivering consistent audio start times across every connected device.</li>
-                    <li>Designed the system for graceful degradation: full offline fallback (prompt bank + template lyrics generator) keeps the game fully playable with zero API keys configured.</li>
-                    <li>Managed the feature through a standard GitHub PR workflow (branch, PR, review, merge) into a live production site.</li>
-                </ul>
-                <div class="tech-tags">
-                    <span class="tech-tag">Node.js</span>
-                    <span class="tech-tag">Express</span>
-                    <span class="tech-tag">WebSocket (ws)</span>
-                    <span class="tech-tag">Anthropic Claude API</span>
-                    <span class="tech-tag">Procedural Audio Synthesis</span>
-                    <span class="tech-tag">Real-time State Sync</span>
-                    <span class="tech-tag">Git/GitHub</span>
-                </div>
-            </div>
-
-            <div class="project-card" id="ai-simulation-game">
-                <div class="project-card-header">
-                    <h2>AI Simulation Game</h2>
-                    <p class="project-subtitle">Interactive NPC Simulation with Claude-Powered Dialogue</p>
-                </div>
-                <ul class="project-bullets">
-                    <li>Built a browser-based simulation game from scratch &mdash; HTML/CSS front end driving a real-time JS game loop with animated agents moving through a scene.</li>
-                    <li>Designed a proximity-triggered dialogue system: agents generate contextual conversation when they approach specific scene landmarks, using landmark identity to shape the prompt sent to the LLM.</li>
-                    <li>Integrated the Claude API via a Netlify serverless function (<code>chat.js</code>) acting as a secure proxy, keeping the API key server-side and off the client.</li>
-                    <li>Provisioned and configured the hosting infrastructure end-to-end: created the Netlify site, linked it to the GitHub repo for CI-style deploys, and set the <code>ANTHROPIC_API_KEY</code> environment variable.</li>
-                    <li>Shipped and documented the deploy process, then integrated the game as a linked feature from the main site homepage.</li>
-                </ul>
-                <div class="tech-tags">
-                    <span class="tech-tag">JavaScript (Game Loop, DOM/Canvas)</span>
-                    <span class="tech-tag">HTML/CSS</span>
-                    <span class="tech-tag">Netlify Functions (Node.js Serverless)</span>
-                    <span class="tech-tag">Anthropic Claude API</span>
-                    <span class="tech-tag">Git/GitHub</span>
-                </div>
-            </div>
-
-            <div class="project-card" id="email-agent">
-                <div class="project-card-header">
-                    <h2>Autonomous Email Management Agent</h2>
-                </div>
-                <ul class="project-bullets">
-                    <li>Built an agentic AI system using the Claude API and tool use pattern to autonomously process Gmail inbox &mdash; classifying, deleting, and unsubscribing from unwanted emails without human intervention.</li>
-                    <li>Defined a structured tool schema (list, read, delete, unsubscribe, flag) enabling Claude to reason over email content and take targeted actions via the Gmail API.</li>
-                    <li>Implemented a safe-by-default design with dry-run mode and conservative flagging logic, ensuring personal or ambiguous emails are always surfaced for human review rather than deleted.</li>
-                    <li>Secured credentials using OAuth2 (Google) and environment variable isolation, with sensitive files excluded from version control via <code>.gitignore</code>.</li>
-                </ul>
-                <div class="tech-tags">
-                    <span class="tech-tag">Python</span>
-                    <span class="tech-tag">Anthropic Claude API</span>
-                    <span class="tech-tag">Gmail API</span>
-                    <span class="tech-tag">OAuth2</span>
-                </div>
-            </div>
-
-            <div class="project-card" id="tonys-land-clearing">
-                <div class="project-card-header">
-                    <h2>Tony's Land Clearing</h2>
-                    <p class="project-subtitle">Full-Stack Website Build &amp; Launch &middot; 2026</p>
-                    <p class="project-byline">Solo developer, AI-pair-programmed with Claude Code</p>
-                </div>
-                <ul class="project-bullets">
-                    <li>Designed, built, and deployed a responsive business website from scratch for a local land-clearing/stump-grinding company, taking it from concept to a live custom domain.</li>
-                    <li>Architected a zero-build static site (HTML/CSS/JS) with a GitHub &rarr; Netlify CI/CD pipeline &mdash; every push auto-deploys, no build step or framework overhead.</li>
-                    <li>Built a lead-capture quote form with photo upload, spam protection, and automated email notifications using native serverless form handling.</li>
-                    <li>Developed a serverless FAQ chatbot (Netlify Functions + Anthropic Claude API) scoped to a curated knowledge base, with per-IP rate limiting via a lightweight key-value store to control cost and misuse.</li>
-                    <li>Implemented a live theme-customization system (multiple selectable color palettes) using CSS custom properties, persisted per-visitor via localStorage.</li>
-                    <li>Diagnosed and resolved a custom-domain cutover issue caused by a registrar nameserver misconfiguration and a DNSSEC conflict, restoring DNS resolution and SSL provisioning.</li>
-                    <li>Ran automated cross-device QA using headless-browser testing to catch and fix mobile layout regressions pre-launch.</li>
-                    <li>Conducted a content-integrity audit, removing unverified business claims (licensing, hours, third-party links) to ensure the live site only published confirmed facts.</li>
-                    <li>Owned the project end-to-end: gathered requirements directly from the business owner, iterated on branding and content, and produced a written technical playbook so the same GitHub+Netlify stack could be reused on future projects.</li>
-                </ul>
-                <div class="tech-tags">
-                    <span class="tech-tag">HTML/CSS/JS</span>
-                    <span class="tech-tag">GitHub</span>
-                    <span class="tech-tag">Netlify CI/CD</span>
-                    <span class="tech-tag">Netlify Functions</span>
-                    <span class="tech-tag">Anthropic Claude API</span>
-                    <span class="tech-tag">Netlify Forms</span>
-                    <span class="tech-tag">DNS/SSL Troubleshooting</span>
-                    <span class="tech-tag">Headless Browser QA</span>
                 </div>
             </div>
 
@@ -244,7 +151,6 @@
                     <li>Proposed and led adoption of an AI coding assistant (Cline) connected to an enterprise AWS Bedrock account for a Salesforce development team, building the business case, guardrails, and rollout plan from scratch.</li>
                     <li>Authored a leadership-facing proposal deck covering scope, cost controls (per-developer usage caps), data-handling guardrails (no PII to any AI tool), and a phased pilot-to-rollout timeline.</li>
                     <li>Ran a 4-developer pilot against real backlog work rather than sandbox tasks, then quantified aggregate time savings from self-reported developer feedback across roughly 9 tracked work items, explicitly caveating the figures as self-reported rather than independently measured.</li>
-                    <li>Iterated the proposal through multiple stakeholder review rounds (peer, then leadership), compressing and later correcting the timeline as real external dependencies (cloud access provisioning) came into focus.</li>
                 </ul>
                 <div class="tech-tags">
                     <span class="tech-tag">AI-Assisted Development</span>
@@ -264,7 +170,6 @@
                     <li>Proposed a proactive data-monitoring approach for a Salesforce-to-data-warehouse pipeline, tracking daily record-update volume by status and alerting on significant drops before issues reached the business.</li>
                     <li>Designed a five-part field-level reconciliation architecture (snapshot extract, field-mapping registry, comparison engine, historical results store, dashboard) to validate that records published from Salesforce were landing correctly downstream.</li>
                     <li>Evaluated build-vs-buy paths for a broader data-observability capability &mdash; native data-warehouse monitoring functions vs. an AI reasoning agent layered on top vs. a third-party observability platform &mdash; and produced a recommended path forward.</li>
-                    <li>Identified and documented key technical risks in cross-system reconciliation, including timing/staleness false-positives, append-only vs. upserted data shapes, and fields with no clean one-to-one equivalent across systems.</li>
                 </ul>
                 <div class="tech-tags">
                     <span class="tech-tag">Data Architecture</span>
@@ -289,6 +194,88 @@
                     <span class="tech-tag">System Integration Design</span>
                     <span class="tech-tag">Event-Driven Architecture</span>
                     <span class="tech-tag">Technical Specification</span>
+                </div>
+            </div>
+
+            <h2 class="project-group-title">Independent Engineering Projects</h2>
+
+            <div class="project-card" id="song-party">
+                <div class="project-card-header">
+                    <h2>Song Party</h2>
+                    <p class="project-subtitle">Local Wi-Fi Multiplayer AI Party Game</p>
+                </div>
+                <ul class="project-bullets">
+                    <li>Designed and shipped a Jackbox-style, real-time multiplayer web game supporting simultaneous local-network play across an arbitrary number of phones and a shared host display, using Node.js, Express, and WebSockets.</li>
+                    <li>Built a dependency-free procedural audio synthesis engine in pure Node.js &mdash; custom oscillators, WAV encoding, and genre-tuned chord/tempo presets &mdash; generating original instrumental tracks with zero third-party audio APIs or paid services.</li>
+                    <li>Integrated the Anthropic Claude API to dynamically generate creative prompts and transform crowdsourced player input into structured, genre-specific song lyrics in real time.</li>
+                </ul>
+                <div class="tech-tags">
+                    <span class="tech-tag">Node.js</span>
+                    <span class="tech-tag">Express</span>
+                    <span class="tech-tag">WebSocket (ws)</span>
+                    <span class="tech-tag">Anthropic Claude API</span>
+                    <span class="tech-tag">Procedural Audio Synthesis</span>
+                    <span class="tech-tag">Real-time State Sync</span>
+                    <span class="tech-tag">Git/GitHub</span>
+                </div>
+            </div>
+
+            <div class="project-card" id="ai-simulation-game">
+                <div class="project-card-header">
+                    <h2>AI Simulation Game</h2>
+                    <p class="project-subtitle">Interactive NPC Simulation with Claude-Powered Dialogue</p>
+                </div>
+                <ul class="project-bullets">
+                    <li>Built a browser-based simulation game from scratch &mdash; HTML/CSS front end driving a real-time JS game loop with animated agents moving through a scene.</li>
+                    <li>Designed a proximity-triggered dialogue system: agents generate contextual conversation when they approach specific scene landmarks, using landmark identity to shape the prompt sent to the LLM.</li>
+                    <li>Integrated the Claude API via a Netlify serverless function (<code>chat.js</code>) acting as a secure proxy, keeping the API key server-side and off the client.</li>
+                </ul>
+                <div class="tech-tags">
+                    <span class="tech-tag">JavaScript (Game Loop, DOM/Canvas)</span>
+                    <span class="tech-tag">HTML/CSS</span>
+                    <span class="tech-tag">Netlify Functions (Node.js Serverless)</span>
+                    <span class="tech-tag">Anthropic Claude API</span>
+                    <span class="tech-tag">Git/GitHub</span>
+                </div>
+            </div>
+
+            <div class="project-card" id="email-agent">
+                <div class="project-card-header">
+                    <h2>Autonomous Email Management Agent</h2>
+                </div>
+                <ul class="project-bullets">
+                    <li>Built an agentic AI system using the Claude API and tool use pattern to autonomously process Gmail inbox &mdash; classifying, deleting, and unsubscribing from unwanted emails without human intervention.</li>
+                    <li>Defined a structured tool schema (list, read, delete, unsubscribe, flag) enabling Claude to reason over email content and take targeted actions via the Gmail API.</li>
+                    <li>Implemented a safe-by-default design with dry-run mode and conservative flagging logic, ensuring personal or ambiguous emails are always surfaced for human review rather than deleted.</li>
+                </ul>
+                <div class="tech-tags">
+                    <span class="tech-tag">Python</span>
+                    <span class="tech-tag">Anthropic Claude API</span>
+                    <span class="tech-tag">Gmail API</span>
+                    <span class="tech-tag">OAuth2</span>
+                </div>
+            </div>
+
+            <div class="project-card" id="tonys-land-clearing">
+                <div class="project-card-header">
+                    <h2>Tony's Land Clearing</h2>
+                    <p class="project-subtitle">Full-Stack Website Build &amp; Launch &middot; 2026</p>
+                    <p class="project-byline">Solo developer, AI-pair-programmed with Claude Code</p>
+                </div>
+                <ul class="project-bullets">
+                    <li>Designed, built, and deployed a responsive business website from scratch for a local land-clearing/stump-grinding company, taking it from concept to a live custom domain.</li>
+                    <li>Developed a serverless FAQ chatbot (Netlify Functions + Anthropic Claude API) scoped to a curated knowledge base, with per-IP rate limiting via a lightweight key-value store to control cost and misuse.</li>
+                    <li>Diagnosed and resolved a custom-domain cutover issue caused by a registrar nameserver misconfiguration and a DNSSEC conflict, restoring DNS resolution and SSL provisioning.</li>
+                </ul>
+                <div class="tech-tags">
+                    <span class="tech-tag">HTML/CSS/JS</span>
+                    <span class="tech-tag">GitHub</span>
+                    <span class="tech-tag">Netlify CI/CD</span>
+                    <span class="tech-tag">Netlify Functions</span>
+                    <span class="tech-tag">Anthropic Claude API</span>
+                    <span class="tech-tag">Netlify Forms</span>
+                    <span class="tech-tag">DNS/SSL Troubleshooting</span>
+                    <span class="tech-tag">Headless Browser QA</span>
                 </div>
             </div>
         </div>
