@@ -7,10 +7,11 @@
 //
 // Flow: each round, the 4 fixed style questions (lib/genreQuestions.js)
 // get distributed among the players and combined into a style profile ->
-// Claude writes each player their own related-but-different story prompt
-// -> everyone answers on their phone -> Claude turns the answers into song
-// lyrics using the crowd-sourced style -> a matching track is generated ->
-// it plays on the host screen.
+// the LLM (Claude or a local Ollama model, see lib/ai.js) writes each
+// player their own related-but-different story prompt -> everyone answers
+// on their phone -> the LLM turns the answers into song lyrics using the
+// crowd-sourced style -> a matching track is generated -> it plays on the
+// host screen.
 "use strict";
 
 require("dotenv").config();
@@ -609,11 +610,19 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`  Host screen: http://${hostIp}:${PORT}/host?key=${HOST_KEY}`);
   console.log(`  (host key: ${HOST_KEY})`);
   console.log("");
-  console.log(
-    ai.isConfigured()
-      ? "  ANTHROPIC_API_KEY detected - Claude will write prompts + lyrics."
-      : "  No ANTHROPIC_API_KEY set - using offline prompt bank + template lyrics."
-  );
+  const llmProvider = (process.env.LLM_PROVIDER || "anthropic").toLowerCase();
+  if (llmProvider === "ollama") {
+    console.log(
+      `  LLM_PROVIDER=ollama - will call ${process.env.OLLAMA_MODEL || "llama3.1"} at ` +
+        `${process.env.OLLAMA_HOST || "http://localhost:11434"} for prompts + lyrics.`
+    );
+  } else {
+    console.log(
+      ai.isConfigured()
+        ? "  ANTHROPIC_API_KEY detected - Claude will write prompts + lyrics."
+        : "  No ANTHROPIC_API_KEY set - using offline prompt bank + template lyrics."
+    );
+  }
   console.log("=".repeat(60));
   console.log("");
 });

@@ -7,13 +7,14 @@ else joins the same URL on their phone. Each round:
 1. There's no host-picked genre - the 4 fixed style questions (style,
    vocal, weirdness, influence) get split across the connected players
    (see "Style questions" below) and combined into this round's sound.
-2. Claude invents a silly shared scenario and writes each player their own
+2. The LLM (Claude, or a local Ollama model - see "LLM provider" below)
+   invents a silly shared scenario and writes each player their own
    related-but-different prompt about it (not one shared question) - so
    their answers naturally read as different beats of one story.
 3. Everyone answers their own prompt on their phone, without seeing
    anyone else's prompt or answer.
-4. Claude weaves everyone's answers into one coherent set of original song
-   lyrics, in the crowd-sourced style - every player who answered is
+4. The LLM weaves everyone's answers into one coherent set of original
+   song lyrics, in the crowd-sourced style - every player who answered is
    verified to be named in the result (retried, then guaranteed by the
    offline template if the AI still misses someone).
 5. The server generates a matching track.
@@ -42,6 +43,32 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 No key? The game still works end-to-end - it falls back to a built-in
 offline prompt bank and a template lyrics writer.
+
+### LLM provider: Claude vs. a local Ollama model
+
+By default the game calls Claude (above). If you'd rather run everything
+locally with no API cost and no internet dependency, you can point it at
+[Ollama](https://ollama.com) instead:
+
+```bash
+ollama serve              # if it isn't already running
+ollama pull llama3.1      # one-time, pick whatever model you want
+```
+
+Then in `.env`:
+
+```
+LLM_PROVIDER=ollama
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=llama3.1
+```
+
+Ollama must be running on the **same machine** as the party server (it's
+called over `localhost`). Prompt/lyric quality depends entirely on which
+model you pull - smaller models write goofier, less coherent songs than
+Claude; that's expected, not a bug. Everything else (style questions,
+copyright-safe music generation, feedback) works identically regardless
+of which LLM provider is active.
 
 ## Run it
 
@@ -210,8 +237,11 @@ is in-memory only).
 
 | Variable | Default | Notes |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | - | Optional. Without it, prompts/lyrics come from the offline banks. |
-| `CLAUDE_MODEL` | `claude-haiku-4-5` | Model used for prompts + lyrics (cheapest current Claude model). |
+| `LLM_PROVIDER` | `anthropic` | `anthropic` (Claude, cloud) or `ollama` (local model) - see "LLM provider" above. |
+| `ANTHROPIC_API_KEY` | - | Optional, used when `LLM_PROVIDER=anthropic`. Without it, prompts/lyrics come from the offline banks. |
+| `CLAUDE_MODEL` | `claude-haiku-4-5` | Model used for prompts + lyrics when `LLM_PROVIDER=anthropic` (cheapest current Claude model). |
+| `OLLAMA_HOST` | `http://localhost:11434` | Where Ollama is listening, used when `LLM_PROVIDER=ollama`. |
+| `OLLAMA_MODEL` | `llama3.1` | Pulled Ollama model to use, used when `LLM_PROVIDER=ollama`. |
 | `PORT` | `3000` | Port the server listens on. |
 | `ANSWER_SECONDS` | `90` | Soft time limit per round. |
 | `TRACK_SECONDS` | `60` | Target length of the generated track (see "On the music generation" above for why this matters more than it sounds). |

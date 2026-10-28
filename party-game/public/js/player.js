@@ -371,9 +371,9 @@ function render() {
   switch (st.phase) {
     case "lobby": return screenLobby(st, me);
     case "genre_answering": return screenGenreAnswering(st, me);
-    case "question": return screenLoading("🎲 Claude is thinking of everyone's prompts...");
+    case "question": return screenLoading("🎲 The AI is thinking of everyone's prompts...");
     case "answering": return screenAnswering(st, me);
-    case "generating_lyrics": return screenLoading("✍️ Claude is writing your song lyrics...");
+    case "generating_lyrics": return screenLoading("✍️ The AI is writing your song lyrics...");
     case "lyrics_ready": return screenLyrics(st);
     case "generating_music": return screenLoading("🎧 Producing your track...");
     case "playback": return screenPlayback(st);
