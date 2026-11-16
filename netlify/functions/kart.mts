@@ -2,35 +2,50 @@
 //
 // GET    /api/kart        list every saved tournament (public, read-only)
 // GET    /api/kart/:id    one tournament (public, read-only)
-// PUT    /api/kart/:id    create or replace a tournament (host passcode required)
-// DELETE /api/kart/:id    delete a tournament (host passcode required)
+// PUT    /api/kart/:id    create or replace a tournament (host only)
+// DELETE /api/kart/:id    delete a tournament (host only)
+// POST   /api/kart/host   claim, ping or release the host role
 //
-// Writes need the x-kart-key header to match the KART_ADMIN_KEY environment
-// variable (set in Netlify: Site configuration > Environment variables, with
-// the Functions scope). If the variable is not set, all writes are refused.
+// Only one device can host at a time. A device becomes host by sending the
+// passcode (x-kart-key, must match the KART_ADMIN_KEY environment variable)
+// to POST /api/kart/host, which returns a host token. Writes need both the
+// passcode and the current host token (x-kart-host). Claiming while another
+// device is active is refused unless the caller asks to take over, which
+// makes the other device's token stop working.
 import { getStore } from "@netlify/blobs";
 import type { Config, Context } from "@netlify/functions";
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 
 const STORE = "kart-tournaments";
 const PREFIX = "t/";
+const LOCK_KEY = "host-lock";
+const ACTIVE_MS = 10 * 60 * 1000; // a host idle longer than this can be replaced without a takeover
 const ID_RE = /^[a-z0-9-]{4,60}$/;
 const MAX_BYTES = 1_000_000;
+
+type Lock = { token: string; device: string; since: number; lastSeen: number };
 
 const store = () => getStore({ name: STORE, consistency: "strong" });
 
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
+const sha = (v: string) => createHash("sha256").update(v).digest();
+
 function keyStatus(req: Request): "unset" | "ok" | "bad" | "none" {
   const expected = Netlify.env.get("KART_ADMIN_KEY");
   if (!expected) return "unset";
   const given = req.headers.get("x-kart-key");
   if (!given) return "none";
-  const a = createHash("sha256").update(given).digest();
-  const b = createHash("sha256").update(expected).digest();
-  return timingSafeEqual(a, b) ? "ok" : "bad";
+  return timingSafeEqual(sha(given), sha(expected)) ? "ok" : "bad";
 }
+
+function holdsLock(lock: Lock | null, req: Request): boolean {
+  const given = req.headers.get("x-kart-host");
+  return !!(lock && given && timingSafeEqual(sha(given), sha(lock.token)));
+}
+
+const publicLock = (l: Lock) => ({ device: l.device, since: l.since, lastSeen: l.lastSeen });
 
 function validate(doc: any, id: string): string | null {
   if (!doc || typeof doc !== "object") return "Body must be a tournament object.";
@@ -44,13 +59,52 @@ function validate(doc: any, id: string): string | null {
   return null;
 }
 
+async function hostRoute(req: Request, s: ReturnType<typeof store>) {
+  const auth = keyStatus(req);
+  if (auth === "unset") return json({ error: "Saving is turned off: KART_ADMIN_KEY is not set on the site." }, 503);
+  if (auth !== "ok") return json({ error: "Wrong or missing host passcode." }, 401);
+
+  let body: any = {};
+  try { body = await req.json(); } catch { /* empty body */ }
+  const lock = (await s.get(LOCK_KEY, { type: "json" })) as Lock | null;
+  const now = Date.now();
+
+  if (body.action === "claim") {
+    const mine = holdsLock(lock, req);
+    const active = lock && now - lock.lastSeen < ACTIVE_MS;
+    if (active && !mine && !body.force) {
+      return json({ error: "Another device is hosting.", holder: publicLock(lock!) }, 409);
+    }
+    const device = String(body.device || "Host device").slice(0, 60);
+    const next: Lock = { token: randomUUID(), device, since: now, lastSeen: now };
+    await s.setJSON(LOCK_KEY, next);
+    return json({ token: next.token });
+  }
+  if (body.action === "ping") {
+    if (!holdsLock(lock, req)) return json({ error: "This device is no longer the host." }, 409);
+    await s.setJSON(LOCK_KEY, { ...lock!, lastSeen: now });
+    return json({ ok: true });
+  }
+  if (body.action === "release") {
+    if (holdsLock(lock, req)) await s.delete(LOCK_KEY);
+    return json({ ok: true });
+  }
+  return json({ error: "Unknown action." }, 400);
+}
+
 export default async (req: Request, context: Context) => {
   const id = context.params.id as string | undefined;
   const s = store();
 
+  if (id === "host") {
+    if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+    return hostRoute(req, s);
+  }
+
   if (req.method === "GET") {
     const auth = keyStatus(req);
-    const meta = { canWrite: auth === "ok", keyConfigured: auth !== "unset" };
+    const lock = auth === "ok" ? ((await s.get(LOCK_KEY, { type: "json" })) as Lock | null) : null;
+    const meta = { canWrite: auth === "ok" && holdsLock(lock, req), keyConfigured: auth !== "unset" };
     if (id) {
       if (!ID_RE.test(id)) return json({ error: "Not found" }, 404);
       const doc = await s.get(PREFIX + id, { type: "json" });
@@ -69,6 +123,8 @@ export default async (req: Request, context: Context) => {
     const auth = keyStatus(req);
     if (auth === "unset") return json({ error: "Saving is turned off: KART_ADMIN_KEY is not set on the site." }, 503);
     if (auth !== "ok") return json({ error: "Wrong or missing host passcode." }, 401);
+    const lock = (await s.get(LOCK_KEY, { type: "json" })) as Lock | null;
+    if (!holdsLock(lock, req)) return json({ error: "Another device is hosting. This device is view only." }, 409);
     if (!id || !ID_RE.test(id)) return json({ error: "Invalid tournament id." }, 400);
 
     if (req.method === "DELETE") {
@@ -92,5 +148,5 @@ export default async (req: Request, context: Context) => {
 
 export const config: Config = {
   path: ["/api/kart", "/api/kart/:id"],
-  method: ["GET", "PUT", "DELETE"],
+  method: ["GET", "PUT", "DELETE", "POST"],
 };
