@@ -39,6 +39,7 @@ function validate(doc: any, id: string): string | null {
   if (!Array.isArray(doc.players) || doc.players.length > 256) return "Players must be a list (256 max).";
   if (!doc.players.every((p: any) => p && typeof p.id === "string" && typeof p.name === "string" && p.name.length <= 80)) return "Each player needs an id and a name (80 characters max).";
   if (!Array.isArray(doc.rounds) || doc.rounds.length > 40) return "Rounds must be a list.";
+  if (doc.lb !== undefined && (!Array.isArray(doc.lb) || doc.lb.length > 40)) return "Losers bracket rounds must be a list.";
   if (!doc.cfg || typeof doc.cfg !== "object") return "Settings are missing.";
   return null;
 }
