@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Kart Cup Bracket - L and H LLC</title>
+<meta name="description" content="Run a kart racing tournament: random heats, pick who advances each round, and keep a history and leaderboard of every cup.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3R5NJ422YS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3R5NJ422YS');
+  gtag('config', 'G-C36SJ9851K');
+</script>
+<style>
+/* Layout: race-control board. Checkered strip, header with tabs, then a horizontally scrolling bracket of round columns, roster below. */
+:root{
+  --bg:#eef0f4; --surface:#ffffff; --surface-2:#f6f7fa; --ink:#14161d; --muted:#5a6070; --line:#d6d9e2;
+  --accent:#d81f2a; --accent-ink:#ffffff; --go:#17834a; --go-tint:#e2f4ea; --flag:#f2b705; --flag-tint:#fff4cc;
+  --display:"Russo One","Arial Black",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1117; --surface:#181b24; --surface-2:#1f2330; --ink:#eceef4; --muted:#9aa1b3; --line:#2c3141;
+  --accent:#ff4b55; --accent-ink:#14161d; --go:#41d184; --go-tint:#173426; --flag:#ffd33d; --flag-tint:#3a3214; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1117; --surface:#181b24; --surface-2:#1f2330; --ink:#eceef4; --muted:#9aa1b3; --line:#2c3141;
+  --accent:#ff4b55; --accent-ink:#14161d; --go:#41d184; --go-tint:#173426; --flag:#ffd33d; --flag-tint:#3a3214; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+[hidden]{display:none!important}
+.wrap{max-width:1280px;margin:0 auto;padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.checker{height:14px;background:repeating-conic-gradient(var(--ink) 0 25%,var(--surface) 0 50%) 0 0/14px 14px}
+.home{display:inline-block;margin-top:12px;font-size:13px;color:var(--muted);text-decoration:none}
+.home:hover{color:var(--ink)}
+header.top{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;padding-block:8px 12px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,5vw,38px);letter-spacing:.01em;margin:0;line-height:1}
+h1 span{color:var(--accent)}
+.tagline{color:var(--muted);margin:4px 0 0;font-size:14px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:400;font-size:17px;margin:0}
+
+nav.tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:18px;overflow-x:auto}
+nav.tabs a{font:600 14px var(--body);color:var(--muted);text-decoration:none;padding:10px 14px;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-color:var(--accent)}
+.savestate{font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--surface);white-space:nowrap}
+.savestate.ok{color:var(--go);border-color:var(--go)}
+.savestate.bad{color:var(--accent);border-color:var(--accent)}
+
+button,.btn{font:600 14px/1 var(--body);border-radius:8px;padding:10px 14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.primary:hover{filter:brightness(1.08)}
+button.ghost{background:transparent}
+button.small{padding:7px 10px;font-size:13px}
+button.danger{color:var(--accent);border-color:var(--accent);background:transparent}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+input,select,textarea{font:500 15px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-width:0}
+input[readonly]{background:transparent;border-color:transparent}
+textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:12px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.hostpanel{margin-bottom:16px;display:flex;flex-direction:column;gap:10px}
+.setup{display:flex;flex-direction:column;gap:18px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.fields .wide{grid-column:span 2}
+@media (max-width:420px){.fields .wide{grid-column:auto}}
+.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.names label{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.names input{flex:1;width:100%}
+.plan{background:var(--surface-2);border-radius:8px;padding:12px 14px;font-size:14px}
+.plan ol{margin:6px 0 0;padding-left:20px}
+.plan .bad{color:var(--accent);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+details summary{cursor:pointer;font-weight:600;font-size:14px}
+details[open] summary{margin-bottom:10px}
+
+.banner{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;border-radius:12px;padding:14px 16px;margin-bottom:16px;border:1px solid var(--line);background:var(--surface)}
+.banner.ex{background:var(--flag-tint);border-color:var(--flag)}
+.banner.win{border:2px solid var(--flag)}
+.banner p{margin:0}
+.tname{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-bottom:14px}
+.tname h2{font-size:24px}
+
+.rounds{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,300px);gap:16px;overflow-x:auto;padding-bottom:12px;align-items:start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.colhead{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:10px;background:var(--ink);color:var(--bg)}
+.colhead .meta{font-family:var(--mono);font-size:12px;opacity:.8}
+.colhead .row{gap:8px}
+.colhead select{padding:5px 6px;font-size:13px}
+.colhead button{background:transparent;color:var(--bg);border-color:color-mix(in srgb,var(--bg) 40%,transparent)}
+.col.past .colhead{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.col.past .colhead button{color:var(--ink);border-color:var(--line)}
+.heat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.heat header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:2px 4px 4px}
+.heat .ct{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.heat .ct.ok{color:var(--go)}
+.heat .ct.warn{color:var(--accent)}
+.heat .hint{font-size:12px;color:var(--muted);padding:0 4px}
+.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}
+.chip .pick{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:transparent;border:0;padding:9px 10px;text-align:left;font-weight:600}
+.chip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .badge{flex:none;width:30px;height:22px;border-radius:5px;display:grid;place-items:center;font:700 11px var(--mono);border:1px dashed var(--line);color:var(--muted)}
+.chip.on{border-color:var(--go);background:var(--go-tint)}
+.chip.on .badge{background:var(--go);border:0;color:var(--surface)}
+.chip.lost .nm{color:var(--muted);text-decoration:line-through;font-weight:500}
+.chip .pick:disabled{opacity:1;cursor:default}
+.chip select.mv{width:34px;padding:4px;margin-right:4px;border:0;background:transparent;font-size:16px;color:var(--muted);appearance:none;-webkit-appearance:none;text-align:center;cursor:pointer}
+.next{border:2px dashed var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.next .row select{padding:5px 6px}
+.next .warn{color:var(--accent);font-weight:600}
+.waiting{font-size:13px;color:var(--muted);padding:4px}
+
+.champ{border:2px solid var(--flag);border-radius:12px;background:var(--surface);overflow:hidden}
+.champ .checker{height:12px;background-size:12px 12px}
+.champ .in{padding:16px;display:flex;flex-direction:column;gap:10px}
+.champ .who{font-family:var(--display);font-size:28px;line-height:1.1;word-break:break-word}
+.podium{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
+.podium b{color:var(--ink);font-family:var(--mono);font-size:12px;margin-right:6px}
+
+.roster{margin-top:20px;display:flex;flex-direction:column;gap:14px}
+.rlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
+.ritem{display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}
+.ritem input{flex:1;width:100%;padding:6px 8px;background:var(--surface)}
+.ritem input[readonly]{background:transparent}
+.status{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 7px;border-radius:5px;white-space:nowrap;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.status.live{color:var(--go);border-color:var(--go)}
+.status.gold{color:#14161d;background:var(--flag);border-color:var(--flag)}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono)}
+
+.hlist{display:flex;flex-direction:column;gap:10px}
+.hitem{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.hitem .t{display:flex;flex-direction:column;gap:4px;min-width:0}
+.hitem .t strong{font-size:16px;overflow-wrap:anywhere}
+.hitem .sub{font-size:13px;color:var(--muted)}
+.empty{padding:28px;text-align:center;color:var(--muted);border:2px dashed var(--line);border-radius:12px}
+
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table.lb{border-collapse:collapse;width:100%;min-width:640px;font-size:14px}
+table.lb th,table.lb td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+table.lb th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;cursor:pointer;user-select:none;white-space:nowrap}
+table.lb th[aria-sort]{color:var(--ink)}
+table.lb th:first-child,table.lb td:first-child{text-align:left}
+table.lb td:first-child{font-weight:600}
+table.lb tr:last-child td{border-bottom:0}
+table.lb td.rank{font-family:var(--mono);color:var(--muted);width:40px}
+table.lb th.rank{text-align:left;cursor:default}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 12px 10px 16px;border-radius:10px;display:flex;gap:12px;align-items:center;font-size:14px;max-width:calc(100% - 32px);z-index:20}
+#toast button{background:transparent;color:var(--flag);border-color:transparent}
+@media (prefers-reduced-motion:no-preference){.chip,.heat{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+<div class="checker" aria-hidden="true"></div>
+<div class="wrap">
+  <a class="home" href="/">&larr; L and H LLC</a>
+  <header class="top">
+    <div>
+      <h1>Kart Cup <span>Bracket</span></h1>
+      <p class="tagline">Random heats, pick who advances, repeat until one racer is left.</p>
+    </div>
+    <div class="actions">
+      <span id="savestate" class="savestate" role="status"></span>
+      <button id="hostbtn" data-act="host" class="ghost small">Host login</button>
+      <button id="undo" data-act="undo" class="ghost">Undo</button>
+      <button data-act="new" class="primary">New tournament</button>
+    </div>
+  </header>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#bracket" data-tab="bracket">Bracket</a>
+    <a href="#history" data-tab="history">History</a>
+    <a href="#leaderboard" data-tab="leaderboard">Leaderboard</a>
+  </nav>
+  <div id="hostpanel"></div>
+  <div id="app"></div>
+</div>
+<datalist id="known-names"></datalist>
+<div id="toast" hidden></div>
+
+<script>
+(function(){
+const API='/api/kart';
+const LKEY='kart-cup-current-v2', HKEY='kart-cup-host-key';
+const LET='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const SIZES=[2,3,4,5,6,7,8,9,10,11,12];
+const $=s=>document.querySelector(s);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ord=n=>n+(['th','st','nd','rd'][(n%100>10&&n%100<14)?0:(n%10<4?n%10:0)]);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const fmtDate=s=>{if(!s)return'';const [y,m,d]=s.slice(0,10).split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'})};
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}
+
+/* ---------- State ---------- */
+let S;                 // the tournament on screen
+let RO=false;          // true when viewing a saved tournament without host access
+let view='bracket';    // bracket | setup | history | leaderboard
+let draft=null;        // setup form
+let undoStack=[];
+let hostKey=lsGet(HKEY)||'';
+let canWrite=false, keyConfigured=null, apiOk=null;
+let LIST=null, listLoading=false;
+let saveState='idle', saveTimer=null, pollTimer=null, toastTimer=null;
+const ui={hostOpen:false,hostMsg:'',delConfirm:null,sort:'titles'};
+
+function blankDoc(){return{id:'',name:'',date:today(),createdAt:new Date().toISOString(),updatedAt:null,status:'active',champion:null,cfg:{size:4,adv:2,races:4},nextAdv:2,players:[],rounds:[]}}
+function example(){
+  const d=blankDoc();d.example=true;d.name='Example cup';
+  d.players=['Avery','Blake','Casey','Devon','Emerson','Finley','Harper','Jordan','Kendall','Logan','Morgan','Quinn'].map(n=>({id:uid(),name:n,out:false}));
+  S=d;const r=makeRound(d.players.map(p=>p.id),2);r.heats[0].adv=[r.heats[0].players[2],r.heats[0].players[0]];d.rounds=[r];return d;
+}
+function docOf(){const c=champ();return{id:S.id,name:S.name,date:S.date,createdAt:S.createdAt,updatedAt:S.updatedAt,status:c?'done':'active',champion:c?{id:c[0],name:P(c[0]).name}:null,cfg:S.cfg,nextAdv:S.nextAdv,players:S.players,rounds:S.rounds}}
+function saveLocal(){if(!RO)lsSet(LKEY,JSON.stringify(S))}
+function commit(fn,msg){undoStack.push(JSON.stringify(S));if(undoStack.length>60)undoStack.shift();fn();saveLocal();queueRemote();render();if(msg)toast(msg,true)}
+function undo(){if(!undoStack.length)return;S=JSON.parse(undoStack.pop());saveLocal();queueRemote();render();toast('Undone')}
+function toast(msg,withUndo){const t=$('#toast');t.innerHTML=`<span>${esc(msg)}</span>`+(withUndo&&!RO?'<button data-act="undo" class="small">Undo</button>':'');t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.hidden=true,5000)}
+
+/* ---------- Server ---------- */
+async function api(path,opts={}){
+  const headers=Object.assign({},opts.headers||{});
+  if(hostKey)headers['x-kart-key']=hostKey;
+  const r=await fetch(API+path,Object.assign({},opts,{headers}));
+  let body=null;try{body=await r.json()}catch(e){}
+  if(!r.ok){const err=new Error((body&&body.error)||('Request failed ('+r.status+')'));err.status=r.status;throw err}
+  return body;
+}
+async function refreshList(){
+  listLoading=true;if(view!=='bracket'&&view!=='setup')render();
+  try{const b=await api('');LIST=b.tournaments||[];canWrite=!!b.canWrite;keyConfigured=b.keyConfigured;apiOk=true}
+  catch(e){apiOk=false;LIST=LIST||[]}
+  listLoading=false;updateKnown();render();
+}
+function queueRemote(){
+  clearTimeout(saveTimer);
+  if(RO||S.example||!S.id){updateStatus();return}
+  if(!canWrite){saveState='local';updateStatus();return}
+  saveState='saving';updateStatus();
+  saveTimer=setTimeout(pushRemote,700);
+}
+async function pushRemote(){
+  try{const b=await api('/'+S.id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(docOf())});
+    S.updatedAt=b.updatedAt;saveLocal();saveState='saved';
+    if(LIST){const i=LIST.findIndex(t=>t.id===S.id),d=docOf();if(i>=0)LIST[i]=d;else LIST.unshift(d);updateKnown()}
+  }catch(e){saveState=e.status===401?'auth':'error';if(e.status===401)canWrite=false}
+  updateStatus();
+}
+function updateStatus(){
+  const el=$('#savestate');let txt='',cls='';
+  if(RO){txt=(S.status==='done'||champ())?'Viewing saved cup':'Watching live';}
+  else if(S.example){txt='Example only';}
+  else if(apiOk===false){txt='Saved on this device only';cls='bad';}
+  else if(!canWrite){txt='Not saved to history';cls='bad';}
+  else txt={saving:'Saving…',saved:'Saved to history',error:'Save failed. Retrying on next change',auth:'Passcode rejected',local:'Not saved to history',idle:'Saved to history'}[saveState]||'';
+  if(canWrite&&!RO&&!S.example&&(saveState==='saved'||saveState==='idle'))cls='ok';
+  if(saveState==='error'||saveState==='auth')cls='bad';
+  el.textContent=txt;el.className='savestate '+cls;el.hidden=!txt;
+  $('#hostbtn').textContent=canWrite?'Host: on':'Host login';
+  $('#undo').disabled=!undoStack.length||RO;
+}
+function startPolling(){
+  clearInterval(pollTimer);
+  if(!RO||!S.id||S.status==='done')return;
+  pollTimer=setInterval(async()=>{
+    if(document.hidden||view!=='bracket')return;
+    try{const b=await api('/'+S.id);if(b.tournament.updatedAt!==S.updatedAt){S=b.tournament;render()}}catch(e){}
+  },15000);
+}
+
+/* ---------- Bracket logic ---------- */
+const P=id=>S.players.find(p=>p.id===id)||{name:'?',id};
+const cur=()=>S.rounds[S.rounds.length-1];
+const poolSize=r=>r.heats.reduce((a,h)=>a+h.players.length,0);
+const nextPool=r=>r.heats.flatMap(h=>h.adv);
+const target=(r,h)=>r.final?Math.min(3,h.players.length):Math.min(r.adv,h.players.length);
+const complete=r=>r.heats.every(h=>!h.players.length||h.adv.length>=1);
+function champ(){const r=S&&cur();return r&&r.final&&r.heats[0]&&r.heats[0].adv.length?r.heats[0].adv:null}
+const heatLabel=(r,i)=>r.final?'Final':'Heat '+(LET[i]||i+1);
+function makeRound(ids,adv){
+  const size=S.cfg.size,p=shuffle(ids.slice());
+  if(p.length<=size)return{final:true,adv:3,heats:[{players:p,adv:[]}]};
+  const k=Math.ceil(p.length/size),heats=Array.from({length:k},()=>({players:[],adv:[]}));
+  p.forEach((id,i)=>heats[i%k].players.push(id));
+  return{final:false,adv,heats};
+}
+function heatSizes(n,size){const k=Math.ceil(n/size);return Array.from({length:k},(_,i)=>Math.floor(n/k)+(i<n%k?1:0))}
+function project(n,size,adv){
+  const out=[];let g=0;
+  while(n>size&&g++<30){const hs=heatSizes(n,size);const next=hs.reduce((a,s)=>a+Math.min(adv,s),0);if(next>=n)return null;out.push({n,hs,next});n=next}
+  return{rounds:out,final:n};
+}
+function sizesText(hs){const c={};hs.forEach(s=>c[s]=(c[s]||0)+1);return Object.keys(c).sort((a,b)=>b-a).map(s=>`${c[s]} heat${c[s]>1?'s':''} of ${s}`).join(' + ')}
+
+/* ---------- Setup ---------- */
+function openSetup(){
+  const names=(S.example||RO)?[]:S.players.filter(p=>!p.out).map(p=>p.name);
+  const count=names.length||8;
+  while(names.length<count)names.push('');
+  draft={name:'Kart Night '+fmtDate(today()),date:today(),count,names,size:S.cfg.size||4,adv:S.cfg.adv||2,races:S.cfg.races||4};
+  view='setup';location.hash='#bracket';render();
+}
+function setupHTML(){
+  const d=draft;
+  const opt=(arr,v)=>arr.map(x=>`<option value="${x}"${x==v?' selected':''}>${x}</option>`).join('');
+  const pr=project(d.count,d.size,d.adv);
+  let plan;
+  if(d.count<2)plan='<span class="bad">You need at least 2 racers.</span>';
+  else if(!pr)plan=`<span class="bad">With ${d.adv} advancing from heats of ${d.size}, the field never shrinks. Lower the number advancing or raise the heat size.</span>`;
+  else{
+    const li=pr.rounds.map((x,i)=>`<li>Round ${i+1}: ${x.n} racers in ${sizesText(x.hs)}. ${x.next} advance.</li>`).join('');
+    plan=`<strong>Projected bracket</strong> (each heat plays a ${d.races}-race cup)<ol>${li}<li>Final: ${pr.final} racer${pr.final>1?'s':''} race for the title.</li></ol>`;
+  }
+  const names=d.names.map((n,i)=>`<label for="s-name-${i}">${String(i+1).padStart(2,'0')}<input id="s-name-${i}" data-i="${i}" class="nm-in" list="known-names" value="${esc(n)}" placeholder="Racer ${i+1}" autocomplete="off"></label>`).join('');
+  const saveNote=canWrite?'This cup will be saved to the history and leaderboard.':(apiOk===false?'History is unreachable right now, so this cup will only be saved on this device.':'You are not logged in as host, so this cup will not be saved to the history. Use Host login first to keep it.');
+  return `<section class="panel setup">
+    <div><h2>Set up the cup</h2><p class="muted" style="margin:6px 0 0">Enter the field, choose heat size and how many advance. You can change any of this later, round by round.</p></div>
+    <div class="fields">
+      <label class="f wide" for="s-tname">Tournament name<input id="s-tname" value="${esc(d.name)}" maxlength="120" autocomplete="off"></label>
+      <label class="f" for="s-date">Date<input id="s-date" type="date" value="${esc(d.date)}"></label>
+      <label class="f" for="s-count">How many racers<input id="s-count" type="number" min="2" max="128" value="${d.count}"></label>
+      <label class="f" for="s-size">Racers per heat<select id="s-size">${opt(SIZES,d.size)}</select></label>
+      <label class="f" for="s-adv">Advance per heat<select id="s-adv">${opt([1,2,3],d.adv)}</select></label>
+      <label class="f" for="s-races">Races per heat<select id="s-races">${opt([1,2,3,4,5,6,8],d.races)}</select></label>
+    </div>
+    <div class="plan">${plan}</div>
+    <p class="muted" style="margin:0;font-size:13px">Use the same spelling for a person every time so the leaderboard links their results. Past names are suggested as you type.</p>
+    <div class="names">${names}</div>
+    <details><summary>Paste a list of names instead</summary>
+      <textarea id="s-paste" placeholder="One name per line"></textarea>
+      <div class="row" style="margin-top:8px"><button data-act="paste" class="small">Use these names</button></div>
+    </details>
+    <p class="${canWrite?'muted':'muted'}" style="margin:0;font-size:14px"><strong>${esc(saveNote)}</strong></p>
+    <div class="row">
+      <button data-act="start" class="primary"${(!pr||d.count<2)?' disabled':''}>Start and draw Round 1</button>
+      <button data-act="cancel-setup" class="ghost">Cancel</button>
+    </div>
+  </section>`;
+}
+function setCount(n){const d=draft;n=Math.max(2,Math.min(128,n|0||2));d.count=n;while(d.names.length<n)d.names.push('');d.names.length=n;render()}
+function start(){
+  const d=draft;const seen={};
+  undoStack=[];RO=false;clearInterval(pollTimer);
+  const doc=blankDoc();
+  doc.id=(d.date||today())+'-'+uid().slice(0,5);
+  doc.name=(d.name||'').trim()||('Kart Night '+fmtDate(d.date));
+  doc.date=d.date||today();
+  doc.cfg={size:d.size,adv:d.adv,races:d.races};doc.nextAdv=d.adv;
+  doc.players=d.names.map((n,i)=>{let nm=n.trim()||`Racer ${i+1}`;const k=nm.toLowerCase();if(seen[k])nm+=' '+(++seen[k]);else seen[k]=1;return{id:uid(),name:nm,out:false}});
+  S=doc;S.rounds=[makeRound(S.players.map(p=>p.id),d.adv)];
+  draft=null;view='bracket';
+  saveLocal();queueRemote();render();toast('Round 1 drawn');
+}
+
+/* ---------- Bracket view ---------- */
+function bracketHTML(){
+  let h='';
+  if(S.example)h+=`<div class="banner ex"><p><strong>Example tournament.</strong> These 12 names are placeholders and nothing here is saved. Tap racers to try it, then set up your own.</p><button data-act="new" class="primary small">Set up my tournament</button></div>`;
+  else h+=`<div class="tname"><h2>${esc(S.name)}</h2><span class="muted mono" style="font-size:13px">${esc(fmtDate(S.date))}${RO?' · view only':''}</span>${RO&&canWrite?'<button class="small" data-act="takeover">Edit this cup</button>':''}</div>`;
+  const c=champ();
+  if(c)h+=`<div class="banner win"><p><strong>${esc(P(c[0]).name)}</strong> wins the cup.</p>${RO?'':'<span class="muted" style="font-size:13px">Tap names in the Final to change the order.</span>'}</div>`;
+  h+=`<div class="rounds" id="rounds">${S.rounds.map(roundCol).join('')}${c?champCol(c):''}</div>`;
+  h+=rosterHTML();
+  return h;
+}
+function roundCol(r,ri){
+  const isCur=ri===S.rounds.length-1,live=isCur&&!RO,n=poolSize(r);
+  const title=r.final?'Final':`Round ${ri+1}`;
+  const meta=r.final?`${n} racers · ${S.cfg.races}-race cup`:`${n} racers · ${r.heats.length} heats · top ${r.adv} advance`;
+  let ctl='';
+  if(live&&!r.final)ctl=`<div class="row"><label class="mono" for="radv-${ri}" style="font-size:12px">Top</label><select id="radv-${ri}" data-act="radv">${[1,2,3].map(x=>`<option${x===r.adv?' selected':''}>${x}</option>`).join('')}</select><span class="mono" style="font-size:12px">advance</span><button class="small" data-act="reshuffle">Reshuffle heats</button></div>`;
+  else if(live&&r.final&&n>1)ctl=`<div class="row"><button class="small" data-act="reshuffle">Redraw final</button></div>`;
+  else if(!isCur&&!RO)ctl=`<div class="row"><button class="small" data-act="reopen" data-r="${ri}">Reopen this round</button></div>`;
+  const heats=r.heats.map((h,hi)=>heatCard(r,ri,h,hi,live)).join('');
+  let foot='';
+  if(isCur&&!r.final){
+    if(!complete(r))foot=`<div class="waiting">${RO?'Results for this round are still coming in.':'Pick at least one advancer in every heat to draw the next round.'}</div>`;
+    else if(!RO)foot=nextPanel(r);
+    else foot=`<div class="waiting">Waiting for the host to draw the next round.</div>`;
+  }
+  return `<section class="col${isCur?'':' past'}"><div class="colhead"><h3>${title}</h3><span class="meta">${meta}</span>${ctl}</div>${heats}${foot}</section>`;
+}
+function heatCard(r,ri,h,hi,live){
+  const t=target(r,h),got=h.adv.length,isCur=ri===S.rounds.length-1;
+  let ct;
+  if(r.final)ct=got?`<span class="ct ok">${got} placed</span>`:`<span class="ct">no result</span>`;
+  else ct=`<span class="ct ${got===t?'ok':(got>t||(!isCur&&got!==t))?'warn':''}">${got}/${t} advance${got>t?' (extra)':''}</span>`;
+  const hint=live?`<div class="hint">${r.final?'Tap racers in finishing order: winner first.':'Tap racers who advance.'}</div>`:'';
+  const chips=h.players.map(id=>{
+    const rank=h.adv.indexOf(id),on=rank>=0,p=P(id);
+    const badge=on?(r.final?ord(rank+1):'ADV'):(isCur?'':'OUT');
+    let mv='';
+    if(live){
+      const opts=r.final?'':r.heats.map((_,j)=>j===hi?'':`<option value="h:${j}">Move to ${heatLabel(r,j)}</option>`).join('');
+      mv=`<select class="mv" data-act="move" data-p="${id}" aria-label="More for ${esc(p.name)}"><option value="">⋯</option>${opts}<option value="wd">Withdraw ${esc(p.name)}</option></select>`;
+    }
+    return `<div class="chip${on?' on':(!isCur?' lost':'')}"><button class="pick" data-act="pick" data-r="${ri}" data-h="${hi}" data-p="${id}"${live?'':' disabled'}><span class="badge">${badge}</span><span class="nm">${esc(p.name)}</span></button>${mv}</div>`;
+  }).join('');
+  return `<article class="heat"><header><h3>${heatLabel(r,hi)}</h3>${ct}</header>${hint}${chips||'<div class="hint">Empty heat</div>'}</article>`;
+}
+function nextPanel(r){
+  const pool=nextPool(r),m=pool.length,n=poolSize(r);
+  if(m>=n)return `<div class="next"><span class="warn">Everyone in this round is marked to advance, so the field would not shrink. Deselect some racers.</span></div>`;
+  const sizeSel=`<select id="nsize" data-act="nsize">${SIZES.map(x=>`<option${x===S.cfg.size?' selected':''}>${x}</option>`).join('')}</select>`;
+  if(m<=S.cfg.size)return `<div class="next"><div><strong>${m} racers advance.</strong> That fits in one final (heat size ${S.cfg.size}).</div><div class="row"><span>Heat size</span>${sizeSel}</div><button class="primary" data-act="draw">Draw the Final</button></div>`;
+  const hs=heatSizes(m,S.cfg.size);
+  const after=hs.reduce((a,s)=>a+Math.min(S.nextAdv,s),0);
+  const advSel=`<select id="nadv" data-act="nadv">${[1,2,3].map(x=>`<option${x===S.nextAdv?' selected':''}>${x}</option>`).join('')}</select>`;
+  const stuck=after>=m;
+  return `<div class="next"><div><strong>${m} racers advance.</strong> Next round: ${sizesText(hs)}.</div>
+    <div class="row"><span>Heat size</span>${sizeSel}<span>Top</span>${advSel}<span>advance</span></div>
+    ${stuck?'<span class="warn">That setting would not shrink the field. Lower the number advancing.</span>':`<span class="muted">${after} racers would move on after that.</span>`}
+    <button class="primary" data-act="draw"${stuck?' disabled':''}>Draw Round ${S.rounds.length+1}</button></div>`;
+}
+function champCol(c){
+  const pod=c.slice(1).map((id,i)=>`<div><b>${ord(i+2)}</b>${esc(P(id).name)}</div>`).join('');
+  return `<section class="col"><div class="champ"><div class="checker"></div><div class="in"><span class="status gold" style="align-self:flex-start">Champion</span><div class="who">${esc(P(c[0]).name)}</div>${pod?`<div class="podium">${pod}</div>`:''}</div></div></section>`;
+}
+function statusOf(p){
+  const c=champ();
+  if(c&&c[0]===p.id)return['Champion','gold'];
+  const r=cur();
+  if(r){const hi=r.heats.findIndex(h=>h.players.includes(p.id));
+    if(hi>=0){if(c)return[r.heats[hi].adv.includes(p.id)?ord(r.heats[hi].adv.indexOf(p.id)+1):'Finalist',''];return[`${r.final?'Final':'Heat '+(LET[hi]||hi+1)}`,'live']}}
+  if(p.out)return['Withdrawn',''];
+  for(let i=S.rounds.length-1;i>=0;i--)if(S.rounds[i].heats.some(h=>h.players.includes(p.id)))return[`Out in ${S.rounds[i].final?'Final':'R'+(i+1)}`,''];
+  return['Not drawn',''];
+}
+function rosterHTML(){
+  const r=cur(),inCur=new Set(r?r.heats.flatMap(h=>h.players):[]),c=champ();
+  const items=S.players.map(p=>{
+    const [st,cls]=statusOf(p);
+    let act='';
+    if(!RO&&r&&!c)act=inCur.has(p.id)?`<button class="small ghost" data-act="withdraw" data-p="${p.id}">Withdraw</button>`:`<button class="small ghost" data-act="addback" data-p="${p.id}">Put back in</button>`;
+    return `<div class="ritem"><input class="rn" id="rn-${p.id}" data-p="${p.id}" value="${esc(p.name)}" aria-label="Name"${RO?' readonly':''}><span class="status ${cls}">${esc(st)}</span>${act}</div>`;
+  }).join('');
+  return `<section class="panel roster">
+    <div class="row" style="justify-content:space-between"><h2>Racers</h2><span class="muted mono" style="font-size:13px">${S.players.length} entered · ${c?'cup finished':inCur.size+' still racing'}</span></div>
+    ${RO?'':'<p class="muted" style="margin:0;font-size:14px">Edit a name to rename everywhere. Late arrivals join the smallest heat of the current round.</p>'}
+    ${(c||RO)?'':`<div class="row"><input id="add-name" list="known-names" placeholder="New racer name" autocomplete="off" style="flex:1;max-width:320px"><button data-act="add">Add racer</button></div>`}
+    <div class="rlist">${items}</div>
+  </section>`;
+}
+
+/* ---------- History ---------- */
+function historyHTML(){
+  let h=`<div class="row" style="justify-content:space-between;margin-bottom:14px"><h2>Past cups</h2><button class="small" data-act="refresh">Refresh</button></div>`;
+  if(apiOk===false)return h+`<div class="empty">The history could not be loaded. Check your connection and refresh.</div>`;
+  if(!LIST||listLoading&&!LIST.length)return h+`<div class="empty">Loading history…</div>`;
+  if(!LIST.length)return h+`<div class="empty">No cups saved yet. ${canWrite?'Start a new tournament and it will show up here.':'Log in as host, then start a tournament to save it here.'}</div>`;
+  const items=LIST.map(t=>{
+    const done=t.status==='done'&&t.champion;
+    const pill=done?`<span class="status gold">Won by ${esc(t.champion.name)}</span>`:`<span class="status live">In progress</span>`;
+    const rounds=(t.rounds||[]).length;
+    const del=canWrite?(ui.delConfirm===t.id?`<button class="small danger" data-act="del-yes" data-id="${esc(t.id)}">Delete for good</button><button class="small ghost" data-act="del-no">Keep</button>`:`<button class="small ghost" data-act="del" data-id="${esc(t.id)}">Delete</button>`):'';
+    const isOpen=S&&S.id===t.id;
+    return `<div class="hitem"><div class="t"><strong>${esc(t.name)}</strong><span class="sub">${esc(fmtDate(t.date))} · ${(t.players||[]).length} racers · ${rounds} round${rounds===1?'':'s'}</span></div>
+      <div class="row">${pill}<button class="small${isOpen?'':' primary'}" data-act="open" data-id="${esc(t.id)}">${isOpen?'Showing':(canWrite&&!done?'Continue':'View')}</button>${del}</div></div>`;
+  }).join('');
+  return h+`<div class="hlist">${items}</div>`;
+}
+
+/* ---------- Leaderboard ---------- */
+function stats(){
+  const M={};
+  const get=name=>{const k=name.trim().toLowerCase();return M[k]||(M[k]={name:name.trim(),cups:0,titles:0,finals:0,podiums:0,heats:0,advances:0,lastDate:''})};
+  (LIST||[]).forEach(t=>{
+    const byId={};(t.players||[]).forEach(p=>byId[p.id]=p.name);
+    const inCup=new Set();
+    (t.rounds||[]).forEach(r=>(r.heats||[]).forEach(h=>{
+      (h.players||[]).forEach(id=>{
+        const nm=byId[id];if(!nm)return;const s=get(nm);inCup.add(s);
+        if(r.final){s.finals++;const pos=(h.adv||[]).indexOf(id);if(pos>=0&&pos<3&&t.status==='done')s.podiums++;}
+        else{s.heats++;if((h.adv||[]).includes(id))s.advances++;}
+      });
+    }));
+    inCup.forEach(s=>{s.cups++});
+    if(t.status==='done'&&t.champion&&byId[t.champion.id])get(byId[t.champion.id]).titles++;
+  });
+  return Object.values(M);
+}
+const COLS=[
+  {k:'name',l:'Racer'},{k:'cups',l:'Cups'},{k:'titles',l:'Titles'},{k:'finals',l:'Finals'},{k:'podiums',l:'Podiums'},
+  {k:'heats',l:'Heats raced'},{k:'advances',l:'Heats advanced'},{k:'rate',l:'Advance rate'}];
+function leaderboardHTML(){
+  let h=`<div class="row" style="justify-content:space-between;margin-bottom:14px"><h2>Leaderboard</h2><button class="small" data-act="refresh">Refresh</button></div>`;
+  if(apiOk===false)return h+`<div class="empty">The leaderboard could not be loaded. Check your connection and refresh.</div>`;
+  if(!LIST)return h+`<div class="empty">Loading…</div>`;
+  const rows=stats().map(s=>Object.assign(s,{rate:s.heats?s.advances/s.heats:-1}));
+  if(!rows.length)return h+`<div class="empty">No results yet. The leaderboard fills in as cups are saved.</div>`;
+  const k=ui.sort;
+  rows.sort((a,b)=>k==='name'?a.name.localeCompare(b.name):(b[k]-a[k])||(b.titles-a.titles)||(b.finals-a.finals)||(b.rate-a.rate)||a.name.localeCompare(b.name));
+  const head=`<tr><th class="rank" scope="col">#</th>${COLS.map(c=>`<th scope="col" data-act="sort" data-k="${c.k}"${c.k===k?' aria-sort="'+(k==='name'?'ascending':'descending')+'"':''}>${c.l}</th>`).join('')}</tr>`;
+  const body=rows.map((s,i)=>`<tr><td class="rank">${i+1}</td><td>${esc(s.name)}</td><td>${s.cups}</td><td>${s.titles}</td><td>${s.finals}</td><td>${s.podiums}</td><td>${s.heats}</td><td>${s.advances}</td><td>${s.rate<0?'–':Math.round(s.rate*100)+'%'}</td></tr>`).join('');
+  return h+`<div class="tablewrap"><table class="lb"><thead>${head}</thead><tbody>${body}</tbody></table></div>
+    <p class="muted" style="font-size:13px;margin-top:10px">Results are linked by name, ignoring capitals. Heats count rounds before the Final. Podiums count top 3 in finished cups. Tap a column to sort.</p>`;
+}
+function updateKnown(){
+  const names=new Set();(LIST||[]).forEach(t=>(t.players||[]).forEach(p=>names.add(p.name)));
+  $('#known-names').innerHTML=[...names].sort().map(n=>`<option value="${esc(n)}"></option>`).join('');
+}
+
+/* ---------- Host login ---------- */
+function hostPanelHTML(){
+  if(!ui.hostOpen)return'';
+  if(canWrite)return `<section class="panel hostpanel"><h3>Host mode is on</h3><p class="muted" style="margin:0;font-size:14px">Cups you run on this device are saved to the history automatically.</p><div class="row"><button class="small" data-act="logout">Log out on this device</button><button class="small ghost" data-act="host">Close</button></div></section>`;
+  const unset=keyConfigured===false?'<p style="margin:0;color:var(--accent);font-weight:600;font-size:14px">Saving is not set up on the site yet. A host passcode has to be added in the site settings first.</p>':'';
+  return `<section class="panel hostpanel"><h3>Host login</h3>
+    <p class="muted" style="margin:0;font-size:14px">Enter the host passcode to save cups to the history. Anyone can view the history and leaderboard without it.</p>${unset}
+    <form class="row" id="hostform"><input id="hostkey" type="password" autocomplete="current-password" placeholder="Host passcode" style="flex:1;max-width:280px"><button class="primary" type="submit">Log in</button><button class="ghost" type="button" data-act="host">Cancel</button></form>
+    ${ui.hostMsg?`<p style="margin:0;color:var(--accent);font-size:14px">${esc(ui.hostMsg)}</p>`:''}</section>`;
+}
+async function login(key){
+  hostKey=key;ui.hostMsg='';
+  try{const b=await api('');LIST=b.tournaments||[];keyConfigured=b.keyConfigured;apiOk=true;
+    if(b.canWrite){canWrite=true;lsSet(HKEY,key);ui.hostOpen=false;toast('Host mode on. Cups will be saved.');updateKnown();if(!RO&&!S.example&&S.id)queueRemote()}
+    else{canWrite=false;hostKey='';ui.hostMsg=b.keyConfigured?'That passcode is not right.':'Saving is not set up on the site yet.'}
+  }catch(e){hostKey='';ui.hostMsg='Could not reach the server. Try again.'}
+  render();
+}
+
+/* ---------- Actions ---------- */
+function findHeat(id){for(const h of cur().heats)if(h.players.includes(id))return h;return null}
+function removeFromCur(id){const r=cur();r.heats.forEach(h=>{h.players=h.players.filter(x=>x!==id);h.adv=h.adv.filter(x=>x!==id)});if(!r.final)r.heats=r.heats.filter(h=>h.players.length)}
+function smallestHeat(){const r=cur();return r.heats.reduce((a,h)=>h.players.length<a.players.length?h:a,r.heats[0])}
+async function openSaved(id){
+  let t=(LIST||[]).find(x=>x.id===id);
+  try{const b=await api('/'+id);t=b.tournament}catch(e){if(!t){toast('Could not open that cup.');return}}
+  const done=t.status==='done';
+  undoStack=[];
+  S=JSON.parse(JSON.stringify(t));
+  RO=!(canWrite&&!done);
+  if(!RO){saveLocal();saveState='saved'}
+  view='bracket';location.hash='#bracket';render();startPolling();
+  if(done&&canWrite)toast('Finished cups open as view only. Use Edit this cup to change results.');
+}
+
+function render(){
+  const tab=view==='setup'?'bracket':view;
+  document.querySelectorAll('nav.tabs a').forEach(a=>{if(a.dataset.tab===tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  $('#hostpanel').innerHTML=hostPanelHTML();
+  const sl=$('#rounds')?$('#rounds').scrollLeft:null;
+  $('#app').innerHTML=view==='setup'?setupHTML():view==='history'?historyHTML():view==='leaderboard'?leaderboardHTML():bracketHTML();
+  if(sl!==null&&$('#rounds'))$('#rounds').scrollLeft=sl;
+  updateStatus();
+}
+function route(){
+  const h=location.hash.replace('#','');
+  if(h==='history'||h==='leaderboard'){view=h;if(!LIST)refreshList()}
+  else if(view!=='setup')view='bracket';
+  render();
+}
+
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el||el.tagName==='SELECT')return;
+  const a=el.dataset.act,pid=el.dataset.p;
+  if(RO&&['pick','reshuffle','draw','reopen','withdraw','addback','add','undo'].includes(a))return;
+  switch(a){
+    case'undo':undo();break;
+    case'new':openSetup();break;
+    case'cancel-setup':view='bracket';draft=null;render();break;
+    case'start':start();break;
+    case'paste':{const lines=$('#s-paste').value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean);if(lines.length<2){toast('Paste at least 2 names');break}draft.names=lines.slice(0,128);draft.count=draft.names.length;render();break}
+    case'pick':{const r=S.rounds[+el.dataset.r],h=r.heats[+el.dataset.h];
+      commit(()=>{const i=h.adv.indexOf(pid);if(i>=0)h.adv.splice(i,1);else h.adv.push(pid)});
+      const c=champ();if(c&&r.final&&c[0]===pid&&h.adv.length===1)toast(`${P(pid).name} wins the cup`,true);break}
+    case'reshuffle':{const r=cur();commit(()=>{S.rounds[S.rounds.length-1]=makeRound(r.heats.flatMap(h=>h.players),r.adv)},'Heats reshuffled');break}
+    case'draw':{const pool=nextPool(cur());commit(()=>S.rounds.push(makeRound(pool,S.nextAdv)),pool.length<=S.cfg.size?'Final drawn':`Round ${S.rounds.length+1} drawn`);break}
+    case'reopen':{const ri=+el.dataset.r;commit(()=>{S.rounds=S.rounds.slice(0,ri+1)},`Round ${ri+1} reopened. Later rounds cleared.`);break}
+    case'withdraw':commit(()=>{removeFromCur(pid);P(pid).out=true},`${P(pid).name} withdrawn`);break;
+    case'addback':commit(()=>{P(pid).out=false;smallestHeat().players.push(pid)},`${P(pid).name} added to the current round`);break;
+    case'add':{const inp=$('#add-name'),name=inp.value.trim();if(!name){inp.focus();break}
+      commit(()=>{const p={id:uid(),name,out:false};S.players.push(p);if(cur())smallestHeat().players.push(p.id)},`${name} added`);setTimeout(()=>$('#add-name')&&$('#add-name').focus());break}
+    case'host':ui.hostOpen=!ui.hostOpen;ui.hostMsg='';render();if(ui.hostOpen&&$('#hostkey'))$('#hostkey').focus();if(ui.hostOpen&&keyConfigured===null)refreshList();break;
+    case'logout':hostKey='';canWrite=false;lsSet(HKEY,null);ui.hostOpen=false;render();toast('Logged out on this device');break;
+    case'refresh':LIST=null;refreshList();break;
+    case'open':openSaved(el.dataset.id);break;
+    case'takeover':RO=false;clearInterval(pollTimer);undoStack=[];saveLocal();saveState='saved';render();toast('Editing. Changes save to the history.');break;
+    case'del':ui.delConfirm=el.dataset.id;render();break;
+    case'del-no':ui.delConfirm=null;render();break;
+    case'del-yes':{const id=el.dataset.id;ui.delConfirm=null;api('/'+id,{method:'DELETE'}).then(()=>{LIST=LIST.filter(t=>t.id!==id);updateKnown();if(S.id===id){S.id='';S.example=false;lsSet(LKEY,null)}render();toast('Cup deleted')}).catch(err=>toast(err.message));break}
+    case'sort':ui.sort=el.dataset.k;render();break;
+  }
+});
+document.addEventListener('submit',e=>{if(e.target.id==='hostform'){e.preventDefault();const v=$('#hostkey').value.trim();if(v)login(v)}});
+document.addEventListener('change',e=>{
+  const el=e.target,id=el.id;
+  if(view==='setup'){
+    const d=draft;
+    if(id==='s-count')setCount(+el.value);
+    else if(id==='s-size'){d.size=+el.value;render()}
+    else if(id==='s-adv'){d.adv=+el.value;render()}
+    else if(id==='s-races'){d.races=+el.value;render()}
+    else if(id==='s-date'){d.date=el.value}
+    return;
+  }
+  if(RO)return;
+  const a=el.dataset.act;
+  if(a==='radv')commit(()=>{cur().adv=+el.value});
+  else if(a==='nadv')commit(()=>{S.nextAdv=+el.value});
+  else if(a==='nsize')commit(()=>{S.cfg.size=+el.value});
+  else if(a==='move'){const v=el.value,pid=el.dataset.p;if(!v)return;
+    if(v==='wd')commit(()=>{removeFromCur(pid);P(pid).out=true},`${P(pid).name} withdrawn`);
+    else{const j=+v.slice(2);commit(()=>{const r=cur(),from=findHeat(pid),to=r.heats[j];from.players=from.players.filter(x=>x!==pid);from.adv=from.adv.filter(x=>x!==pid);to.players.push(pid);if(!from.players.length)r.heats=r.heats.filter(h=>h!==from)},`${P(pid).name} moved`)}}
+  else if(el.classList.contains('rn')){const nm=el.value.trim();if(!nm){el.value=P(el.dataset.p).name;return}commit(()=>{P(el.dataset.p).name=nm})}
+});
+document.addEventListener('input',e=>{
+  if(view!=='setup')return;
+  if(e.target.classList.contains('nm-in'))draft.names[+e.target.dataset.i]=e.target.value;
+  else if(e.target.id==='s-tname')draft.name=e.target.value;
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='add-name'){e.preventDefault();$('[data-act="add"]').click()}});
+window.addEventListener('hashchange',route);
+
+/* ---------- Boot ---------- */
+(async function boot(){
+  try{const raw=lsGet(LKEY);if(raw){const s=JSON.parse(raw);if(s&&s.players&&s.rounds)S=s}}catch(e){}
+  if(!S)S=example();
+  route();
+  await refreshList();
+  // First visit on this device: show a cup that is in progress, if there is one.
+  if(S.example&&LIST&&LIST.length){const live=LIST.find(t=>t.status!=='done');if(live)await openSaved(live.id)}
+  if(!RO&&!S.example&&S.id&&canWrite){
+    // Push any changes made while offline.
+    const saved=(LIST||[]).find(t=>t.id===S.id);
+    if(!saved||saved.updatedAt!==S.updatedAt)queueRemote();
+  }
+  if(location.hash==='#history'||location.hash==='#leaderboard')route();
+})();
+})();
+</script>
+</body>
+</html>
