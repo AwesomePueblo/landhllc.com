@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#eef0f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
@@ -85,8 +85,7 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:60
 .hostpanel{margin-bottom:16px;display:flex;flex-direction:column;gap:10px}
 .setup{display:flex;flex-direction:column;gap:18px}
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
-.fields .wide{grid-column:span 2}
-@media (max-width:420px){.fields .wide{grid-column:auto}}
+.fields .wide{grid-column:1/-1}
 .names{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
 .names label{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
 .names input{flex:1;width:100%}
@@ -241,6 +240,9 @@ body.tv .wrap{max-width:none;padding-block:16px 24px}
 .tvchamp .who{font-family:var(--display);font-size:clamp(44px,8vw,120px);line-height:1;margin:14px 0;word-break:break-word}
 .tvchamp .pod{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 40px;font-size:clamp(18px,2.4vw,32px)}
 @media (max-width:480px){table.lb .lg{display:none}table.lb .sh{display:inline}table.lb{font-size:13px}table.lb th,table.lb td{padding:8px 4px}table.lb th{font-size:10px;letter-spacing:.02em;white-space:normal}table.lb td.rank{width:22px}}
+/* App feel on phones: no double-tap zoom, and text boxes at 16px so iPhone never zooms in when one is tapped. */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (pointer:coarse){input,select,textarea{font-size:16px!important}}
 </style>
 </head>
 <body>
