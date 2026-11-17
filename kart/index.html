@@ -496,9 +496,11 @@ function lbState(){
 }
 
 /* ---------- Setup ---------- */
+// Default cup name with the date and time it was set up, e.g. "Kart Night Nov 16, 2026, 9:46 PM".
+function defaultName(){return 'Kart Night '+fmtDate(today())+', '+new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
 function openSetup(){
   // A new tournament starts from a blank slate: no players, default settings, and its own sign-up list.
-  draft={name:'Kart Night '+fmtDate(today()),date:today(),count:8,names:Array(8).fill(''),cfg:defCfg(),sid:null};
+  draft={name:defaultName(),date:today(),count:8,names:Array(8).fill(''),cfg:defCfg(),sid:null};
   view='setup';saveDraft();if(location.hash!=='#bracket')history.replaceState(null,'','#bracket');render();
 }
 function opt(arr,v,labels){return arr.map(x=>`<option value="${x}"${String(x)===String(v)?' selected':''}>${labels?esc(labels[x]):x}</option>`).join('')}
@@ -572,7 +574,7 @@ function start(){
   undoStack=[];RO=false;clearInterval(pollTimer);
   const doc=blankDoc();
   doc.id=(d.date||today())+'-'+uid().slice(0,5);
-  doc.name=(d.name||'').trim()||('Kart Night '+fmtDate(d.date));
+  doc.name=(d.name||'').trim()||defaultName();
   doc.date=d.date||today();
   doc.cfg=d.cfg;doc.nextAdv=d.cfg.adv;doc.lbNextAdv=d.cfg.adv;
   doc.players=d.names.map((n,i)=>{let nm=n.trim()||`Racer ${i+1}`;const k=nm.toLowerCase();if(seen[k])nm+=' '+(++seen[k]);else seen[k]=1;return{id:uid(),name:nm,out:false}});
