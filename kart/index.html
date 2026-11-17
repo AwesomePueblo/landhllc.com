@@ -130,6 +130,17 @@ details[open] summary{margin-bottom:10px}
 .chip.drop{outline:3px solid var(--flag);outline-offset:1px}
 .newgame{border:2px dashed var(--line);border-radius:10px;padding:16px 12px;text-align:center;font-size:13px;color:var(--muted)}
 .newgame.drop{border-color:var(--accent);color:var(--ink);background:var(--surface)}
+.sigpanel{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.sigbar{display:block;margin-bottom:16px;background:var(--flag-tint);border-color:var(--flag)}
+.sigbar summary{font-weight:700}
+.sigbar[open] .sigbody{margin-top:12px}
+.sigbody{display:flex;flex-wrap:wrap;gap:16px;align-items:center;width:100%}
+.sigqr{background:#fff;border-radius:10px;padding:6px;flex:none}
+.sigqr svg{display:block;width:150px;height:150px}
+.siginfo{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.sigcode{font:700 40px/1 var(--mono);letter-spacing:.15em;color:var(--accent)}
+a.btn{display:inline-block;text-decoration:none}
+a.btn.small{padding:7px 10px;font-size:13px}
 .dragghost{position:fixed;left:0;top:0;z-index:60;pointer-events:none;background:var(--ink);color:var(--bg);font-weight:700;padding:8px 12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
 body.dragging,body.dragging *{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .chip select.mv{width:34px;padding:4px;margin-right:4px;border:0;background:transparent;font-size:16px;color:var(--muted);appearance:none;-webkit-appearance:none;text-align:center;cursor:pointer}
@@ -253,10 +264,11 @@ body.tv .wrap{max-width:none;padding-block:16px 24px}
 <datalist id="known-names"></datalist>
 <div id="toast" hidden></div>
 
+<script src="/kart/qrcode.js"></script>
 <script>
 (function(){
 const API='/api/kart';
-const LKEY='kart-cup-current-v2', HKEY='kart-cup-host-key', TKEY='kart-cup-host-token';
+const LKEY='kart-cup-current-v2', HKEY='kart-cup-host-key', TKEY='kart-cup-host-token', DKEY='kart-cup-draft', SKEY='kart-cup-signup-seen';
 const LET='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const SIZES=[2,3,4]; // a Switch game holds 4 players at most
 const DEF_POINTS=[15,12,10,9,8,7,6,5,4,3,2,1];
@@ -483,7 +495,7 @@ function openSetup(){
   while(names.length<count)names.push('');
   const base=(S.example||RO)?defCfg():Object.assign(defCfg(),JSON.parse(JSON.stringify(S.cfg)));
   draft={name:'Kart Night '+fmtDate(today()),date:today(),count,names,cfg:base};
-  view='setup';if(location.hash!=='#bracket')history.replaceState(null,'','#bracket');render();
+  view='setup';saveDraft();if(location.hash!=='#bracket')history.replaceState(null,'','#bracket');render();
 }
 function opt(arr,v,labels){return arr.map(x=>`<option value="${x}"${String(x)===String(v)?' selected':''}>${labels?esc(labels[x]):x}</option>`).join('')}
 function optionFields(px,c,withShape){
@@ -533,6 +545,7 @@ function setupHTML(){
       <label class="f" for="s-count">How many racers<input id="s-count" type="number" min="2" max="128" value="${d.count}"></label>
       ${optionFields('s',c,true)}
     </div>
+    ${signupPanelHTML(false)}
     <div class="plan">${plan}</div>
     <p class="muted" style="margin:0;font-size:13px">Use the same spelling for a person every time so the leaderboard links their results. Past names are suggested as you type.</p>
     <div class="names">${names}</div>
@@ -547,7 +560,8 @@ function setupHTML(){
     </div>
   </section>`;
 }
-function setCount(n){const d=draft;n=Math.max(2,Math.min(128,n|0||2));d.count=n;while(d.names.length<n)d.names.push('');d.names.length=n;render()}
+function saveDraft(){lsSet(DKEY,draft?JSON.stringify(draft):null)}
+function setCount(n){const d=draft;n=Math.max(0,Math.min(128,n|0||2));d.count=n;while(d.names.length<n)d.names.push('');d.names.length=n;saveDraft();render()}
 function start(){
   const d=draft;const seen={};
   undoStack=[];RO=false;clearInterval(pollTimer);
@@ -558,7 +572,8 @@ function start(){
   doc.cfg=d.cfg;doc.nextAdv=d.cfg.adv;doc.lbNextAdv=d.cfg.adv;
   doc.players=d.names.map((n,i)=>{let nm=n.trim()||`Racer ${i+1}`;const k=nm.toLowerCase();if(seen[k])nm+=' '+(++seen[k]);else seen[k]=1;return{id:uid(),name:nm,out:false}});
   S=doc;S.rounds=[makeRound(S.players.map(p=>p.id),d.cfg.adv,S.players.length<=finalAt(d.cfg))];
-  draft=null;view='bracket';
+  sig.entries.forEach(e=>{if(!sigSeen.ids.includes(e.id))sigSeen.ids.push(e.id)});lsSet(SKEY,JSON.stringify(sigSeen));
+  draft=null;saveDraft();view='bracket';
   saveLocal();queueRemote();render();toast('Round 1 drawn');
 }
 
@@ -571,6 +586,7 @@ function bracketHTML(){
   if(RO&&!c)h+=`<div class="banner"><p><strong>Live.</strong> This page updates by itself every 10 seconds. Only the host can change results.</p></div>`;
   if(c)h+=`<div class="banner win"><p><strong>${esc(P(c[0]).name)}</strong> wins the cup.</p>${RO?'':'<span class="muted" style="font-size:13px">Tap names in the Final to change the order.</span>'}</div>`;
   h+=`<div class="rounds" id="rounds">${S.rounds.map((r,i)=>roundCol('main',r,i)).join('')}${c?champCol(c,'Champion'):''}</div>`;
+  if(!RO&&!c&&!S.example&&sig.session&&sig.session.open)h+=signupPanelHTML(true);
   if(S.cfg.lb!=='off')h+=lbHTML();
   h+=rosterHTML();
   if(!RO)h+=settingsHTML();
@@ -708,7 +724,7 @@ function rosterHTML(){
   return `<section class="panel roster">
     <div class="row" style="justify-content:space-between"><h2>Racers</h2><span class="muted mono" style="font-size:13px">${S.players.length} entered · ${c?'cup finished':inCur.size+' in the main bracket'}</span></div>
     ${RO?'':'<p class="muted" style="margin:0;font-size:14px">Edit a name to rename everywhere. Late arrivals take an open seat in the current round, or join the next round if every game is full. "Put back in" returns a knocked-out racer to the current round.</p>'}
-    ${(c||RO)?'':`<div class="row"><input id="add-name" list="known-names" placeholder="New racer name" autocomplete="off" style="flex:1;max-width:320px"><button data-act="add">Add racer</button></div>`}
+    ${(c||RO)?'':`<div class="row"><input id="add-name" list="known-names" placeholder="New racer name" autocomplete="off" style="flex:1;max-width:320px"><button data-act="add">Add racer</button>${canWrite&&!S.example&&!(sig.session&&sig.session.open)?'<button class="ghost" data-act="sig-open">Let late arrivals sign up</button>':''}</div>`}
     <div class="rlist">${items}</div>
   </section>`;
 }
@@ -836,7 +852,7 @@ async function login(key,force){
   try{
     const b=await api('/host',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'claim',force:!!force,device})});
     hostToken=b.token;lsSet(HKEY,key);lsSet(TKEY,hostToken);ui.holder=null;ui.hostOpen=false;
-    await refreshList();
+    await refreshList();pollSignups();
     toast('This device is now the host. Cups will be saved.');
     if(RO&&S.id&&!champ()){RO=false;clearInterval(pollTimer);undoStack=[];saveLocal();saveState='saved'}
     else if(!RO&&!S.example&&S.id)queueRemote();
@@ -887,6 +903,70 @@ async function openSaved(id,keepView){
   render();startPolling();
   if(done&&canWrite&&!keepView)toast('Finished cups open as view only. Use Edit this cup to change results.');
 }
+/* ---------- Player sign-ups ---------- */
+let sig={session:null,entries:[]},sigTimer=null,sigSeen={sid:'',ids:[]};
+try{const v=JSON.parse(lsGet(SKEY));if(v&&v.ids)sigSeen=v}catch(e){}
+const joinUrl=()=>sig.session?`${location.origin}/kart/join/?c=${sig.session.code}`:'';
+function qrSvg(text){try{const q=qrcode(0,'M');q.addData(text);q.make();return q.createSvgTag({cellSize:6,margin:2,scalable:true})}catch(e){return''}}
+async function sigCall(body){return api('/signup',body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{})}
+async function pollSignups(){
+  clearTimeout(sigTimer);
+  if(!canWrite){sig={session:null,entries:[]};return}
+  try{
+    const b=await sigCall();sig.session=b.session;sig.entries=b.entries||[];
+    if(sig.session&&sigSeen.sid!==sig.session.sid){sigSeen={sid:sig.session.sid,ids:[]}}
+    mergeSignups();
+  }catch(e){if(e.status===409)demote()}
+  if(canWrite&&sig.session&&sig.session.open)sigTimer=setTimeout(pollSignups,4000);
+}
+function mergeSignups(){
+  const fresh=sig.entries.filter(e=>!sigSeen.ids.includes(e.id));
+  const before=ui.sigCount;ui.sigCount=sig.entries.length;
+  if(!fresh.length){if(before!==ui.sigCount&&(view==='setup'||view==='bracket'))render();return}
+  const has=(list,name)=>list.some(n=>n.trim().toLowerCase()===name.toLowerCase());
+  if(view==='setup'&&draft){
+    fresh.forEach(e=>{
+      if(!has(draft.names,e.name)){const i=draft.names.findIndex(n=>!n.trim());if(i>=0)draft.names[i]=e.name;else draft.names.push(e.name)}
+      sigSeen.ids.push(e.id);
+    });
+    draft.count=draft.names.length;saveDraft();
+  }else if(!RO&&!S.example&&S.id&&!champ()&&canWrite){
+    const added=[];
+    commit(()=>{fresh.forEach(e=>{
+      if(!has(S.players.map(p=>p.name),e.name)){const p={id:uid(),name:e.name,out:false};S.players.push(p);seat(p.id);added.push(e.name)}
+      sigSeen.ids.push(e.id);
+    })});
+    if(added.length)toast(`${added.join(', ')} signed up and ${added.length>1?'were':'was'} added`,true);
+  }else return;
+  lsSet(SKEY,JSON.stringify(sigSeen));
+  render();
+}
+async function sigAction(action){
+  if(!canWrite){toast('Log in as host first.');return}
+  try{
+    const b=await sigCall({action});sig.session=b.session;if(b.entries)sig.entries=b.entries;
+    if(action==='open'){sigSeen={sid:b.session.sid,ids:[]};lsSet(SKEY,JSON.stringify(sigSeen));
+      if(view==='setup'&&draft){draft.names=draft.names.filter(n=>n.trim());draft.count=draft.names.length;saveDraft()}
+      toast(`Sign-ups open. Code ${b.session.code}`)}
+    else toast(action==='close'?'Sign-ups closed':'Sign-ups reopened');
+  }catch(e){toast(e.message)}
+  render();pollSignups();
+}
+function signupPanelHTML(compact){
+  const ss=sig.session,n=sig.entries.length;
+  if(!canWrite)return compact?'':`<div class="sigpanel"><strong>Let players sign themselves up</strong><span class="muted">Log in as host to open sign-ups. Players add their own names from their phones.</span></div>`;
+  if(!ss||(!ss.open&&compact))return compact?'':`<div class="sigpanel"><div><strong>Let players sign themselves up</strong><div class="muted">Players scan a QR code or go to ${esc(location.host)}/kart/join, type their name, and it shows up in the list below.</div></div>
+    <div class="row">${ss?`<button data-act="sig-reopen">Reopen sign-ups (code ${esc(ss.code)})</button><button class="ghost" data-act="sig-open">Start a new sign-up list</button>`:'<button class="primary" data-act="sig-open">Open sign-ups</button>'}</div></div>`;
+  if(!ss.open)return `<div class="sigpanel"><div><strong>Sign-ups are closed</strong> <span class="muted">${n} signed up with code ${esc(ss.code)}.</span></div><div class="row"><button data-act="sig-reopen">Reopen sign-ups</button><button class="ghost" data-act="sig-open">Start a new sign-up list</button></div></div>`;
+  const url=joinUrl();
+  const qr=`<div class="sigqr">${qrSvg(url)}</div>`;
+  const info=`<div class="siginfo"><div class="muted" style="font-size:13px">Scan, or go to <strong>${esc(location.host)}/kart/join</strong> and enter</div><div class="sigcode">${esc(ss.code)}</div>
+    <div><strong>${n} signed up</strong>${compact?' · new names join the current round automatically':' · names fill the list below automatically'}</div>
+    <div class="row"><button class="small" data-act="sig-copy">Copy link</button><a class="btn small" href="${esc(url)}&amp;display=1" target="_blank" rel="noopener">TV sign-up screen</a><button class="small ghost" data-act="sig-close">Close sign-ups</button></div></div>`;
+  if(compact)return `<details class="sigpanel sigbar"${ui.sigOpen?' open':''} id="sigdet"><summary>Sign-ups open · code <span class="mono">${esc(ss.code)}</span> · ${n} signed up</summary><div class="sigbody">${qr}${info}</div></details>`;
+  return `<div class="sigpanel"><div class="sigbody">${qr}${info}</div></div>`;
+}
+
 function heatAt(el){const r=BR(el.dataset.b)[+el.dataset.r];return[r,r.heats[+el.dataset.h]]}
 
 /* Moving players between games. A moved player loses their race results and advance mark in the old game. */
@@ -965,10 +1045,13 @@ function render(){
   document.querySelectorAll('nav.tabs a').forEach(a=>{if(a.dataset.tab===tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   $('#hostpanel').innerHTML=hostPanelHTML();
   const sl=$('#rounds')?$('#rounds').scrollLeft:null,sl2=$('#lbrounds')?$('#lbrounds').scrollLeft:null;
+  const ae=document.activeElement,aeId=ae&&ae.id,aeSel=ae&&typeof ae.selectionStart==='number'?[ae.selectionStart,ae.selectionEnd]:null;
   $('#app').innerHTML=view==='setup'?setupHTML():view==='history'?historyHTML():view==='leaderboard'?leaderboardHTML():view==='tv'?tvHTML():bracketHTML();
   if(sl!==null&&$('#rounds'))$('#rounds').scrollLeft=sl;
   if(sl2!==null&&$('#lbrounds'))$('#lbrounds').scrollLeft=sl2;
   const sd=$('#setdet');if(sd)sd.addEventListener('toggle',()=>ui.setOpen=sd.open);
+  const sgd=$('#sigdet');if(sgd)sgd.addEventListener('toggle',()=>ui.sigOpen=sgd.open);
+  if(aeId){const n=document.getElementById(aeId);if(n&&n!==document.activeElement){n.focus({preventScroll:true});if(aeSel&&n.setSelectionRange)try{n.setSelectionRange(aeSel[0],aeSel[1])}catch(e){}}}
   updateStatus();
 }
 function route(){
@@ -988,9 +1071,9 @@ document.addEventListener('click',e=>{
   switch(a){
     case'undo':undo();break;
     case'new':openSetup();break;
-    case'cancel-setup':view='bracket';draft=null;render();break;
+    case'cancel-setup':view='bracket';draft=null;saveDraft();render();break;
     case'start':start();break;
-    case'paste':{const lines=$('#s-paste').value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean);if(lines.length<2){toast('Paste at least 2 names');break}draft.names=lines.slice(0,128);draft.count=draft.names.length;render();break}
+    case'paste':{const lines=$('#s-paste').value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean);if(lines.length<2){toast('Paste at least 2 names');break}draft.names=lines.slice(0,128);draft.count=draft.names.length;saveDraft();render();break}
     case'pick':{const [r,h]=heatAt(el);
       if(!r.final&&!h.adv.includes(pid)&&h.players.length>1&&h.adv.length+1>=h.players.length){toast('At least one player in each game has to be knocked out.');break}
       commit(()=>{const i=h.adv.indexOf(pid);if(i>=0)h.adv.splice(i,1);else h.adv.push(pid);if(!r.final&&h.adv.length)h.n=Math.min(h.adv.length,3)});
@@ -1012,6 +1095,10 @@ document.addEventListener('click',e=>{
       let w;commit(()=>{const p={id:uid(),name,out:false};S.players.push(p);w=seat(p.id)});toast(seatMsg(name,w),true);setTimeout(()=>$('#add-name')&&$('#add-name').focus());break}
     case'host':ui.hostOpen=!ui.hostOpen;ui.hostMsg='';ui.holder=null;render();if(ui.hostOpen&&$('#hostkey'))$('#hostkey').focus();if(ui.hostOpen&&keyConfigured===null)refreshList();break;
     case'logout':logout();break;
+    case'sig-open':sigAction('open');break;
+    case'sig-close':sigAction('close');break;
+    case'sig-reopen':sigAction('reopen');break;
+    case'sig-copy':{const u=joinUrl();try{navigator.clipboard.writeText(u).then(()=>toast('Link copied'),()=>toast(u))}catch(err){toast(u)}break}
     case'takeover-host':login(hostKey,true);break;
     case'refresh':LIST=null;refreshList();break;
     case'open':openSaved(el.dataset.id);break;
@@ -1029,8 +1116,8 @@ document.addEventListener('change',e=>{
   const el=e.target,id=el.id;
   if(view==='setup'){
     if(id==='s-count')setCount(+el.value);
-    else if(id==='s-date')draft.date=el.value;
-    else if(id.startsWith('s-')&&readField(el,draft.cfg))render();
+    else if(id==='s-date'){draft.date=el.value;saveDraft()}
+    else if(id.startsWith('s-')&&readField(el,draft.cfg)){saveDraft();render()}
     return;
   }
   if(RO)return;
@@ -1057,6 +1144,7 @@ document.addEventListener('input',e=>{
   if(view!=='setup')return;
   if(e.target.classList.contains('nm-in'))draft.names[+e.target.dataset.i]=e.target.value;
   else if(e.target.id==='s-tname')draft.name=e.target.value;
+  saveDraft();
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='add-name'){e.preventDefault();$('[data-act="add"]').click()}});
 window.addEventListener('hashchange',route);
@@ -1065,6 +1153,8 @@ window.addEventListener('hashchange',route);
 (async function boot(){
   try{const raw=lsGet(LKEY);if(raw){const s=JSON.parse(raw);if(s&&s.players&&s.rounds)S=normalize(s)}}catch(e){}
   if(!S)S=example();
+  // Pick up a setup form that was in progress (names may have come from sign-ups).
+  try{const d=JSON.parse(lsGet(DKEY));if(d&&d.names&&d.cfg){d.cfg=Object.assign(defCfg(),d.cfg);draft=d;if(!location.hash||location.hash==='#bracket')view='setup'}}catch(e){}
   route();
   await refreshList();
   const live=(LIST||[]).find(t=>t.status!=='done');
@@ -1077,6 +1167,7 @@ window.addEventListener('hashchange',route);
     if(!saved||saved.updatedAt!==S.updatedAt)queueRemote();
   }
   route();
+  pollSignups();
 })();
 })();
 </script>

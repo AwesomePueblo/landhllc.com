@@ -5,6 +5,10 @@
 // PUT    /api/kart/:id    create or replace a tournament (host only)
 // DELETE /api/kart/:id    delete a tournament (host only)
 // POST   /api/kart/host   claim, ping or release the host role
+// GET    /api/kart/signup open sign-up session and who has joined (host only)
+// POST   /api/kart/signup open, close or remove a name from sign-ups (host only)
+// GET    /api/kart/join?c=CODE   who has joined (anyone with the code)
+// POST   /api/kart/join   add yourself: { code, name } (anyone with the code)
 //
 // Only one device can host at a time. A device becomes host by sending the
 // passcode (x-kart-key, must match the KART_ADMIN_KEY environment variable)
@@ -14,16 +18,19 @@
 // makes the other device's token stop working.
 import { getStore } from "@netlify/blobs";
 import type { Config, Context } from "@netlify/functions";
-import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHash, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 
 const STORE = "kart-tournaments";
 const PREFIX = "t/";
 const LOCK_KEY = "host-lock";
+const SIGNUP_KEY = "signup-session";
+const SIGNUP_MAX = 128;
 const ACTIVE_MS = 10 * 60 * 1000; // a host idle longer than this can be replaced without a takeover
 const ID_RE = /^[a-z0-9-]{4,60}$/;
 const MAX_BYTES = 1_000_000;
 
 type Lock = { token: string; device: string; since: number; lastSeen: number };
+type Session = { sid: string; code: string; open: boolean; openedAt: number };
 
 const store = () => getStore({ name: STORE, consistency: "strong" });
 
@@ -57,6 +64,82 @@ function validate(doc: any, id: string): string | null {
   if (doc.lb !== undefined && (!Array.isArray(doc.lb) || doc.lb.length > 40)) return "Losers bracket rounds must be a list.";
   if (!doc.cfg || typeof doc.cfg !== "object") return "Settings are missing.";
   return null;
+}
+
+// Sign-ups. Each name is its own blob (keyed by the lowercased name) so many
+// people joining at the same moment never overwrite each other.
+const cleanName = (v: unknown) =>
+  String(v ?? "").replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 30);
+const slug = (name: string) => encodeURIComponent(name.toLowerCase());
+const entryPrefix = (sid: string) => `s/${sid}/`;
+
+async function listEntries(s: ReturnType<typeof store>, sid: string) {
+  const { blobs } = await s.list({ prefix: entryPrefix(sid) });
+  const rows = await Promise.all(blobs.map(async (b) => {
+    const v = (await s.get(b.key, { type: "json" })) as { name: string; at: number } | null;
+    return v ? { id: b.key.slice(entryPrefix(sid).length), name: v.name, at: v.at } : null;
+  }));
+  return rows.filter((r): r is { id: string; name: string; at: number } => r !== null).sort((a, b) => a.at - b.at);
+}
+
+async function signupRoute(req: Request, s: ReturnType<typeof store>) {
+  const auth = keyStatus(req);
+  if (auth === "unset") return json({ error: "Saving is turned off: KART_ADMIN_KEY is not set on the site." }, 503);
+  if (auth !== "ok") return json({ error: "Wrong or missing host passcode." }, 401);
+  const lock = (await s.get(LOCK_KEY, { type: "json" })) as Lock | null;
+  if (!holdsLock(lock, req)) return json({ error: "Another device is hosting. This device is view only." }, 409);
+  let session = (await s.get(SIGNUP_KEY, { type: "json" })) as Session | null;
+
+  if (req.method === "GET") {
+    return json({ session, entries: session ? await listEntries(s, session.sid) : [] });
+  }
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  let body: any = {};
+  try { body = await req.json(); } catch { /* empty body */ }
+
+  if (body.action === "open") {
+    if (session) {
+      const { blobs } = await s.list({ prefix: entryPrefix(session.sid) });
+      await Promise.all(blobs.map((b) => s.delete(b.key)));
+    }
+    session = { sid: randomUUID().slice(0, 8), code: String(randomInt(1000, 10000)), open: true, openedAt: Date.now() };
+    await s.setJSON(SIGNUP_KEY, session);
+    return json({ session, entries: [] });
+  }
+  if (!session) return json({ error: "Sign-ups have not been opened." }, 409);
+  if (body.action === "close" || body.action === "reopen") {
+    session = { ...session, open: body.action === "reopen" };
+    await s.setJSON(SIGNUP_KEY, session);
+    return json({ session });
+  }
+  if (body.action === "remove") {
+    await s.delete(entryPrefix(session.sid) + String(body.id || ""));
+    return json({ ok: true });
+  }
+  return json({ error: "Unknown action." }, 400);
+}
+
+async function joinRoute(req: Request, s: ReturnType<typeof store>) {
+  const session = (await s.get(SIGNUP_KEY, { type: "json" })) as Session | null;
+  const url = new URL(req.url);
+  let body: any = {};
+  if (req.method === "POST") { try { body = await req.json(); } catch { /* empty body */ } }
+  const code = String(req.method === "POST" ? body.code ?? "" : url.searchParams.get("c") ?? "").trim();
+  if (!session || code !== session.code) return json({ error: "That code does not match. Check the code on the host's screen." }, 400);
+
+  if (req.method === "GET") {
+    const entries = await listEntries(s, session.sid);
+    return json({ open: session.open, count: entries.length, names: entries.map((e) => e.name) });
+  }
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (!session.open) return json({ error: "Sign-ups are closed. Ask the host to add you." }, 409);
+  const name = cleanName(body.name);
+  if (!name) return json({ error: "Enter your name." }, 400);
+  const { blobs } = await s.list({ prefix: entryPrefix(session.sid) });
+  const key = entryPrefix(session.sid) + slug(name);
+  if (blobs.length >= SIGNUP_MAX && !blobs.some((b) => b.key === key)) return json({ error: "Sign-ups are full." }, 409);
+  const { modified } = await s.setJSON(key, { name, at: Date.now() }, { onlyIfNew: true });
+  return json({ ok: true, name, already: !modified, count: blobs.length + (modified ? 1 : 0) });
 }
 
 async function hostRoute(req: Request, s: ReturnType<typeof store>) {
@@ -100,15 +183,18 @@ export default async (req: Request, context: Context) => {
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
     return hostRoute(req, s);
   }
+  if (id === "signup") return signupRoute(req, s);
+  if (id === "join") return joinRoute(req, s);
 
   if (req.method === "GET") {
     const auth = keyStatus(req);
     const lock = auth === "ok" ? ((await s.get(LOCK_KEY, { type: "json" })) as Lock | null) : null;
     const meta = { canWrite: auth === "ok" && holdsLock(lock, req), keyConfigured: auth !== "unset" };
     if (id) {
-      if (!ID_RE.test(id)) return json({ error: "Not found" }, 404);
+      // 410 rather than 404: a 404 from a function can fall through to static files.
+      if (!ID_RE.test(id)) return json({ error: "Not found" }, 410);
       const doc = await s.get(PREFIX + id, { type: "json" });
-      if (doc === null) return json({ error: "Not found" }, 404);
+      if (doc === null) return json({ error: "Not found" }, 410);
       return json({ ...meta, tournament: doc });
     }
     const { blobs } = await s.list({ prefix: PREFIX });
