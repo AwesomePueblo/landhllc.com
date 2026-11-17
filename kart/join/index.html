@@ -98,7 +98,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-let state={mine:lsGet(KEY)||[],names:[],open:true,err:'',busy:false,joined:null,badCode:!/^\d{4}$/.test(code)};
+let state={mine:lsGet(KEY)||[],names:[],open:true,started:false,err:'',busy:false,joined:null,badCode:!/^\d{4}$/.test(code)};
 
 async function getInfo(){
   const r=await fetch(API+'?c='+encodeURIComponent(code),{cache:'no-store'});
@@ -109,7 +109,7 @@ async function getInfo(){
 async function join(name){
   const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code,name})});
   const b=await r.json().catch(()=>({}));
-  if(!r.ok){const e=new Error(b.error||'Could not sign you up. Try again.');e.badCode=r.status===400&&/code/i.test(b.error||'');throw e}
+  if(!r.ok){const e=new Error(b.error||'Could not sign you up. Try again.');e.badCode=r.status===400&&/code/i.test(b.error||'');e.closed=r.status===409&&!/full/i.test(b.error||'');e.started=!!b.started;throw e}
   return b;
 }
 
@@ -117,7 +117,16 @@ function namesHTML(){
   const mine=new Set(state.mine.map(n=>n.toLowerCase()));
   return `<div class="names">${state.names.map(n=>`<span class="${mine.has(n.toLowerCase())?'me':''}">${esc(n)}</span>`).join('')}</div>`;
 }
+function closedHTML(){
+  return `<h1>Join the <span>Kart Cup</span></h1>
+    <div class="card done" style="margin-top:22px">
+      <div class="big" style="font-size:24px">${state.started?'The tournament has started':'Sign-ups are closed'}</div>
+      <p style="margin:0">${state.started?'No more players can join this one. Catch the next cup!':'No more players can join right now.'}</p>
+      ${state.names.length?`<p class="muted" style="margin:0">${state.names.length} racer${state.names.length===1?"":"s"} signed up</p>${namesHTML()}`:''}
+    </div>`;
+}
 function formHTML(){
+  if(!state.open&&!state.badCode)return closedHTML();
   const needCode=state.badCode||!/^\d{4}$/.test(code);
   return `<h1>Join the <span>Kart Cup</span></h1>
     <p class="sub">Add your name and the host will put you in a game.</p>
@@ -125,7 +134,7 @@ function formHTML(){
       ${needCode?`<label for="code">Code from the host<input id="code" class="code" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" value="${esc(/^\d{4}$/.test(code)?code:'')}"></label>`:''}
       <label for="name">Your name<input id="name" maxlength="30" autocomplete="nickname" autocapitalize="words" placeholder="Name the host will call out" required></label>
       ${state.err?`<p class="err" role="alert">${esc(state.err)}</p>`:''}
-      ${state.open?'':'<p class="err">Sign-ups are closed. Ask the host to add you.</p>'}
+      ${state.open?'':`<p class="err">${state.started?'This tournament has already started, so no more players can join.':'Sign-ups are closed.'}</p>`}
       <button type="submit"${state.busy||!state.open?' disabled':''}>${state.busy?'Joining…':'Join'}</button>
     </form>
     ${state.names.length?`<p class="muted" style="text-align:center;margin:22px 0 10px">${state.names.length} signed up so far</p>${namesHTML()}`:''}`;
@@ -152,7 +161,7 @@ function displayHTML(){
       <div class="qr">${svg}</div>
       <p class="how">Or go to <span class="url">${esc(location.host)}/kart/join</span> and enter</p>
       <div class="code">${esc(code)}</div></div>
-    <div><p class="count">${state.names.length} racer${state.names.length===1?'':'s'} signed up${state.open?'':' · sign-ups closed'}</p>${namesHTML()}${state.err?`<p class="err">${esc(state.err)}</p>`:''}</div>
+    <div><p class="count">${state.names.length} racer${state.names.length===1?'':'s'} signed up${state.open?'':state.started?' · the tournament has started':' · sign-ups closed'}</p>${namesHTML()}${state.err?`<p class="err">${esc(state.err)}</p>`:''}</div>
   </div>`;
 }
 function render(){
@@ -161,7 +170,7 @@ function render(){
 }
 async function refresh(){
   if(!/^\d{4}$/.test(code))return;
-  try{const b=await getInfo();state.names=b.names||[];state.open=b.open;state.err=''}catch(e){if(display)state.err=e.message}
+  try{const b=await getInfo();state.names=b.names||[];state.open=b.open;state.started=!!b.started;state.err=''}catch(e){if(display)state.err=e.message}
   if(!document.activeElement||!['INPUT'].includes(document.activeElement.tagName))render();
 }
 
@@ -175,7 +184,7 @@ document.addEventListener('submit',async e=>{
     state.joined=b;state.badCode=false;state.mine.push(b.name);lsSet('kart-join-'+code,state.mine);
     history.replaceState(null,'','?c='+code);
     try{const i=await getInfo();state.names=i.names||[];state.open=i.open}catch(err){}
-  }catch(err){state.err=err.message;if(err.badCode)state.badCode=true}
+  }catch(err){if(err.closed){state.open=false;state.started=err.started;state.err=''}else state.err=err.message;if(err.badCode)state.badCode=true}
   state.busy=false;render();
   if(!state.joined&&$('#name')){$('#name').value=name}
 });

@@ -30,7 +30,7 @@ const ID_RE = /^[a-z0-9-]{4,60}$/;
 const MAX_BYTES = 1_000_000;
 
 type Lock = { token: string; device: string; since: number; lastSeen: number };
-type Session = { sid: string; code: string; open: boolean; openedAt: number };
+type Session = { sid: string; code: string; open: boolean; openedAt: number; closedReason?: string };
 
 const store = () => getStore({ name: STORE, consistency: "strong" });
 
@@ -108,7 +108,7 @@ async function signupRoute(req: Request, s: ReturnType<typeof store>) {
   }
   if (!session) return json({ error: "Sign-ups have not been opened." }, 409);
   if (body.action === "close" || body.action === "reopen") {
-    session = { ...session, open: body.action === "reopen" };
+    session = { ...session, open: body.action === "reopen", closedReason: body.action === "close" && body.reason === "started" ? "started" : undefined };
     await s.setJSON(SIGNUP_KEY, session);
     return json({ session });
   }
@@ -117,6 +117,16 @@ async function signupRoute(req: Request, s: ReturnType<typeof store>) {
     return json({ ok: true });
   }
   return json({ error: "Unknown action." }, 400);
+}
+
+const STARTED_MSG = "This tournament has already started, so no more players can join.";
+
+// Backstop for a host phone that missed closing sign-ups: any cup created after
+// this sign-up list opened means the cup is under way.
+async function cupStartedSince(s: ReturnType<typeof store>, session: Session) {
+  const { blobs } = await s.list({ prefix: PREFIX });
+  const docs = await Promise.all(blobs.map((b) => s.get(b.key, { type: "json" }) as Promise<any>));
+  return docs.some((d) => d && Date.parse(d.createdAt) > session.openedAt);
 }
 
 async function joinRoute(req: Request, s: ReturnType<typeof store>) {
@@ -129,10 +139,14 @@ async function joinRoute(req: Request, s: ReturnType<typeof store>) {
 
   if (req.method === "GET") {
     const entries = await listEntries(s, session.sid);
-    return json({ open: session.open, count: entries.length, names: entries.map((e) => e.name) });
+    return json({ open: session.open, started: session.closedReason === "started", count: entries.length, names: entries.map((e) => e.name) });
   }
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  if (!session.open) return json({ error: "Sign-ups are closed. Ask the host to add you." }, 409);
+  if (!session.open || await cupStartedSince(s, session)) {
+    if (session.open) await s.setJSON(SIGNUP_KEY, { ...session, open: false, closedReason: "started" });
+    const started = !session.open ? session.closedReason === "started" : true;
+    return json({ error: started ? STARTED_MSG : "Sign-ups are closed.", started }, 409);
+  }
   const name = cleanName(body.name);
   if (!name) return json({ error: "Enter your name." }, 400);
   const { blobs } = await s.list({ prefix: entryPrefix(session.sid) });
