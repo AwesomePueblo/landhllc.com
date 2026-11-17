@@ -559,7 +559,8 @@ function setupHTML(){
 function saveDraft(){lsSet(DKEY,draft?JSON.stringify(draft):null)}
 function setCount(n){const d=draft;n=Math.max(0,Math.min(128,n|0||2));d.count=n;while(d.names.length<n)d.names.push('');d.names.length=n;saveDraft();render()}
 function start(){
-  if(sig.session&&sig.session.open&&sig.session.sid!==(draft&&draft.sid)){sig.session.open=false;sigCall({action:'close'}).catch(()=>{})}
+  // Once the cup starts nobody else can sign up.
+  if(sig.session&&sig.session.open){sig.session.open=false;sigCall({action:'close',reason:'started'}).catch(()=>{})}
   const d=draft;const seen={};
   undoStack=[];RO=false;clearInterval(pollTimer);
   const doc=blankDoc();
@@ -583,7 +584,6 @@ function bracketHTML(){
   if(RO&&!c)h+=`<div class="banner"><p><strong>Live.</strong> This page updates by itself every 10 seconds. Only the host can change results.</p></div>`;
   if(c)h+=`<div class="champwrap">${champCol(c,'Champion',RO?'':'Open the Final to change the order.')}</div>`;
   h+=roundsHTML('main');
-  if(!RO&&!c&&!S.example&&sig.session&&sig.session.open)h+=signupPanelHTML(true);
   if(S.cfg.lb!=='off')h+=lbHTML();
   h+=rosterHTML();
   if(!RO)h+=settingsHTML();
@@ -708,13 +708,13 @@ function rosterHTML(){
   const items=S.players.map(p=>{
     const [s,cls]=statusOf(p,st);
     let act='';
-    if(!RO&&r&&!c)act=inCur.has(p.id)?`<button class="small ghost" data-act="withdraw" data-p="${p.id}">Withdraw</button>`:`<button class="small ghost" data-act="addback" data-p="${p.id}">Put back in</button>`;
+    if(!RO&&r&&!c)act=inCur.has(p.id)||S.late.includes(p.id)?`<button class="small ghost" data-act="withdraw" data-p="${p.id}">Withdraw</button>`:`<button class="small ghost" data-act="addback" data-p="${p.id}">Put back in</button>`;
     return `<div class="ritem"><input class="rn" id="rn-${p.id}" data-p="${p.id}" value="${esc(p.name)}" aria-label="Name"${RO?' readonly':''}><span class="status ${cls}">${esc(s)}</span>${act}</div>`;
   }).join('');
   return `<section class="panel roster">
     <div class="row" style="justify-content:space-between"><h2>Racers</h2><span class="muted mono" style="font-size:13px">${S.players.length} entered · ${c?'cup finished':inCur.size+' in the main bracket'}</span></div>
-    ${RO?'':'<p class="muted" style="margin:0;font-size:14px">Edit a name to rename everywhere. Late arrivals take an open seat in the current round, or join the next round if every game is full. "Put back in" returns a knocked-out racer to the current round.</p>'}
-    ${(c||RO)?'':`<div class="row"><input id="add-name" list="known-names" placeholder="New racer name" autocomplete="off" style="flex:1;max-width:320px"><button data-act="add">Add racer</button>${canWrite&&!S.example&&!(sig.session&&sig.session.open)?'<button class="ghost" data-act="sig-open">Let late arrivals sign up</button>':''}</div>`}
+    ${RO?'':'<p class="muted" style="margin:0;font-size:14px">Edit a name to rename everywhere. Add a late arrival here: they take an open seat in the current round, or join the next round if every game is full. "Put back in" returns a knocked-out racer to the current round.</p>'}
+    ${(c||RO)?'':`<div class="row"><input id="add-name" list="known-names" placeholder="New racer name" autocomplete="off" style="flex:1;max-width:320px"><button data-act="add">Add racer</button></div>`}
     <div class="rlist">${items}</div>
   </section>`;
 }
@@ -923,13 +923,6 @@ function mergeSignups(){
       sigSeen.ids.push(e.id);
     });
     draft.count=draft.names.length;saveDraft();
-  }else if(!RO&&!S.example&&S.id&&!champ()&&canWrite){
-    const added=[];
-    commit(()=>{fresh.forEach(e=>{
-      if(!has(S.players.map(p=>p.name),e.name)){const p={id:uid(),name:e.name,out:false};S.players.push(p);seat(p.id);added.push(e.name)}
-      sigSeen.ids.push(e.id);
-    })});
-    if(added.length)toast(`${added.join(', ')} signed up and ${added.length>1?'were':'was'} added`,true);
   }else return;
   lsSet(SKEY,JSON.stringify(sigSeen));
   render();
