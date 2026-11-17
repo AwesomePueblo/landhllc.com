@@ -1,0 +1,14 @@
+{
+  "name": "Kart Cup Bracket",
+  "short_name": "Kart Cup",
+  "description": "Run a kart racing tournament: random 4-player games, pick who advances, and keep a history of every cup.",
+  "start_url": "/kart/",
+  "scope": "/kart/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#d81f2a",
+  "icons": [
+    { "src": "/kart/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/kart/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
