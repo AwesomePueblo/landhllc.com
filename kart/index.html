@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#eef0f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
@@ -85,8 +85,7 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:60
 .hostpanel{margin-bottom:16px;display:flex;flex-direction:column;gap:10px}
 .setup{display:flex;flex-direction:column;gap:18px}
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
-.fields .wide{grid-column:span 2}
-@media (max-width:420px){.fields .wide{grid-column:auto}}
+.fields .wide{grid-column:1/-1}
 .names{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
 .names label{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
 .names input{flex:1;width:100%}
@@ -241,6 +240,9 @@ body.tv .wrap{max-width:none;padding-block:16px 24px}
 .tvchamp .who{font-family:var(--display);font-size:clamp(44px,8vw,120px);line-height:1;margin:14px 0;word-break:break-word}
 .tvchamp .pod{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 40px;font-size:clamp(18px,2.4vw,32px)}
 @media (max-width:480px){table.lb .lg{display:none}table.lb .sh{display:inline}table.lb{font-size:13px}table.lb th,table.lb td{padding:8px 4px}table.lb th{font-size:10px;letter-spacing:.02em;white-space:normal}table.lb td.rank{width:22px}}
+/* App feel on phones: no double-tap zoom, and text boxes at 16px so iPhone never zooms in when one is tapped. */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (pointer:coarse){input,select,textarea{font-size:16px!important}}
 </style>
 </head>
 <body>
@@ -581,7 +583,7 @@ function start(){
   S=doc;S.rounds=[makeRound(S.players.map(p=>p.id),d.cfg.adv,S.players.length<=finalAt(d.cfg))];
   sig.entries.forEach(e=>{if(!sigSeen.ids.includes(e.id))sigSeen.ids.push(e.id)});lsSet(SKEY,JSON.stringify(sigSeen));
   draft=null;saveDraft();view='bracket';ui.sel={main:null,lb:null};
-  saveLocal();queueRemote();render();toast('Round 1 drawn');
+  saveLocal();queueRemote();render();toast('Round 1 drawn');scrollToFirstGame('main');
 }
 
 /* ---------- Bracket view ---------- */
@@ -966,6 +968,14 @@ function signupPanelHTML(compact){
   return `<div class="sigpanel"><div class="sigbody">${qr}${info}</div></div>`;
 }
 
+// After a draw, put Game 1 at the top of the screen, just under the sticky round buttons.
+function scrollToFirstGame(b){
+  requestAnimationFrame(()=>{
+    const wrap=document.getElementById(b==='lb'?'lbrounds':'rounds');const g=wrap&&wrap.querySelector('.heat');if(!g)return;
+    const tabs=wrap.previousElementSibling&&wrap.previousElementSibling.classList.contains('roundtabs')?wrap.previousElementSibling.offsetHeight:0;
+    window.scrollTo({top:Math.max(0,g.getBoundingClientRect().top+window.scrollY-tabs-8)});
+  });
+}
 function heatAt(el){const r=BR(el.dataset.b)[+el.dataset.r];return[r,r.heats[+el.dataset.h]]}
 
 /* Moving players between games. A moved player loses their race results and advance mark in the old game. */
@@ -1082,9 +1092,9 @@ document.addEventListener('click',e=>{
       commit(()=>{const nr=makeRound(r.heats.flatMap(h=>h.players),r.adv,r.final,r);if(r.fromMain!==undefined)nr.fromMain=r.fromMain;arr[arr.length-1]=nr},'Games reshuffled');break}
     case'draw':{const r=cur();let pool=nextPool(r).concat(S.late);const fin=pool.length<=finalAt();
       if(fin&&S.cfg.lb==='second'){const st=lbState();if(st.champ&&!pool.includes(st.champ))pool=pool.concat(st.champ)}
-      ui.sel.main=null;commit(()=>{S.late=[];S.rounds.push(makeRound(pool,S.nextAdv,fin))},fin?'Final drawn':`Round ${S.rounds.length+1} drawn`);break}
+      ui.sel.main=null;commit(()=>{S.late=[];S.rounds.push(makeRound(pool,S.nextAdv,fin))},fin?'Final drawn':`Round ${S.rounds.length+1} drawn`);scrollToFirstGame('main');break}
     case'lbdraw':{const st=lbState();if(!st.canDraw)break;
-      ui.sel.lb=null;commit(()=>{const r=makeRound(st.pool,S.lbNextAdv,st.finalNext);r.fromMain=st.fin;S.lb.push(r)},st.finalNext?'Losers final drawn':`LB Round ${S.lb.length+1} drawn`);break}
+      ui.sel.lb=null;commit(()=>{const r=makeRound(st.pool,S.lbNextAdv,st.finalNext);r.fromMain=st.fin;S.lb.push(r)},st.finalNext?'Losers final drawn':`LB Round ${S.lb.length+1} drawn`);scrollToFirstGame('lb');break}
     case'reopen':{const ri=+el.dataset.r,b=el.dataset.b;ui.sel={main:null,lb:null};
       commit(()=>{if(b==='lb')S.lb=S.lb.slice(0,ri+1);else{S.rounds=S.rounds.slice(0,ri+1);const keep=[];for(const r of S.lb){if((r.fromMain||0)<=ri)keep.push(r);else break}S.lb=keep}},
         `${b==='lb'?'LB ':''}Round ${ri+1} reopened. Later rounds cleared.`);break}

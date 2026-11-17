@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#eef0f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
@@ -83,6 +83,9 @@ body.display .wrap{max-width:none;padding:3vw}
 .tv .count{font-family:var(--display);font-size:clamp(28px,3.4vw,56px);margin:0 0 16px}
 .tv .names{justify-content:flex-start;gap:10px}
 .tv .names span{font-size:clamp(16px,1.6vw,26px);padding:8px 16px}
+/* App feel on phones: no double-tap zoom, and text boxes at 16px so iPhone never zooms in when one is tapped. */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (pointer:coarse){input,select,textarea{font-size:16px!important}}
 </style>
 </head>
 <body>
