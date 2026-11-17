@@ -95,7 +95,7 @@ html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:10
 <body>
 <div class="checker" aria-hidden="true"></div>
 <main class="wrap" id="app"></main>
-<p class="support" style="padding-inline:16px;margin:0 0 32px">Enjoying Kart Cup? <a href="https://venmo.com/u/lukhig" target="_blank" rel="noopener">Support it on Venmo</a></p>
+<p class="support" style="padding-inline:16px;margin:0 0 32px">Enjoying Kart Cup? <a href="https://venmo.com/u/lukhig" target="_blank" rel="noopener">Support it on Venmo</a> · <a href="/kart/privacy/">Privacy</a></p>
 <script src="/kart/qrcode.js"></script>
 <script>
 (function(){
@@ -207,5 +207,6 @@ refresh();
 if(display)setInterval(refresh,4000);
 })();
 </script>
+<script>if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/kart/sw.js',{scope:'/kart/'}).catch(()=>{}));</script>
 </body>
 </html>

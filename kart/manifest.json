@@ -1,14 +1,20 @@
 {
+  "id": "/kart/",
   "name": "Kart Cup Bracket",
   "short_name": "Kart Cup",
-  "description": "Run a kart racing tournament: random 4-player games, pick who advances, and keep a history of every cup.",
+  "description": "Run a kart racing tournament night: random 4-player games, pick who advances, live view for everyone, and a history and leaderboard of every cup.",
   "start_url": "/kart/",
   "scope": "/kart/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0f1117",
-  "theme_color": "#d81f2a",
+  "theme_color": "#d50f1c",
+  "categories": ["games", "sports", "entertainment"],
+  "lang": "en",
   "icons": [
-    { "src": "/kart/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/kart/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/kart/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/kart/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/kart/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/kart/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
