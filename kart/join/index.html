@@ -56,6 +56,7 @@ label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;
 input{font:600 20px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;width:100%}
 input.code{font-family:var(--mono);letter-spacing:.3em}
 button{font:700 18px/1 var(--body);border-radius:10px;padding:16px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+a.btn.watch{display:block;text-align:center;text-decoration:none;font:700 18px/1 var(--body);border-radius:10px;padding:16px;background:var(--accent);color:var(--accent-ink)}
 button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-size:15px;padding:12px}
 button:disabled{opacity:.5}
 :focus-visible{outline:3px solid var(--flag);outline-offset:2px}
@@ -123,6 +124,9 @@ async function join(name){
   return b;
 }
 
+// Remember when this sign-up list opened, so "Watch the bracket" follows the cup started from it.
+function rememberSince(b){if(b&&b.openedAt)try{localStorage.setItem('kart-watch-since',String(b.openedAt))}catch(e){}}
+const watchBtn=`<a class="btn watch" href="/kart/#watch">Watch the bracket</a>`;
 function namesHTML(){
   const mine=new Set(state.mine.map(n=>n.toLowerCase()));
   return `<div class="names">${state.names.map(n=>`<span class="${mine.has(n.toLowerCase())?'me':''}">${esc(n)}</span>`).join('')}</div>`;
@@ -132,6 +136,7 @@ function closedHTML(){
     <div class="card done" style="margin-top:22px">
       <div class="big" style="font-size:24px">${state.started?'The tournament has started':'Sign-ups are closed'}</div>
       <p style="margin:0">${state.started?'No more players can join this one. Catch the next cup!':'No more players can join right now.'}</p>
+      ${watchBtn}
       ${state.names.length?`<p class="muted" style="margin:0">${state.names.length} racer${state.names.length===1?"":"s"} signed up</p>${namesHTML()}`:''}
     </div>`;
 }
@@ -156,9 +161,10 @@ function doneHTML(){
       <div class="tick" aria-hidden="true">✓</div>
       <div class="big">${esc(j.name)}</div>
       <p style="margin:0">${j.already?'was already on the list.':'is on the list.'} The host will put you in a game.</p>
+      ${watchBtn}
+      <button class="ghost" data-act="another">Sign up someone else</button>
       <p class="muted" style="margin:0">${state.names.length} signed up so far</p>
       ${namesHTML()}
-      <button class="ghost" data-act="another">Sign up someone else</button>
     </div>`;
 }
 function displayHTML(){
@@ -180,7 +186,7 @@ function render(){
 }
 async function refresh(){
   if(!/^\d{4}$/.test(code))return;
-  try{const b=await getInfo();state.names=b.names||[];state.open=b.open;state.started=!!b.started;state.err=''}catch(e){if(display)state.err=e.message}
+  try{const b=await getInfo();state.names=b.names||[];state.open=b.open;state.started=!!b.started;state.err='';rememberSince(b)}catch(e){if(display)state.err=e.message}
   if(!document.activeElement||!['INPUT'].includes(document.activeElement.tagName))render();
 }
 
@@ -193,7 +199,7 @@ document.addEventListener('submit',async e=>{
     const b=await join(name);
     state.joined=b;state.badCode=false;state.mine.push(b.name);lsSet('kart-join-'+code,state.mine);
     history.replaceState(null,'','?c='+code);
-    try{const i=await getInfo();state.names=i.names||[];state.open=i.open}catch(err){}
+    try{const i=await getInfo();state.names=i.names||[];state.open=i.open;rememberSince(i)}catch(err){}
   }catch(err){if(err.closed){state.open=false;state.started=err.started;state.err=''}else state.err=err.message;if(err.badCode)state.badCode=true}
   state.busy=false;render();
   if(!state.joined&&$('#name')){$('#name').value=name}

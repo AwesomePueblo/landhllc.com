@@ -372,7 +372,8 @@ async function pushRemote(){
 }
 function updateStatus(){
   const el=$('#savestate');let txt='',cls='';
-  if(RO)txt=champ()?'Viewing saved cup':'Watching live (view only)';
+  if(ui.waiting&&!canWrite)txt='Waiting for the cup to start';
+  else if(RO)txt=champ()?'Viewing saved cup':'Watching live (view only)';
   else if(S.example)txt='Example only';
   else if(apiOk===false){txt='Saved on this device only';cls='bad'}
   else if(!canWrite){txt='Not saved to history';cls='bad'}
@@ -382,11 +383,26 @@ function updateStatus(){
   el.textContent=txt;el.className='savestate '+cls;el.hidden=!txt;
   $('#hostbtn').textContent=canWrite?'Hosting':'Host login';
   $('#undo').hidden=RO;$('#undo').disabled=!undoStack.length;
-  $('#newbtn').hidden=!canWrite&&apiOk!==false&&RO;
+  $('#newbtn').hidden=!canWrite&&apiOk!==false&&(RO||ui.waiting);
+}
+// The in-progress cup viewers should see: the most recently updated one. Someone coming
+// from the sign-up page only follows a cup started after sign-ups opened.
+function pickLive(){
+  const since=ui.watch?+(lsGet('kart-watch-since')||0):0;
+  return (LIST||[]).filter(t=>t.status!=='done'&&(!since||Date.parse(t.createdAt)>=since))
+    .sort((a,b)=>String(b.updatedAt||b.createdAt).localeCompare(String(a.updatedAt||a.createdAt)))[0]||null;
 }
 function startPolling(){
   clearInterval(pollTimer);
   const tv=view==='tv';
+  if(ui.waiting&&!canWrite){
+    // Waiting for the host to start: check every 5 seconds and switch over when the cup begins.
+    pollTimer=setInterval(async()=>{
+      if(document.hidden)return;
+      try{const b=await api('');LIST=(b.tournaments||[]).map(normalize);const l=pickLive();if(l){ui.waiting=false;await openSaved(l.id,true);toast('The cup has started')}}catch(e){}
+    },5000);
+    return;
+  }
   if(!RO&&!tv)return;
   pollTimer=setInterval(async()=>{
     if(document.hidden)return;
@@ -394,7 +410,7 @@ function startPolling(){
       if(RO&&S.id&&!champ()){const b=await api('/'+S.id);if(b.tournament.updatedAt!==S.updatedAt){S=normalize(b.tournament);render()}}
       if(view==='tv'&&(S.example||!S.id||champ())){
         const b=await api('');LIST=(b.tournaments||[]).map(normalize);
-        const live=LIST.find(t=>t.status!=='done');
+        const live=pickLive();
         if(live&&live.id!==S.id)openSaved(live.id,true);
       }
     }catch(e){}
@@ -594,7 +610,12 @@ function start(){
 }
 
 /* ---------- Bracket view ---------- */
+function waitingHTML(){
+  return `<div class="banner" style="flex-direction:column;align-items:flex-start;gap:6px;padding:22px 20px"><h2>The cup hasn't started yet</h2>
+    <p class="muted">You're all set. This page switches to the live bracket as soon as the host starts, so you can leave it open.</p></div>`;
+}
 function bracketHTML(){
+  if(ui.waiting&&!canWrite)return waitingHTML();
   let h='';
   if(S.example)h+=`<div class="banner ex"><p><strong>Example tournament.</strong> These 12 names are placeholders and nothing here is saved. Tap racers to try it, then set up your own.</p><button data-act="new" class="primary small">Set up my tournament</button></div>`;
   else h+=`<div class="tname"><h2>${esc(S.name)}</h2><span class="muted mono" style="font-size:13px">${esc(fmtDate(S.date))}${RO?' · view only':''}</span>${RO&&canWrite?'<button class="small" data-act="takeover">Edit this cup</button>':''}</div>`;
@@ -1075,6 +1096,7 @@ function render(){
 }
 function route(){
   const h=location.hash.replace('#','');
+  if(h==='watch'){ui.watch=true;if(view==='setup'&&!canWrite)view='bracket'}
   if(h==='history'||h==='leaderboard'||h==='tv'){view=h;if(!LIST&&h!=='tv')refreshList()}
   else if(view!=='setup')view='bracket';
   if(view==='tv'){try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(l=>wakeLock=l,()=>{})}catch(e){}}
@@ -1173,16 +1195,17 @@ window.addEventListener('hashchange',route);
   try{const d=JSON.parse(lsGet(DKEY));if(d&&d.names&&d.cfg){d.cfg=Object.assign(defCfg(),d.cfg);draft=d;if(!location.hash||location.hash==='#bracket')view='setup'}}catch(e){}
   route();
   await refreshList();
-  const live=(LIST||[]).find(t=>t.status!=='done');
+  const live=pickLive();
   if(!canWrite){
     // Visitors always see the cup that is running, read only.
     if(live)await openSaved(live.id,true);
+    else if(ui.watch){ui.waiting=true;draft=null;view='bracket'}
   }else if(S.example&&live)await openSaved(live.id,true);
   else if(!RO&&!S.example&&S.id){
     const saved=(LIST||[]).find(t=>t.id===S.id);
     if(!saved||saved.updatedAt!==S.updatedAt)queueRemote();
   }
-  route();
+  route();startPolling();
   pollSignups();
 })();
 })();
