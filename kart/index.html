@@ -9,7 +9,6 @@
 <title>Kart Cup Bracket - L and H LLC</title>
 <meta name="description" content="Run a kart racing tournament: random 4-player games, a losers bracket, TV mode, and a history and leaderboard of every cup.">
 <meta name="robots" content="noindex">
-<link rel="icon" type="image/svg+xml" href="/kart/icon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/kart/favicon-32.png">
 <link rel="apple-touch-icon" href="/kart/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Kart Cup">
@@ -198,7 +197,11 @@ table.lb th:not(:nth-child(2)),table.lb td:not(:nth-child(2)){width:1%;white-spa
 table.lb .sh{display:none}
 table.lb tr:last-child td{border-bottom:0}
 table.lb td.rank{font-family:var(--mono);color:var(--muted);width:40px}
-table.lb th.rank{text-align:left;cursor:default}
+table.lb th.rank{text-align:left}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:6px 18px;margin:0 0 12px;font-size:13px}
+.legend div{display:flex;gap:6px;min-width:0}
+.legend dt{font-weight:700}
+.legend dd{margin:0;color:var(--muted)}
 
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 12px 10px 16px;border-radius:10px;display:flex;gap:12px;align-items:center;font-size:14px;max-width:calc(100% - 32px);z-index:20}
 #toast button{background:transparent;color:var(--flag);border-color:transparent}
@@ -298,7 +301,7 @@ let hostKey=lsGet(HKEY)||'', hostToken=lsGet(TKEY)||'';
 let canWrite=false, keyConfigured=null, apiOk=null;
 let LIST=null, listLoading=false;
 let saveState='idle', saveTimer=null, pollTimer=null, toastTimer=null, wakeLock=null, beatTimer=null;
-const ui={sel:{main:null,lb:null},hostOpen:false,hostMsg:'',holder:null,delConfirm:null,sort:'titles',res:{},setOpen:false};
+const ui={sel:{main:null,lb:null},hostOpen:false,hostMsg:'',holder:null,delConfirm:null,sort:'rank',res:{},setOpen:false};
 
 function defCfg(){return{size:4,adv:2,avg:2,races:4,points:DEF_POINTS.slice(),lb:'off',noRematch:true}}
 function normalize(d){
@@ -775,50 +778,53 @@ function historyHTML(){
 }
 
 /* ---------- Leaderboard ---------- */
+// Leaderboard. A "game" is one set of races. In every game before a Final, a racer
+// either advances (moves on to the next round) or is disqualified (does not qualify
+// to advance). Main and losers bracket games both count. Finals count toward wins only.
 function stats(){
   const M={};
-  const get=name=>{const k=name.trim().toLowerCase();return M[k]||(M[k]={name:name.trim(),cups:0,titles:0,lbTitles:0,finals:0,podiums:0,heats:0,advances:0,points:0,races:0,wins:0,placeSum:0})};
+  const get=name=>{const k=name.trim().toLowerCase();return M[k]||(M[k]={name:name.trim(),played:0,won:0,adv:0,dq:0})};
   (LIST||[]).forEach(t=>{
-    const cfg=Object.assign(defCfg(),t.cfg||{});
     const byId={};(t.players||[]).forEach(p=>byId[p.id]=p.name);
-    const inCup=new Set(),done=t.status==='done';
-    const all=(t.rounds||[]).map(r=>['main',r]).concat((t.lb||[]).map(r=>['lb',r]));
-    all.forEach(([b,r])=>(r.heats||[]).forEach(h=>(h.players||[]).forEach(id=>{
+    const inCup=new Set();
+    (t.rounds||[]).concat(t.lb||[]).forEach(r=>(r.heats||[]).forEach(h=>(h.players||[]).forEach(id=>{
       const nm=byId[id];if(!nm)return;const s=get(nm);inCup.add(s);
-      if(b==='main'){
-        if(r.final){s.finals++;const pos=(h.adv||[]).indexOf(id);if(pos>=0&&pos<3&&done)s.podiums++}
-        else{s.heats++;if((h.adv||[]).includes(id))s.advances++}
-      }
-      const a=(h.res&&h.res[id])||[];
-      for(let i=0;i<cfg.races;i++){const v=a[i];if(v){s.races++;s.placeSum+=v;s.points+=cfg.points[v-1]||0;if(v===1)s.wins++}}
+      if(r.final)return;
+      if((h.adv||[]).includes(id))s.adv++;else s.dq++;
     })));
-    inCup.forEach(s=>s.cups++);
-    if(done&&t.champion&&byId[t.champion.id])get(byId[t.champion.id]).titles++;
-    if(t.lbChampion&&byId[t.lbChampion.id])get(byId[t.lbChampion.id]).lbTitles++;
+    inCup.forEach(s=>s.played++);
+    if(t.status==='done'&&t.champion&&byId[t.champion.id])get(byId[t.champion.id]).won++;
   });
-  return Object.values(M).map(s=>Object.assign(s,{rate:s.heats?s.advances/s.heats:-1,avg:s.races?s.placeSum/s.races:-1}));
+  return Object.values(M);
 }
 const COLS=[
-  {k:'name',l:'Racer'},{k:'cups',l:'Cups'},{k:'titles',l:'Titles',sh:'Won'},{k:'finals',l:'Finals',sh:'Fin'},{k:'podiums',l:'Podiums',sh:'Top 3'},
-  {k:'rate',l:'Adv %'},{k:'lbTitles',l:'LB titles',sh:'LB'}];
+  {k:'name',l:'Racer'},{k:'played',l:'Played'},{k:'won',l:'Won'},{k:'adv',l:'Adv'},{k:'dq',l:'DQ'}];
+// Standings: most tournaments won, then most advances, then fewest disqualifications.
+const standing=(a,b)=>(b.won-a.won)||(b.adv-a.adv)||(a.dq-b.dq);
+const byName=(a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'});
 function leaderboardHTML(){
   let h=`<div class="row" style="justify-content:space-between;margin-bottom:14px"><h2>Leaderboard</h2><button class="small" data-act="refresh">Refresh</button></div>`;
   if(apiOk===false)return h+`<div class="empty">The leaderboard could not be loaded. Check your connection and refresh.</div>`;
   if(!LIST)return h+`<div class="empty">Loading…</div>`;
   const rows=stats();
   if(!rows.length)return h+`<div class="empty">No results yet. The leaderboard fills in as cups are saved.</div>`;
-  const k=ui.sort;
-  rows.sort((a,b)=>{
-    if(k==='name')return a.name.localeCompare(b.name);
-    if(k==='avg'){if(a.avg<0||b.avg<0)return(a.avg<0)-(b.avg<0);return a.avg-b.avg}
-    return(b[k]-a[k])||(b.titles-a.titles)||(b.points-a.points)||a.name.localeCompare(b.name);
-  });
-  const cols=COLS.filter(c=>c.k!=='lbTitles'||rows.some(r=>r.lbTitles));
-  const head=`<tr><th class="rank" scope="col">#</th>${cols.map(c=>`<th scope="col" data-act="sort" data-k="${c.k}"${c.k===k?' aria-sort="'+(k==='name'||k==='avg'?'ascending':'descending')+'"':''}>${c.sh?`<span class="lg">${c.l}</span><span class="sh">${c.sh}</span>`:c.l}</th>`).join('')}</tr>`;
-  const cell=(s,k)=>k==='name'?esc(s.name):k==='rate'?(s.rate<0?'–':Math.round(s.rate*100)+'%'):s[k];
-  const body=rows.map((s,i)=>`<tr><td class="rank">${i+1}</td>${cols.map(c=>`<td>${cell(s,c.k)}</td>`).join('')}</tr>`).join('');
-  return h+`<div class="tablewrap"><table class="lb"><thead>${head}</thead><tbody>${body}</tbody></table></div>
-    <p class="muted" style="font-size:13px;margin-top:10px">Results are linked by name, ignoring capitals. Won is titles. Top 3 counts podium finishes. Adv % is how often a racer advanced from main bracket games before the Final. Tap a column to sort.</p>`;
+  // Rank by standings; tied racers share a rank.
+  rows.sort((a,b)=>standing(a,b)||byName(a,b));
+  rows.forEach((r,i)=>{r.rank=i&&standing(rows[i-1],r)===0?rows[i-1].rank:i+1});
+  const k=COLS.some(c=>c.k===ui.sort)?ui.sort:'rank';
+  if(k==='name')rows.sort(byName);
+  else if(k==='dq')rows.sort((a,b)=>(a.dq-b.dq)||(a.rank-b.rank)||byName(a,b));
+  else if(k!=='rank')rows.sort((a,b)=>(b[k]-a[k])||(a.rank-b.rank)||byName(a,b));
+  const head=`<tr><th class="rank" scope="col" data-act="sort" data-k="rank"${k==='rank'?' aria-sort="ascending"':''}>#</th>${COLS.map(c=>`<th scope="col" data-act="sort" data-k="${c.k}"${c.k===k?` aria-sort="${k==='name'||k==='dq'?'ascending':'descending'}"`:''}>${c.sh?`<span class="lg">${c.l}</span><span class="sh">${c.sh}</span>`:c.l}</th>`).join('')}</tr>`;
+  const body=rows.map(s=>`<tr><td class="rank">${s.rank}</td>${COLS.map(c=>`<td>${c.k==='name'?esc(s.name):s[c.k]}</td>`).join('')}</tr>`).join('');
+  return h+`<dl class="legend">
+      <div><dt>Played</dt><dd>tournaments played</dd></div>
+      <div><dt>Won</dt><dd>tournaments won</dd></div>
+      <div><dt>Adv</dt><dd>advances: times they moved on from one round to the next</dd></div>
+      <div><dt>DQ</dt><dd>disqualifications: times they did not qualify to advance</dd></div>
+    </dl>
+    <div class="tablewrap"><table class="lb"><thead>${head}</thead><tbody>${body}</tbody></table></div>
+    <p class="muted" style="font-size:13px;margin-top:10px">Ranked by tournaments won, then advances, then fewest disqualifications. Racers tied on all three share a rank. Games in the losers bracket count; Finals count only toward Won. Results are linked by name, ignoring capitals. Tap a column heading to sort by it, or # to go back to the rankings.</p>`;
 }
 function updateKnown(){
   const names=new Set();(LIST||[]).forEach(t=>(t.players||[]).forEach(p=>names.add(p.name)));
