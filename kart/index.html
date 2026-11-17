@@ -490,11 +490,8 @@ function lbState(){
 
 /* ---------- Setup ---------- */
 function openSetup(){
-  const names=(S.example||RO)?[]:S.players.filter(p=>!p.out).map(p=>p.name);
-  const count=names.length||8;
-  while(names.length<count)names.push('');
-  const base=(S.example||RO)?defCfg():Object.assign(defCfg(),JSON.parse(JSON.stringify(S.cfg)));
-  draft={name:'Kart Night '+fmtDate(today()),date:today(),count,names,cfg:base};
+  // A new tournament starts from a blank slate: no players, default settings, and its own sign-up list.
+  draft={name:'Kart Night '+fmtDate(today()),date:today(),count:8,names:Array(8).fill(''),cfg:defCfg(),sid:null};
   view='setup';saveDraft();if(location.hash!=='#bracket')history.replaceState(null,'','#bracket');render();
 }
 function opt(arr,v,labels){return arr.map(x=>`<option value="${x}"${String(x)===String(v)?' selected':''}>${labels?esc(labels[x]):x}</option>`).join('')}
@@ -562,6 +559,7 @@ function setupHTML(){
 function saveDraft(){lsSet(DKEY,draft?JSON.stringify(draft):null)}
 function setCount(n){const d=draft;n=Math.max(0,Math.min(128,n|0||2));d.count=n;while(d.names.length<n)d.names.push('');d.names.length=n;saveDraft();render()}
 function start(){
+  if(sig.session&&sig.session.open&&sig.session.sid!==(draft&&draft.sid)){sig.session.open=false;sigCall({action:'close'}).catch(()=>{})}
   const d=draft;const seen={};
   undoStack=[];RO=false;clearInterval(pollTimer);
   const doc=blankDoc();
@@ -919,6 +917,7 @@ function mergeSignups(){
   if(!fresh.length){if(before!==ui.sigCount&&(view==='setup'||view==='bracket'))render();return}
   const has=(list,name)=>list.some(n=>n.trim().toLowerCase()===name.toLowerCase());
   if(view==='setup'&&draft){
+    if(!sig.session||sig.session.sid!==draft.sid)return;
     fresh.forEach(e=>{
       if(!has(draft.names,e.name)){const i=draft.names.findIndex(n=>!n.trim());if(i>=0)draft.names[i]=e.name;else draft.names.push(e.name)}
       sigSeen.ids.push(e.id);
@@ -940,14 +939,15 @@ async function sigAction(action){
   try{
     const b=await sigCall({action});sig.session=b.session;if(b.entries)sig.entries=b.entries;
     if(action==='open'){sigSeen={sid:b.session.sid,ids:[]};lsSet(SKEY,JSON.stringify(sigSeen));
-      if(view==='setup'&&draft){draft.names=draft.names.filter(n=>n.trim());draft.count=draft.names.length;saveDraft()}
+      if(view==='setup'&&draft){draft.sid=b.session.sid;draft.names=draft.names.filter(n=>n.trim());draft.count=draft.names.length;saveDraft()}
       toast(`Sign-ups open. Code ${b.session.code}`)}
     else toast(action==='close'?'Sign-ups closed':'Sign-ups reopened');
   }catch(e){toast(e.message)}
   render();pollSignups();
 }
 function signupPanelHTML(compact){
-  const ss=sig.session,n=sig.entries.length;
+  // In setup, an older sign-up list (from a previous cup) is ignored; opening sign-ups starts a new one.
+  const ss=compact||(draft&&sig.session&&sig.session.sid===draft.sid)?sig.session:null,n=ss?sig.entries.length:0;
   if(!canWrite)return compact?'':`<div class="sigpanel"><strong>Let players sign themselves up</strong><span class="muted">Log in as host to open sign-ups. Players add their own names from their phones.</span></div>`;
   if(!ss||(!ss.open&&compact))return compact?'':`<div class="sigpanel"><div><strong>Let players sign themselves up</strong><div class="muted">Players scan a QR code or go to ${esc(location.host)}/kart/join, type their name, and it shows up in the list below.</div></div>
     <div class="row">${ss?`<button data-act="sig-reopen">Reopen sign-ups (code ${esc(ss.code)})</button><button class="ghost" data-act="sig-open">Start a new sign-up list</button>`:'<button class="primary" data-act="sig-open">Open sign-ups</button>'}</div></div>`;
