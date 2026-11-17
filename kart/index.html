@@ -404,13 +404,16 @@ const cur=()=>curOf('main');
 const poolSize=r=>r.heats.reduce((a,h)=>a+h.players.length,0);
 const nextPool=r=>r.heats.flatMap(h=>h.adv);
 const maxAdv=h=>Math.max(1,Math.min(3,h.players.length-1));
-const target=(r,h)=>r.final?Math.min(3,h.players.length):Math.min(h.n||r.adv,maxAdv(h));
+const target=(r,h)=>Math.min(h.n||(r.final?1:r.adv),maxAdv(h));
+// A round drawn as one game (r.final) is the Final only while it sends one racer on.
+// If the host advances 2 or 3 from it, it becomes a regular round and another round follows.
+const isFinal=r=>!!(r&&r.final&&r.heats[0]&&target(r,r.heats[0])===1);
 const complete=r=>r.heats.every(h=>!h.players.length||h.adv.length>=1);
-function champ(){const r=S&&cur();return r&&r.final&&r.heats[0]&&r.heats[0].adv.length?r.heats[0].adv:null}
-const heatLabel=(r,i,b)=>r.final?(b==='lb'?'Losers final':'Final'):'Game '+(i+1);
+function champ(){const r=S&&cur();return isFinal(r)&&r.heats[0].adv.length===1?r.heats[0].adv:null}
+const heatLabel=(r,i,b)=>isFinal(r)?(b==='lb'?'Losers final':'Final'):'Game '+(i+1);
 // With a second-chance losers bracket the Final keeps one seat open for its winner.
 const finalAt=c=>(c||S.cfg).size-((c||S.cfg).lb==='second'?1:0);
-const roundTitle=(b,r,i)=>r.final?(b==='lb'?'Losers final':'Final'):(b==='lb'?'LB Round ':'Round ')+(i+1);
+const roundTitle=(b,r,i)=>isFinal(r)?(b==='lb'?'Losers final':'Final'):(b==='lb'?'LB Round ':'Round ')+(i+1);
 
 const pairKey=(a,b)=>a<b?a+'|'+b:b+'|'+a;
 function pastPairs(skip){const m=new Map();S.rounds.concat(S.lb).forEach(r=>{if(r===skip)return;r.heats.forEach(h=>{const p=h.players;for(let i=0;i<p.length;i++)for(let j=i+1;j<p.length;j++){const k=pairKey(p[i],p[j]);m.set(k,(m.get(k)||0)+1)}})});return m}
@@ -426,7 +429,7 @@ function bestSplit(ids,k,skip){
 }
 function makeRound(ids,adv,isFinal,skip){
   const k=isFinal?1:Math.max(1,Math.ceil(ids.length/S.cfg.size));
-  const r={final:!!isFinal,adv:isFinal?3:adv,heats:[]};
+  const r={final:!!isFinal,adv:isFinal?1:adv,heats:[]};
   bestSplit(ids,k,skip).forEach(p=>r.heats.push({players:p,adv:[],cup:null,res:{}}));
   return r;
 }
@@ -464,35 +467,34 @@ function autoAdvance(r,h){
   if(!resDone(h)||h.adv.length)return null;
   const t=totals(h),order=h.players.slice().sort((a,b)=>t[b].p-t[a].p);
   const need=target(r,h);
-  if(r.final){for(let i=0;i<need;i++)if(order[i+1]&&t[order[i]].p===t[order[i+1]].p)return'tie'}
-  else if(order[need]&&t[order[need-1]].p===t[order[need]].p)return'tie';
+  if(order[need]&&t[order[need-1]].p===t[order[need]].p)return'tie';
   h.adv=order.slice(0,need);return'ok';
 }
 
 /* Losers bracket */
 function mainFinalizedCount(){
   const L=S.rounds.length;let n=0;
-  S.rounds.forEach((r,i)=>{if(r.final)return;if(i<L-1||(complete(r)&&nextPool(r).length+S.late.length<=finalAt()))n=i+1});
+  S.rounds.forEach((r,i)=>{if(isFinal(r))return;if(i<L-1||(complete(r)&&nextPool(r).length+S.late.length<=finalAt()))n=i+1});
   return n;
 }
 function lbState(){
   const fin=mainFinalizedCount();
   const entered=new Set(S.lb.flatMap(r=>r.heats.flatMap(h=>h.players)));
-  const elim=[];S.rounds.slice(0,fin).forEach(r=>{if(r.final)return;r.heats.forEach(h=>h.players.forEach(id=>{if(!h.adv.includes(id))elim.push(id)}))});
+  const elim=[];S.rounds.slice(0,fin).forEach(r=>{if(isFinal(r))return;r.heats.forEach(h=>h.players.forEach(id=>{if(!h.adv.includes(id))elim.push(id)}))});
   const waiting=elim.filter(id=>!entered.has(id)&&!P(id).out);
   const last=curOf('lb');
   const lastDone=!last||complete(last);
-  const carry=last&&!last.final&&lastDone?nextPool(last):[];
+  const carry=last&&!isFinal(last)&&lastDone?nextPool(last):[];
   const pool=lastDone?carry.concat(waiting):[];
   const m=cur();
-  const noMore=!!m&&(m.final||(complete(m)&&nextPool(m).length+S.late.length<=finalAt()));
+  const noMore=!!m&&(isFinal(m)||(complete(m)&&nextPool(m).length+S.late.length<=finalAt()));
   let ch=null;
-  if(last&&last.final&&last.heats[0]&&last.heats[0].adv.length)ch=last.heats[0].adv[0];
-  else if(noMore&&lastDone&&pool.length===1&&!(last&&last.final))ch=pool[0];
+  if(isFinal(last)&&last.heats[0].adv.length===1)ch=last.heats[0].adv[0];
+  else if(noMore&&lastDone&&pool.length===1&&!isFinal(last))ch=pool[0];
   const finalNext=noMore&&pool.length<=S.cfg.size;
   // Draw only when new knockouts have arrived, or the main bracket is wrapping up and the round shrinks the field.
   const shrinks=finalNext||shrink(pool,S.cfg.size,S.lbNextAdv).next<pool.length;
-  const canDraw=S.cfg.lb!=='off'&&lastDone&&!(last&&last.final)&&pool.length>=2&&(waiting.length>0||(noMore&&shrinks));
+  const canDraw=S.cfg.lb!=='off'&&lastDone&&!isFinal(last)&&pool.length>=2&&(waiting.length>0||(noMore&&shrinks));
   const needed=entered.size>0||waiting.length>0;
   return{fin,entered,waiting,last,lastDone,carry,pool,noMore,champ:ch,finalNext,canDraw,needed,shrinks};
 }
@@ -593,7 +595,7 @@ function bracketHTML(){
   else h+=`<div class="tname"><h2>${esc(S.name)}</h2><span class="muted mono" style="font-size:13px">${esc(fmtDate(S.date))}${RO?' · view only':''}</span>${RO&&canWrite?'<button class="small" data-act="takeover">Edit this cup</button>':''}</div>`;
   const c=champ();
   if(RO&&!c)h+=`<div class="banner"><p><strong>Live.</strong> This page updates by itself every 10 seconds. Only the host can change results.</p></div>`;
-  if(c)h+=`<div class="champwrap">${champCol(c,'Champion',RO?'':'Open the Final to change the order.')}</div>`;
+  if(c)h+=`<div class="champwrap">${champCol(c,'Champion',RO?'':'Open the Final to change the winner.')}</div>`;
   h+=roundsHTML('main');
   if(S.cfg.lb!=='off')h+=lbHTML();
   h+=rosterHTML();
@@ -605,23 +607,23 @@ function selRound(b){const n=BR(b).length-1,v=ui.sel[b];return v==null||v>n?n:v}
 function roundsHTML(b){
   const arr=BR(b);if(!arr.length)return'';
   const sel=selRound(b),last=arr.length-1;
-  const tabs=arr.map((r,i)=>{const live=i===last&&!(r.final&&r.heats[0]&&r.heats[0].adv.length);
+  const tabs=arr.map((r,i)=>{const live=i===last&&!(isFinal(r)&&r.heats[0].adv.length===1);
     return `<button class="rtab${i===sel?' on':''}" role="tab" aria-selected="${i===sel}" data-act="rsel" data-b="${b}" data-i="${i}">${roundTitle(b,r,i)}${live?'<span class="dot" title="Being played now"></span>':''}</button>`}).join('');
   return `<div class="roundtabs" role="tablist" aria-label="${b==='lb'?'Losers bracket rounds':'Rounds'}">${tabs}</div><div id="${b==='lb'?'lbrounds':'rounds'}">${roundCol(b,arr[sel],sel)}</div>`;
 }
 function roundCol(b,r,ri){
   const arr=BR(b),isCur=ri===arr.length-1,live=isCur&&!RO,n=poolSize(r);
-  const adv=r.final?0:nextPool(r).length;
-  const meta=r.final?`${n} racers · ${S.cfg.races} race${S.cfg.races>1?'s':''}`:`${n} racers · ${r.heats.length} game${r.heats.length>1?'s':''}${adv?` · ${adv} advancing`:''}`;
+  const adv=isFinal(r)?0:nextPool(r).length;
+  const meta=isFinal(r)?`${n} racers · ${S.cfg.races} race${S.cfg.races>1?'s':''}`:`${n} racers · ${r.heats.length} game${r.heats.length>1?'s':''}${adv?` · ${adv} advancing`:''}`;
   let ctl='';
   if(live&&!r.final)ctl=`<div class="row"><button class="small" data-act="reshuffle" data-b="${b}">Reshuffle games</button></div>`;
-  else if(live&&r.final&&n>1)ctl=`<div class="row"><button class="small" data-act="reshuffle" data-b="${b}">Redraw final</button></div>`;
+  else if(live&&r.final&&n>1)ctl=`<div class="row"><button class="small" data-act="reshuffle" data-b="${b}">Redraw ${isFinal(r)?'final':'game'}</button></div>`;
   else if(!isCur&&!RO)ctl=`<div class="row"><button class="small" data-act="reopen" data-b="${b}" data-r="${ri}">Reopen this round</button></div>`;
   let heats=r.heats.map((h,hi)=>heatCard(b,r,ri,h,hi,live)).join('');
   if(live&&!r.final){const ng=`<div class="newgame" data-b="${b}">Drop a player here to start Game ${r.heats.length+1}</div>`;heats=ng+heats+ng}
   heats=`<div class="games">${heats}</div>`;
   let foot='';
-  if(isCur&&!r.final){
+  if(isCur&&!isFinal(r)){
     if(!complete(r))foot=`<div class="waiting">${RO?'Results for this round are still coming in.':'Tap who advances in every game to finish the round.'}</div>`;
     else if(b==='main')foot=RO?`<div class="waiting">Waiting for the host to draw the next round.</div>`:nextPanel(r);
   }
@@ -630,16 +632,15 @@ function roundCol(b,r,ri){
 function heatCard(b,r,ri,h,hi,live){
   const t=target(r,h),got=h.adv.length,isCur=ri===BR(b).length-1,key=`${b}:${ri}:${hi}`;
   let ct;
-  if(r.final)ct=got?`<span class="ct ok">${got} placed</span>`:`<span class="ct">no result</span>`;
-  else if(live)ct=`<label class="ct advsel">Advance <select data-act="hadv" data-b="${b}" data-r="${ri}" data-h="${hi}" aria-label="How many advance from ${heatLabel(r,hi,b)}">${Array.from({length:maxAdv(h)},(_,k)=>`<option${k+1===t?' selected':''}>${k+1}</option>`).join('')}</select></label>`;
-  else ct=`<span class="ct ${got?'ok':''}">${got} advanced</span>`;
+  if(live)ct=`<label class="ct advsel">Advance <select data-act="hadv" data-b="${b}" data-r="${ri}" data-h="${hi}" aria-label="How many advance from ${heatLabel(r,hi,b)}">${Array.from({length:maxAdv(h)},(_,k)=>`<option${k+1===t?' selected':''}>${k+1}</option>`).join('')}</select></label>`;
+  else ct=isFinal(r)?`<span class="ct ok">${got?'Winner':'No result'}</span>`:`<span class="ct ${got?'ok':''}">${got} advanced</span>`;
   let cupl='';
   if(live)cupl=`<div class="cupline"><input data-act="cup" data-b="${b}" data-r="${ri}" data-h="${hi}" value="${esc(h.cup||'')}" maxlength="40" placeholder="Cup played (optional)" aria-label="Cup played in ${heatLabel(r,hi,b)}" autocomplete="off"></div>`;
   else if(h.cup)cupl=`<span class="cup">${esc(h.cup)}</span>`;
-  const hint=live?`<div class="hint">${r.final?'Tap racers in finishing order: winner first.':'Tap everyone who advances. Drag ⠿ to move a player; drop on a player to swap.'}</div>`:'';
+  const hint=live?`<div class="hint">${isFinal(r)?'Tap the winner. If more than one racer should move on, tap them too (or raise Advance) and this becomes another round.':r.final?'This game sends more than one racer on, so another round follows. Set Advance to 1 to make it the Final.':'Tap everyone who advances. Drag ⠿ to move a player; drop on a player to swap.'}</div>`:'';
   const chips=h.players.map(id=>{
     const rank=h.adv.indexOf(id),on=rank>=0,p=P(id);
-    const badge=on?(r.final?ord(rank+1):'ADV'):(isCur?'':'OUT');
+    const badge=on?(isFinal(r)?'WIN':'ADV'):(isCur?'':'OUT');
     let mv='';
     if(live){
       const opts=r.final?'':r.heats.map((x,j)=>(j===hi||x.players.length>=S.cfg.size)?'':`<option value="h:${j}">Move to ${heatLabel(r,j,b)}</option>`).join('')+`<option value="new">Move to a new game</option>`;
@@ -658,7 +659,7 @@ function nextPanel(r){
   const late=S.late.length?`<div class="muted">Includes ${S.late.length} late arrival${S.late.length>1?'s':''}.</div>`:'';
   if(m<=fa){
     let extra='',block=false;
-    if(S.cfg.lb==='second'){const st=lbState();if(st.needed){if(st.champ)extra=`<div>${esc(P(st.champ).name)} takes the last seat from the losers bracket.</div>`;else{extra='<span class="warn">Finish the losers bracket first. Its winner takes the last seat in the Final.</span>';block=true}}}
+    if(S.cfg.lb==='second'&&!S.rounds.some(x=>x.lbJoin)){const st=lbState();if(st.needed){if(st.champ)extra=`<div>${esc(P(st.champ).name)} takes the last seat from the losers bracket.</div>`;else{extra='<span class="warn">Finish the losers bracket first. Its winner takes the last seat in the Final.</span>';block=true}}}
     return `<div class="next"><div><strong>${m} racer${m>1?'s':''} advance.</strong> Next up: the Final.</div>${late}${extra}<button class="primary" data-act="draw"${block?' disabled':''}>Draw the Final</button></div>`;
   }
   const hs=heatSizes(m,S.cfg.size);
@@ -701,16 +702,16 @@ function champCol(c,label,sub){
 function statusOf(p,st){
   const c=champ();
   if(c&&c[0]===p.id)return['Champion','gold'];
-  if(st&&st.champ===p.id&&!(cur()&&cur().final&&cur().heats[0].players.includes(p.id)))return['LB winner','gold'];
+  if(st&&st.champ===p.id&&!(isFinal(cur())&&cur().heats[0].players.includes(p.id)))return['LB winner','gold'];
   const r=cur();
   if(r){const hi=r.heats.findIndex(h=>h.players.includes(p.id));
-    if(hi>=0){if(c)return[r.heats[hi].adv.includes(p.id)?ord(r.heats[hi].adv.indexOf(p.id)+1):'Finalist',''];return[r.final?'Final':'Game '+(hi+1),'live']}}
+    if(hi>=0){if(c)return['Finalist',''];return[isFinal(r)?'Final':'Game '+(hi+1),'live']}}
   const l=curOf('lb');
-  if(l){const hi=l.heats.findIndex(h=>h.players.includes(p.id));if(hi>=0&&!(l.final&&l.heats[0].adv.length))return[l.final?'LB final':'LB game '+(hi+1),'live']}
+  if(l){const hi=l.heats.findIndex(h=>h.players.includes(p.id));if(hi>=0&&!(isFinal(l)&&l.heats[0].adv.length===1))return[isFinal(l)?'LB final':'LB game '+(hi+1),'live']}
   if(S.late.includes(p.id))return['Next round','live'];
   if(st&&(st.waiting.includes(p.id)||st.carry.includes(p.id)))return['LB waiting','live'];
   if(p.out)return['Withdrawn',''];
-  for(let i=S.rounds.length-1;i>=0;i--)if(S.rounds[i].heats.some(h=>h.players.includes(p.id)))return[`Out in ${S.rounds[i].final?'Final':'R'+(i+1)}`,''];
+  for(let i=S.rounds.length-1;i>=0;i--)if(S.rounds[i].heats.some(h=>h.players.includes(p.id)))return[`Out in ${isFinal(S.rounds[i])?'Final':'R'+(i+1)}`,''];
   return['Not drawn',''];
 }
 function rosterHTML(){
@@ -749,7 +750,7 @@ function tvHTML(){
   let h=bar(S.name,`${esc(fmtDate(S.date))} · ${roundTitle('main',r,ri)}`);
   h+=`<div class="tvgrid">${r.heats.map((x,i)=>tvHeat('main',r,x,i)).join('')}</div>`;
   const l=curOf('lb');
-  if(st&&l&&!(l.final&&l.heats[0].adv.length)){
+  if(st&&l&&!(isFinal(l)&&l.heats[0].adv.length===1)){
     h+=`<h2 class="tvh" style="margin-top:28px">Losers bracket · ${roundTitle('lb',l,S.lb.length-1)}</h2><div class="tvgrid">${l.heats.map((x,i)=>tvHeat('lb',l,x,i)).join('')}</div>`;
   }
   return h;
@@ -757,7 +758,7 @@ function tvHTML(){
 function tvHeat(b,r,h,i){
   const has=anyRes(h),t=has?totals(h):null;
   const order=has?h.players.slice().sort((a,b2)=>t[b2].p-t[a].p):h.players;
-  const rows=order.map(id=>{const k=h.adv.indexOf(id),on=k>=0;return `<div class="tvrow${on?' on':''}"><span class="n">${esc(P(id).name)}</span>${has?`<span class="p">${t[id].p}</span>`:''}${on?`<span class="tag">${r.final?ord(k+1):'ADV'}</span>`:''}</div>`}).join('');
+  const rows=order.map(id=>{const k=h.adv.indexOf(id),on=k>=0;return `<div class="tvrow${on?' on':''}"><span class="n">${esc(P(id).name)}</span>${has?`<span class="p">${t[id].p}</span>`:''}${on?`<span class="tag">${isFinal(r)?'WIN':'ADV'}</span>`:''}</div>`}).join('');
   const done=has?Math.min(...h.players.map(id=>t[id].n)):0;
   return `<div class="tvheat"><div class="hd"><h3>${heatLabel(r,i,b)}</h3>${has?`<span class="tvsub">Race ${Math.min(done+1,S.cfg.races)} of ${S.cfg.races}</span>`:''}</div>${h.cup?`<span class="cup">${esc(h.cup)}</span>`:''}${rows}</div>`;
 }
@@ -793,7 +794,7 @@ function stats(){
     const inCup=new Set();
     (t.rounds||[]).concat(t.lb||[]).forEach(r=>(r.heats||[]).forEach(h=>(h.players||[]).forEach(id=>{
       const nm=byId[id];if(!nm)return;const s=get(nm);inCup.add(s);
-      if(r.final)return;
+      if(r.final&&r.heats[0]&&Math.min(r.heats[0].n||1,Math.max(1,Math.min(3,r.heats[0].players.length-1)))===1)return;
       if((h.adv||[]).includes(id))s.adv++;else s.dq++;
     })));
     inCup.forEach(s=>s.played++);
@@ -968,14 +969,18 @@ function signupPanelHTML(compact){
   return `<div class="sigpanel"><div class="sigbody">${qr}${info}</div></div>`;
 }
 
-// After a draw, put Game 1 at the top of the screen, just under the sticky round buttons.
-function scrollToFirstGame(b){
+// Scroll a game so its top sits just under the sticky round buttons.
+const calm=()=>window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function scrollToGame(b,hi,smooth){
   requestAnimationFrame(()=>{
-    const wrap=document.getElementById(b==='lb'?'lbrounds':'rounds');const g=wrap&&wrap.querySelector('.heat');if(!g)return;
+    const wrap=document.getElementById(b==='lb'?'lbrounds':'rounds');if(!wrap)return;
+    const g=hi==null?wrap.querySelector('.heat'):wrap.querySelector(`.heat[data-hi="${hi}"]`);if(!g)return;
     const tabs=wrap.previousElementSibling&&wrap.previousElementSibling.classList.contains('roundtabs')?wrap.previousElementSibling.offsetHeight:0;
-    window.scrollTo({top:Math.max(0,g.getBoundingClientRect().top+window.scrollY-tabs-8)});
+    window.scrollTo({top:Math.max(0,g.getBoundingClientRect().top+window.scrollY-tabs-8),behavior:smooth&&!calm()?'smooth':'auto'});
   });
 }
+// After a draw, Game 1 goes to the top.
+const scrollToFirstGame=b=>scrollToGame(b,null,false);
 function heatAt(el){const r=BR(el.dataset.b)[+el.dataset.r];return[r,r.heats[+el.dataset.h]]}
 
 /* Moving players between games. A moved player loses their race results and advance mark in the old game. */
@@ -1085,14 +1090,15 @@ document.addEventListener('click',e=>{
     case'start':start();break;
     case'paste':{const lines=$('#s-paste').value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean);if(lines.length<2){toast('Paste at least 2 names');break}draft.names=lines.slice(0,128);draft.count=draft.names.length;saveDraft();render();break}
     case'pick':{const [r,h]=heatAt(el);
-      if(!r.final&&!h.adv.includes(pid)&&h.players.length>1&&h.adv.length+1>=h.players.length){toast('At least one player in each game has to be knocked out.');break}
-      commit(()=>{const i=h.adv.indexOf(pid);if(i>=0)h.adv.splice(i,1);else h.adv.push(pid);if(!r.final&&h.adv.length)h.n=Math.min(h.adv.length,3)});
-      if(el.dataset.b==='main'){const c=champ();if(c&&r.final&&c[0]===pid&&h.adv.length===1)toast(`${P(pid).name} wins the cup`,true)}break}
+      if(!h.adv.includes(pid)&&h.players.length>1&&h.adv.length+1>=h.players.length){toast('At least one player in each game has to be knocked out.');break}
+      commit(()=>{const i=h.adv.indexOf(pid);if(i>=0)h.adv.splice(i,1);else h.adv.push(pid);if(h.adv.length)h.n=Math.min(h.adv.length,3);else if(r.final)delete h.n});
+      if(!isFinal(r))scrollToGame(el.dataset.b,+el.dataset.h,true);
+      if(el.dataset.b==='main'){const c=champ();if(c&&c[0]===pid)toast(`${P(pid).name} wins the cup`,true);else if(r.final&&!isFinal(r)&&h.adv.length===2&&h.adv.includes(pid))toast('More than one racer is moving on, so this is now a regular round.',true)}break}
     case'reshuffle':{const b=el.dataset.b,arr=BR(b),r=arr[arr.length-1];
       commit(()=>{const nr=makeRound(r.heats.flatMap(h=>h.players),r.adv,r.final,r);if(r.fromMain!==undefined)nr.fromMain=r.fromMain;arr[arr.length-1]=nr},'Games reshuffled');break}
     case'draw':{const r=cur();let pool=nextPool(r).concat(S.late);const fin=pool.length<=finalAt();
-      if(fin&&S.cfg.lb==='second'){const st=lbState();if(st.champ&&!pool.includes(st.champ))pool=pool.concat(st.champ)}
-      ui.sel.main=null;commit(()=>{S.late=[];S.rounds.push(makeRound(pool,S.nextAdv,fin))},fin?'Final drawn':`Round ${S.rounds.length+1} drawn`);scrollToFirstGame('main');break}
+      let joined=null;if(fin&&S.cfg.lb==='second'&&!S.rounds.some(x=>x.lbJoin)){const st=lbState();if(st.champ&&!pool.includes(st.champ)){pool=pool.concat(st.champ);joined=st.champ}}
+      ui.sel.main=null;commit(()=>{S.late=[];const nr=makeRound(pool,S.nextAdv,fin);if(joined)nr.lbJoin=joined;S.rounds.push(nr)},fin?'Final drawn':`Round ${S.rounds.length+1} drawn`);scrollToFirstGame('main');break}
     case'lbdraw':{const st=lbState();if(!st.canDraw)break;
       ui.sel.lb=null;commit(()=>{const r=makeRound(st.pool,S.lbNextAdv,st.finalNext);r.fromMain=st.fin;S.lb.push(r)},st.finalNext?'Losers final drawn':`LB Round ${S.lb.length+1} drawn`);scrollToFirstGame('lb');break}
     case'reopen':{const ri=+el.dataset.r,b=el.dataset.b;ui.sel={main:null,lb:null};
