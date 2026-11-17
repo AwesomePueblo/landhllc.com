@@ -969,14 +969,18 @@ function signupPanelHTML(compact){
   return `<div class="sigpanel"><div class="sigbody">${qr}${info}</div></div>`;
 }
 
-// After a draw, put Game 1 at the top of the screen, just under the sticky round buttons.
-function scrollToFirstGame(b){
+// Scroll a game so its top sits just under the sticky round buttons.
+const calm=()=>window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function scrollToGame(b,hi,smooth){
   requestAnimationFrame(()=>{
-    const wrap=document.getElementById(b==='lb'?'lbrounds':'rounds');const g=wrap&&wrap.querySelector('.heat');if(!g)return;
+    const wrap=document.getElementById(b==='lb'?'lbrounds':'rounds');if(!wrap)return;
+    const g=hi==null?wrap.querySelector('.heat'):wrap.querySelector(`.heat[data-hi="${hi}"]`);if(!g)return;
     const tabs=wrap.previousElementSibling&&wrap.previousElementSibling.classList.contains('roundtabs')?wrap.previousElementSibling.offsetHeight:0;
-    window.scrollTo({top:Math.max(0,g.getBoundingClientRect().top+window.scrollY-tabs-8)});
+    window.scrollTo({top:Math.max(0,g.getBoundingClientRect().top+window.scrollY-tabs-8),behavior:smooth&&!calm()?'smooth':'auto'});
   });
 }
+// After a draw, Game 1 goes to the top.
+const scrollToFirstGame=b=>scrollToGame(b,null,false);
 function heatAt(el){const r=BR(el.dataset.b)[+el.dataset.r];return[r,r.heats[+el.dataset.h]]}
 
 /* Moving players between games. A moved player loses their race results and advance mark in the old game. */
@@ -1088,6 +1092,7 @@ document.addEventListener('click',e=>{
     case'pick':{const [r,h]=heatAt(el);
       if(!h.adv.includes(pid)&&h.players.length>1&&h.adv.length+1>=h.players.length){toast('At least one player in each game has to be knocked out.');break}
       commit(()=>{const i=h.adv.indexOf(pid);if(i>=0)h.adv.splice(i,1);else h.adv.push(pid);if(h.adv.length)h.n=Math.min(h.adv.length,3);else if(r.final)delete h.n});
+      if(!isFinal(r))scrollToGame(el.dataset.b,+el.dataset.h,true);
       if(el.dataset.b==='main'){const c=champ();if(c&&c[0]===pid)toast(`${P(pid).name} wins the cup`,true);else if(r.final&&!isFinal(r)&&h.adv.length===2&&h.adv.includes(pid))toast('More than one racer is moving on, so this is now a regular round.',true)}break}
     case'reshuffle':{const b=el.dataset.b,arr=BR(b),r=arr[arr.length-1];
       commit(()=>{const nr=makeRound(r.heats.flatMap(h=>h.players),r.adv,r.final,r);if(r.fromMain!==undefined)nr.fromMain=r.fromMain;arr[arr.length-1]=nr},'Games reshuffled');break}
