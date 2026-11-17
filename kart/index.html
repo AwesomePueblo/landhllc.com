@@ -240,6 +240,10 @@ body.tv .wrap{max-width:none;padding-block:16px 24px}
 .tvchamp .who{font-family:var(--display);font-size:clamp(44px,8vw,120px);line-height:1;margin:14px 0;word-break:break-word}
 .tvchamp .pod{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 40px;font-size:clamp(18px,2.4vw,32px)}
 @media (max-width:480px){table.lb .lg{display:none}table.lb .sh{display:inline}table.lb{font-size:13px}table.lb th,table.lb td{padding:8px 4px}table.lb th{font-size:10px;letter-spacing:.02em;white-space:normal}table.lb td.rank{width:22px}}
+.support{margin-top:40px;text-align:center;font-size:13px;color:var(--muted)}
+.support a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.support a:hover{color:var(--ink)}
+body.tv .support{display:none}
 /* App feel on phones: no double-tap zoom, and text boxes at 16px so iPhone never zooms in when one is tapped. */
 html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (pointer:coarse){input,select,textarea{font-size:16px!important}}
@@ -269,6 +273,7 @@ html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:10
   </nav>
   <div id="hostpanel"></div>
   <div id="app"></div>
+  <p class="support">Enjoying Kart Cup? <a href="https://venmo.com/u/lukehigg" target="_blank" rel="noopener">Support it on Venmo</a></p>
 </div>
 <datalist id="known-names"></datalist>
 <div id="toast" hidden></div>

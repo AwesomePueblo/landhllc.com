@@ -83,6 +83,10 @@ body.display .wrap{max-width:none;padding:3vw}
 .tv .count{font-family:var(--display);font-size:clamp(28px,3.4vw,56px);margin:0 0 16px}
 .tv .names{justify-content:flex-start;gap:10px}
 .tv .names span{font-size:clamp(16px,1.6vw,26px);padding:8px 16px}
+.support{margin-top:40px;text-align:center;font-size:13px;color:var(--muted)}
+.support a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.support a:hover{color:var(--ink)}
+body.display .support{display:none}
 /* App feel on phones: no double-tap zoom, and text boxes at 16px so iPhone never zooms in when one is tapped. */
 html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (pointer:coarse){input,select,textarea{font-size:16px!important}}
@@ -91,6 +95,7 @@ html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:10
 <body>
 <div class="checker" aria-hidden="true"></div>
 <main class="wrap" id="app"></main>
+<p class="support" style="padding-inline:16px;margin:0 0 32px">Enjoying Kart Cup? <a href="https://venmo.com/u/lukehigg" target="_blank" rel="noopener">Support it on Venmo</a></p>
 <script src="/kart/qrcode.js"></script>
 <script>
 (function(){
