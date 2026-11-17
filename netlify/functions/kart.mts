@@ -139,7 +139,7 @@ async function joinRoute(req: Request, s: ReturnType<typeof store>) {
 
   if (req.method === "GET") {
     const entries = await listEntries(s, session.sid);
-    return json({ open: session.open, started: session.closedReason === "started", count: entries.length, names: entries.map((e) => e.name) });
+    return json({ open: session.open, started: session.closedReason === "started", openedAt: session.openedAt, count: entries.length, names: entries.map((e) => e.name) });
   }
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   if (!session.open || await cupStartedSince(s, session)) {
