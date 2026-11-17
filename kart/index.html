@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#eef0f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
 <title>Kart Cup Bracket - L and H LLC</title>
-<meta name="description" content="Run a kart racing tournament: random 4-player games, points per race, a losers bracket, TV mode, and a history and leaderboard of every cup.">
+<meta name="description" content="Run a kart racing tournament: random 4-player games, a losers bracket, TV mode, and a history and leaderboard of every cup.">
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -130,6 +133,17 @@ details[open] summary{margin-bottom:10px}
 .chip.drop{outline:3px solid var(--flag);outline-offset:1px}
 .newgame{border:2px dashed var(--line);border-radius:10px;padding:16px 12px;text-align:center;font-size:13px;color:var(--muted)}
 .newgame.drop{border-color:var(--accent);color:var(--ink);background:var(--surface)}
+.sigpanel{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.sigbar{display:block;margin-bottom:16px;background:var(--flag-tint);border-color:var(--flag)}
+.sigbar summary{font-weight:700}
+.sigbar[open] .sigbody{margin-top:12px}
+.sigbody{display:flex;flex-wrap:wrap;gap:16px;align-items:center;width:100%}
+.sigqr{background:#fff;border-radius:10px;padding:6px;flex:none}
+.sigqr svg{display:block;width:150px;height:150px}
+.siginfo{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.sigcode{font:700 40px/1 var(--mono);letter-spacing:.15em;color:var(--accent)}
+a.btn{display:inline-block;text-decoration:none}
+a.btn.small{padding:7px 10px;font-size:13px}
 .dragghost{position:fixed;left:0;top:0;z-index:60;pointer-events:none;background:var(--ink);color:var(--bg);font-weight:700;padding:8px 12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
 body.dragging,body.dragging *{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .chip select.mv{width:34px;padding:4px;margin-right:4px;border:0;background:transparent;font-size:16px;color:var(--muted);appearance:none;-webkit-appearance:none;text-align:center;cursor:pointer}
@@ -164,7 +178,7 @@ body.dragging,body.dragging *{user-select:none;-webkit-user-select:none;cursor:g
 .empty{padding:28px;text-align:center;color:var(--muted);border:2px dashed var(--line);border-radius:12px}
 
 .tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
-table.lb{border-collapse:collapse;width:100%;min-width:640px;font-size:14px}
+table.lb{border-collapse:collapse;width:100%;min-width:520px;font-size:14px}
 table.lb th,table.lb td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 table.lb th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;cursor:pointer;user-select:none;white-space:nowrap}
 table.lb th[aria-sort]{color:var(--ink)}
@@ -178,23 +192,11 @@ table.lb th.rank{text-align:left;cursor:default}
 #toast button{background:transparent;color:var(--flag);border-color:transparent}
 @media (prefers-reduced-motion:no-preference){.chip,.heat{transition:background .15s,border-color .15s}}
 
-/* Cups, points, losers bracket, settings */
+/* Cups, losers bracket, settings */
 .cupline{display:flex;gap:6px;align-items:center;padding:0 2px}
 .cupline select{flex:1;min-width:0;padding:6px 8px;font-size:13px}
 .cupline button{padding:6px 9px;font-size:12px}
 .cup{font:700 12px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink);background:var(--flag-tint);border:1px solid var(--flag);border-radius:6px;padding:4px 8px;align-self:flex-start}
-.chip .pts{margin-left:auto;font:700 12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-.chip.on .pts{color:var(--go)}
-.restoggle{align-self:flex-start;background:transparent;border:0;color:var(--muted);font-size:12px;padding:4px;text-decoration:underline;text-underline-offset:3px}
-.res{overflow-x:auto}
-.res table{border-collapse:collapse;width:100%;font-size:12px}
-.res th,.res td{padding:3px 2px;text-align:center;font-variant-numeric:tabular-nums}
-.res th{font:700 10px var(--mono);color:var(--muted);text-transform:uppercase}
-.res td:first-child,.res th:first-child{text-align:left;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:6px}
-.res td.tot{font:700 13px var(--mono)}
-.res select{padding:3px 2px;font-size:13px;width:40px;text-align:center}
-.res select.dup{border-color:var(--accent);color:var(--accent)}
-.res .note{font-size:11px;color:var(--muted);margin-top:4px}
 .lbsec{margin-top:26px;display:flex;flex-direction:column;gap:12px}
 .lbsec .colhead{background:var(--muted)}
 .lbsec .col.past .colhead{background:var(--surface-2)}
@@ -232,7 +234,7 @@ body.tv .wrap{max-width:none;padding-block:16px 24px}
   <header class="top">
     <div>
       <h1>Kart Cup <span>Bracket</span></h1>
-      <p class="tagline">Random 4-player games, race for points, pick who advances, repeat until one racer is left.</p>
+      <p class="tagline">Random 4-player games, pick who advances, repeat until one racer is left.</p>
     </div>
     <div class="actions">
       <span id="savestate" class="savestate" role="status"></span>
@@ -253,10 +255,11 @@ body.tv .wrap{max-width:none;padding-block:16px 24px}
 <datalist id="known-names"></datalist>
 <div id="toast" hidden></div>
 
+<script src="/kart/qrcode.js"></script>
 <script>
 (function(){
 const API='/api/kart';
-const LKEY='kart-cup-current-v2', HKEY='kart-cup-host-key', TKEY='kart-cup-host-token';
+const LKEY='kart-cup-current-v2', HKEY='kart-cup-host-key', TKEY='kart-cup-host-token', DKEY='kart-cup-draft', SKEY='kart-cup-signup-seen';
 const LET='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const SIZES=[2,3,4]; // a Switch game holds 4 players at most
 const DEF_POINTS=[15,12,10,9,8,7,6,5,4,3,2,1];
@@ -300,7 +303,7 @@ function example(){
   const d=blankDoc();d.example=true;d.name='Example cup';
   d.players=['Avery','Blake','Casey','Devon','Emerson','Finley','Harper','Jordan','Kendall','Logan','Morgan','Quinn'].map(n=>({id:uid(),name:n,out:false}));
   S=d;const r=makeRound(d.players.map(p=>p.id),2,false);
-  const h=r.heats[0];[[1,2,1,3],[3,1,2,1],[2,3,4,2],[4,4,3,4]].forEach((pl,i)=>h.res[h.players[i]]=pl);autoAdvance(r,h);
+  const h=r.heats[0];h.adv=[h.players[2],h.players[0]];
   d.rounds=[r];return d;
 }
 function docOf(){const c=champ(),lc=S.cfg.lb!=='off'?lbState().champ:null;
@@ -483,7 +486,7 @@ function openSetup(){
   while(names.length<count)names.push('');
   const base=(S.example||RO)?defCfg():Object.assign(defCfg(),JSON.parse(JSON.stringify(S.cfg)));
   draft={name:'Kart Night '+fmtDate(today()),date:today(),count,names,cfg:base};
-  view='setup';if(location.hash!=='#bracket')history.replaceState(null,'','#bracket');render();
+  view='setup';saveDraft();if(location.hash!=='#bracket')history.replaceState(null,'','#bracket');render();
 }
 function opt(arr,v,labels){return arr.map(x=>`<option value="${x}"${String(x)===String(v)?' selected':''}>${labels?esc(labels[x]):x}</option>`).join('')}
 function optionFields(px,c,withShape){
@@ -493,7 +496,6 @@ function optionFields(px,c,withShape){
       <label class="f" for="${px}-races">Races per game<select id="${px}-races" data-k="races">${opt([1,2,3,4,5,6,8],c.races)}</select></label>
       <label class="f" for="${px}-elim">Elimination<select id="${px}-elim" data-k="elim">${opt(['single','double'],c.lb==='second'?'double':'single',{single:'Single elimination',double:'Double elimination'})}</select></label>
       ${c.lb==='second'?`<label class="f">Losers bracket<span class="checkrow" style="font-size:13px">Required. Its winner joins the Final.</span></label>`:`<label class="f" for="${px}-consol">Losers bracket<span class="checkrow"><input type="checkbox" id="${px}-consol" data-k="consol"${c.lb==='consolation'?' checked':''}>Consolation bracket (never rejoins)</span></label>`}
-      <label class="f" for="${px}-points">Points for 1st, 2nd, 3rd…<input id="${px}-points" data-k="points" value="${esc(c.points.join(', '))}" inputmode="numeric" autocomplete="off"></label>
       <label class="f" for="${px}-norematch">Rematches<span class="checkrow"><input type="checkbox" id="${px}-norematch" data-k="noRematch"${c.noRematch?' checked':''}>Avoid repeat matchups</span></label>
 `;
 }
@@ -533,6 +535,7 @@ function setupHTML(){
       <label class="f" for="s-count">How many racers<input id="s-count" type="number" min="2" max="128" value="${d.count}"></label>
       ${optionFields('s',c,true)}
     </div>
+    ${signupPanelHTML(false)}
     <div class="plan">${plan}</div>
     <p class="muted" style="margin:0;font-size:13px">Use the same spelling for a person every time so the leaderboard links their results. Past names are suggested as you type.</p>
     <div class="names">${names}</div>
@@ -547,7 +550,8 @@ function setupHTML(){
     </div>
   </section>`;
 }
-function setCount(n){const d=draft;n=Math.max(2,Math.min(128,n|0||2));d.count=n;while(d.names.length<n)d.names.push('');d.names.length=n;render()}
+function saveDraft(){lsSet(DKEY,draft?JSON.stringify(draft):null)}
+function setCount(n){const d=draft;n=Math.max(0,Math.min(128,n|0||2));d.count=n;while(d.names.length<n)d.names.push('');d.names.length=n;saveDraft();render()}
 function start(){
   const d=draft;const seen={};
   undoStack=[];RO=false;clearInterval(pollTimer);
@@ -558,19 +562,21 @@ function start(){
   doc.cfg=d.cfg;doc.nextAdv=d.cfg.adv;doc.lbNextAdv=d.cfg.adv;
   doc.players=d.names.map((n,i)=>{let nm=n.trim()||`Racer ${i+1}`;const k=nm.toLowerCase();if(seen[k])nm+=' '+(++seen[k]);else seen[k]=1;return{id:uid(),name:nm,out:false}});
   S=doc;S.rounds=[makeRound(S.players.map(p=>p.id),d.cfg.adv,S.players.length<=finalAt(d.cfg))];
-  draft=null;view='bracket';
+  sig.entries.forEach(e=>{if(!sigSeen.ids.includes(e.id))sigSeen.ids.push(e.id)});lsSet(SKEY,JSON.stringify(sigSeen));
+  draft=null;saveDraft();view='bracket';
   saveLocal();queueRemote();render();toast('Round 1 drawn');
 }
 
 /* ---------- Bracket view ---------- */
 function bracketHTML(){
   let h='';
-  if(S.example)h+=`<div class="banner ex"><p><strong>Example tournament.</strong> These 12 names are placeholders and nothing here is saved. Tap racers or enter race places to try it, then set up your own.</p><button data-act="new" class="primary small">Set up my tournament</button></div>`;
+  if(S.example)h+=`<div class="banner ex"><p><strong>Example tournament.</strong> These 12 names are placeholders and nothing here is saved. Tap racers to try it, then set up your own.</p><button data-act="new" class="primary small">Set up my tournament</button></div>`;
   else h+=`<div class="tname"><h2>${esc(S.name)}</h2><span class="muted mono" style="font-size:13px">${esc(fmtDate(S.date))}${RO?' · view only':''}</span>${RO&&canWrite?'<button class="small" data-act="takeover">Edit this cup</button>':''}</div>`;
   const c=champ();
   if(RO&&!c)h+=`<div class="banner"><p><strong>Live.</strong> This page updates by itself every 10 seconds. Only the host can change results.</p></div>`;
   if(c)h+=`<div class="banner win"><p><strong>${esc(P(c[0]).name)}</strong> wins the cup.</p>${RO?'':'<span class="muted" style="font-size:13px">Tap names in the Final to change the order.</span>'}</div>`;
   h+=`<div class="rounds" id="rounds">${S.rounds.map((r,i)=>roundCol('main',r,i)).join('')}${c?champCol(c,'Champion'):''}</div>`;
+  if(!RO&&!c&&!S.example&&sig.session&&sig.session.open)h+=signupPanelHTML(true);
   if(S.cfg.lb!=='off')h+=lbHTML();
   h+=rosterHTML();
   if(!RO)h+=settingsHTML();
@@ -588,7 +594,7 @@ function roundCol(b,r,ri){
   if(live&&!r.final){const ng=`<div class="newgame" data-b="${b}">Drop a player here to start Game ${r.heats.length+1}</div>`;heats=ng+heats+ng}
   let foot='';
   if(isCur&&!r.final){
-    if(!complete(r))foot=`<div class="waiting">${RO?'Results for this round are still coming in.':'Enter race places or tap advancers in every game to finish the round.'}</div>`;
+    if(!complete(r))foot=`<div class="waiting">${RO?'Results for this round are still coming in.':'Tap who advances in every game to finish the round.'}</div>`;
     else if(b==='main')foot=RO?`<div class="waiting">Waiting for the host to draw the next round.</div>`:nextPanel(r);
   }
   return `<section class="col${isCur?'':' past'}"><div class="colhead"><h3>${roundTitle(b,r,ri)}</h3><span class="meta">${meta}</span>${ctl}</div>${heats}${foot}</section>`;
@@ -602,8 +608,7 @@ function heatCard(b,r,ri,h,hi,live){
   let cupl='';
   if(live)cupl=`<div class="cupline"><input data-act="cup" data-b="${b}" data-r="${ri}" data-h="${hi}" value="${esc(h.cup||'')}" maxlength="40" placeholder="Cup played (optional)" aria-label="Cup played in ${heatLabel(r,hi,b)}" autocomplete="off"></div>`;
   else if(h.cup)cupl=`<span class="cup">${esc(h.cup)}</span>`;
-  const has=anyRes(h),tt=has?totals(h):null;
-  const hint=live?`<div class="hint">${r.final?'Enter places below, or tap racers in finishing order.':'Enter places below, or tap everyone who advances. Drag ⠿ to move a player; drop on a player to swap.'}</div>`:'';
+  const hint=live?`<div class="hint">${r.final?'Tap racers in finishing order: winner first.':'Tap everyone who advances. Drag ⠿ to move a player; drop on a player to swap.'}</div>`:'';
   const chips=h.players.map(id=>{
     const rank=h.adv.indexOf(id),on=rank>=0,p=P(id);
     const badge=on?(r.final?ord(rank+1):'ADV'):(isCur?'':'OUT');
@@ -613,26 +618,10 @@ function heatCard(b,r,ri,h,hi,live){
       mv=`<select class="mv" data-act="move" data-b="${b}" data-p="${id}" aria-label="More for ${esc(p.name)}"><option value="">⋯</option>${opts}<option value="wd">Withdraw ${esc(p.name)}</option></select>`;
     }
     const grip=live&&!r.final?`<span class="grip" data-p="${id}" data-b="${b}" title="Drag to another game" aria-hidden="true">⠿</span>`:'';
-    return `<div class="chip${on?' on':(!isCur?' lost':'')}" data-pid="${id}">${grip}<button class="pick" data-act="pick" data-b="${b}" data-r="${ri}" data-h="${hi}" data-p="${id}"${live?'':' disabled'}><span class="badge">${badge}</span><span class="nm">${esc(p.name)}</span>${has?`<span class="pts">${tt[id].p} pts</span>`:''}</button>${mv}</div>`;
+    return `<div class="chip${on?' on':(!isCur?' lost':'')}" data-pid="${id}">${grip}<button class="pick" data-act="pick" data-b="${b}" data-r="${ri}" data-h="${hi}" data-p="${id}"${live?'':' disabled'}><span class="badge">${badge}</span><span class="nm">${esc(p.name)}</span></button>${mv}</div>`;
   }).join('');
-  const open=ui.res[key]!==undefined?ui.res[key]:(live||false);
-  const showToggle=live||has;
-  const res=showToggle?`<button class="restoggle" data-act="restoggle" data-key="${key}">${open?'Hide race results':'Race results'}</button>${open?resHTML(b,ri,hi,h,live):''}`:'';
   const full=live&&!r.final&&h.players.length>=S.cfg.size?' full':'';
-  return `<article class="heat${full}" data-b="${b}" data-hi="${hi}"><header><h3>${heatLabel(r,hi,b)}</h3>${ct}</header>${cupl}${hint}${chips||'<div class="hint">Empty game</div>'}${res}</article>`;
-}
-function resHTML(b,ri,hi,h,live){
-  const R=S.cfg.races,n=h.players.length,t=totals(h);
-  const dup=[];for(let i=0;i<R;i++){const c={};h.players.forEach(id=>{const v=(h.res[id]||[])[i];if(v)c[v]=(c[v]||0)+1});dup.push(c)}
-  const head=`<tr><th>Racer</th>${Array.from({length:R},(_,i)=>`<th>R${i+1}</th>`).join('')}<th>Pts</th></tr>`;
-  const rows=h.players.map(id=>{
-    const a=h.res[id]||[];
-    const cells=Array.from({length:R},(_,i)=>{const v=a[i]||'';
-      if(!live)return `<td>${v?ord(v):'–'}</td>`;
-      return `<td><select data-act="res" data-b="${b}" data-r="${ri}" data-h="${hi}" data-p="${id}" data-i="${i}" class="${v&&dup[i][v]>1?'dup':''}" aria-label="${esc(P(id).name)} race ${i+1} place"><option value="">–</option>${Array.from({length:Math.max(n,12)},(_,k)=>`<option value="${k+1}"${v===k+1?' selected':''}>${k+1}</option>`).join('')}</select></td>`}).join('');
-    return `<tr><td title="${esc(P(id).name)}">${esc(P(id).name)}</td>${cells}<td class="tot">${t[id].p}</td></tr>`;
-  }).join('');
-  return `<div class="res"><table>${head}${rows}</table>${live?'<div class="note">Places are within the whole race, so pick 1 to 12 (computer racers count). Points follow the cup settings. Advancers are set automatically once every race is entered.</div>':''}</div>`;
+  return `<article class="heat${full}" data-b="${b}" data-hi="${hi}"><header><h3>${heatLabel(r,hi,b)}</h3>${ct}</header>${cupl}${hint}${chips||'<div class="hint">Empty game</div>'}</article>`;
 }
 function nextPanel(r){
   const adv=nextPool(r),pool=adv.concat(S.late),m=pool.length,n=poolSize(r),fa=finalAt();
@@ -708,7 +697,7 @@ function rosterHTML(){
   return `<section class="panel roster">
     <div class="row" style="justify-content:space-between"><h2>Racers</h2><span class="muted mono" style="font-size:13px">${S.players.length} entered · ${c?'cup finished':inCur.size+' in the main bracket'}</span></div>
     ${RO?'':'<p class="muted" style="margin:0;font-size:14px">Edit a name to rename everywhere. Late arrivals take an open seat in the current round, or join the next round if every game is full. "Put back in" returns a knocked-out racer to the current round.</p>'}
-    ${(c||RO)?'':`<div class="row"><input id="add-name" list="known-names" placeholder="New racer name" autocomplete="off" style="flex:1;max-width:320px"><button data-act="add">Add racer</button></div>`}
+    ${(c||RO)?'':`<div class="row"><input id="add-name" list="known-names" placeholder="New racer name" autocomplete="off" style="flex:1;max-width:320px"><button data-act="add">Add racer</button>${canWrite&&!S.example&&!(sig.session&&sig.session.open)?'<button class="ghost" data-act="sig-open">Let late arrivals sign up</button>':''}</div>`}
     <div class="rlist">${items}</div>
   </section>`;
 }
@@ -790,7 +779,7 @@ function stats(){
 }
 const COLS=[
   {k:'name',l:'Racer'},{k:'cups',l:'Cups'},{k:'titles',l:'Titles'},{k:'finals',l:'Finals'},{k:'podiums',l:'Podiums'},
-  {k:'points',l:'Points'},{k:'wins',l:'Race wins'},{k:'avg',l:'Avg finish'},{k:'rate',l:'Advance rate'},{k:'lbTitles',l:'LB titles'}];
+  {k:'rate',l:'Advance rate'},{k:'lbTitles',l:'LB titles'}];
 function leaderboardHTML(){
   let h=`<div class="row" style="justify-content:space-between;margin-bottom:14px"><h2>Leaderboard</h2><button class="small" data-act="refresh">Refresh</button></div>`;
   if(apiOk===false)return h+`<div class="empty">The leaderboard could not be loaded. Check your connection and refresh.</div>`;
@@ -804,9 +793,9 @@ function leaderboardHTML(){
     return(b[k]-a[k])||(b.titles-a.titles)||(b.points-a.points)||a.name.localeCompare(b.name);
   });
   const head=`<tr><th class="rank" scope="col">#</th>${COLS.map(c=>`<th scope="col" data-act="sort" data-k="${c.k}"${c.k===k?' aria-sort="'+(k==='name'||k==='avg'?'ascending':'descending')+'"':''}>${c.l}</th>`).join('')}</tr>`;
-  const body=rows.map((s,i)=>`<tr><td class="rank">${i+1}</td><td>${esc(s.name)}</td><td>${s.cups}</td><td>${s.titles}</td><td>${s.finals}</td><td>${s.podiums}</td><td>${s.points}</td><td>${s.wins}</td><td>${s.avg<0?'–':s.avg.toFixed(1)}</td><td>${s.rate<0?'–':Math.round(s.rate*100)+'%'}</td><td>${s.lbTitles}</td></tr>`).join('');
+  const body=rows.map((s,i)=>`<tr><td class="rank">${i+1}</td><td>${esc(s.name)}</td><td>${s.cups}</td><td>${s.titles}</td><td>${s.finals}</td><td>${s.podiums}</td><td>${s.rate<0?'–':Math.round(s.rate*100)+'%'}</td><td>${s.lbTitles}</td></tr>`).join('');
   return h+`<div class="tablewrap"><table class="lb"><thead>${head}</thead><tbody>${body}</tbody></table></div>
-    <p class="muted" style="font-size:13px;margin-top:10px">Results are linked by name, ignoring capitals. Points, race wins and average finish count every race entered, including the losers bracket. Advance rate counts main bracket games before the Final. Tap a column to sort.</p>`;
+    <p class="muted" style="font-size:13px;margin-top:10px">Results are linked by name, ignoring capitals. Advance rate counts main bracket games before the Final. Tap a column to sort.</p>`;
 }
 function updateKnown(){
   const names=new Set();(LIST||[]).forEach(t=>(t.players||[]).forEach(p=>names.add(p.name)));
@@ -836,7 +825,7 @@ async function login(key,force){
   try{
     const b=await api('/host',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'claim',force:!!force,device})});
     hostToken=b.token;lsSet(HKEY,key);lsSet(TKEY,hostToken);ui.holder=null;ui.hostOpen=false;
-    await refreshList();
+    await refreshList();pollSignups();
     toast('This device is now the host. Cups will be saved.');
     if(RO&&S.id&&!champ()){RO=false;clearInterval(pollTimer);undoStack=[];saveLocal();saveState='saved'}
     else if(!RO&&!S.example&&S.id)queueRemote();
@@ -887,6 +876,70 @@ async function openSaved(id,keepView){
   render();startPolling();
   if(done&&canWrite&&!keepView)toast('Finished cups open as view only. Use Edit this cup to change results.');
 }
+/* ---------- Player sign-ups ---------- */
+let sig={session:null,entries:[]},sigTimer=null,sigSeen={sid:'',ids:[]};
+try{const v=JSON.parse(lsGet(SKEY));if(v&&v.ids)sigSeen=v}catch(e){}
+const joinUrl=()=>sig.session?`${location.origin}/kart/join/?c=${sig.session.code}`:'';
+function qrSvg(text){try{const q=qrcode(0,'M');q.addData(text);q.make();return q.createSvgTag({cellSize:6,margin:2,scalable:true})}catch(e){return''}}
+async function sigCall(body){return api('/signup',body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{})}
+async function pollSignups(){
+  clearTimeout(sigTimer);
+  if(!canWrite){sig={session:null,entries:[]};return}
+  try{
+    const b=await sigCall();sig.session=b.session;sig.entries=b.entries||[];
+    if(sig.session&&sigSeen.sid!==sig.session.sid){sigSeen={sid:sig.session.sid,ids:[]}}
+    mergeSignups();
+  }catch(e){if(e.status===409)demote()}
+  if(canWrite&&sig.session&&sig.session.open)sigTimer=setTimeout(pollSignups,4000);
+}
+function mergeSignups(){
+  const fresh=sig.entries.filter(e=>!sigSeen.ids.includes(e.id));
+  const before=ui.sigCount;ui.sigCount=sig.entries.length;
+  if(!fresh.length){if(before!==ui.sigCount&&(view==='setup'||view==='bracket'))render();return}
+  const has=(list,name)=>list.some(n=>n.trim().toLowerCase()===name.toLowerCase());
+  if(view==='setup'&&draft){
+    fresh.forEach(e=>{
+      if(!has(draft.names,e.name)){const i=draft.names.findIndex(n=>!n.trim());if(i>=0)draft.names[i]=e.name;else draft.names.push(e.name)}
+      sigSeen.ids.push(e.id);
+    });
+    draft.count=draft.names.length;saveDraft();
+  }else if(!RO&&!S.example&&S.id&&!champ()&&canWrite){
+    const added=[];
+    commit(()=>{fresh.forEach(e=>{
+      if(!has(S.players.map(p=>p.name),e.name)){const p={id:uid(),name:e.name,out:false};S.players.push(p);seat(p.id);added.push(e.name)}
+      sigSeen.ids.push(e.id);
+    })});
+    if(added.length)toast(`${added.join(', ')} signed up and ${added.length>1?'were':'was'} added`,true);
+  }else return;
+  lsSet(SKEY,JSON.stringify(sigSeen));
+  render();
+}
+async function sigAction(action){
+  if(!canWrite){toast('Log in as host first.');return}
+  try{
+    const b=await sigCall({action});sig.session=b.session;if(b.entries)sig.entries=b.entries;
+    if(action==='open'){sigSeen={sid:b.session.sid,ids:[]};lsSet(SKEY,JSON.stringify(sigSeen));
+      if(view==='setup'&&draft){draft.names=draft.names.filter(n=>n.trim());draft.count=draft.names.length;saveDraft()}
+      toast(`Sign-ups open. Code ${b.session.code}`)}
+    else toast(action==='close'?'Sign-ups closed':'Sign-ups reopened');
+  }catch(e){toast(e.message)}
+  render();pollSignups();
+}
+function signupPanelHTML(compact){
+  const ss=sig.session,n=sig.entries.length;
+  if(!canWrite)return compact?'':`<div class="sigpanel"><strong>Let players sign themselves up</strong><span class="muted">Log in as host to open sign-ups. Players add their own names from their phones.</span></div>`;
+  if(!ss||(!ss.open&&compact))return compact?'':`<div class="sigpanel"><div><strong>Let players sign themselves up</strong><div class="muted">Players scan a QR code or go to ${esc(location.host)}/kart/join, type their name, and it shows up in the list below.</div></div>
+    <div class="row">${ss?`<button data-act="sig-reopen">Reopen sign-ups (code ${esc(ss.code)})</button><button class="ghost" data-act="sig-open">Start a new sign-up list</button>`:'<button class="primary" data-act="sig-open">Open sign-ups</button>'}</div></div>`;
+  if(!ss.open)return `<div class="sigpanel"><div><strong>Sign-ups are closed</strong> <span class="muted">${n} signed up with code ${esc(ss.code)}.</span></div><div class="row"><button data-act="sig-reopen">Reopen sign-ups</button><button class="ghost" data-act="sig-open">Start a new sign-up list</button></div></div>`;
+  const url=joinUrl();
+  const qr=`<div class="sigqr">${qrSvg(url)}</div>`;
+  const info=`<div class="siginfo"><div class="muted" style="font-size:13px">Scan, or go to <strong>${esc(location.host)}/kart/join</strong> and enter</div><div class="sigcode">${esc(ss.code)}</div>
+    <div><strong>${n} signed up</strong>${compact?' · new names join the current round automatically':' · names fill the list below automatically'}</div>
+    <div class="row"><button class="small" data-act="sig-copy">Copy link</button><a class="btn small" href="${esc(url)}&amp;display=1" target="_blank" rel="noopener">TV sign-up screen</a><button class="small ghost" data-act="sig-close">Close sign-ups</button></div></div>`;
+  if(compact)return `<details class="sigpanel sigbar"${ui.sigOpen?' open':''} id="sigdet"><summary>Sign-ups open · code <span class="mono">${esc(ss.code)}</span> · ${n} signed up</summary><div class="sigbody">${qr}${info}</div></details>`;
+  return `<div class="sigpanel"><div class="sigbody">${qr}${info}</div></div>`;
+}
+
 function heatAt(el){const r=BR(el.dataset.b)[+el.dataset.r];return[r,r.heats[+el.dataset.h]]}
 
 /* Moving players between games. A moved player loses their race results and advance mark in the old game. */
@@ -965,10 +1018,13 @@ function render(){
   document.querySelectorAll('nav.tabs a').forEach(a=>{if(a.dataset.tab===tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   $('#hostpanel').innerHTML=hostPanelHTML();
   const sl=$('#rounds')?$('#rounds').scrollLeft:null,sl2=$('#lbrounds')?$('#lbrounds').scrollLeft:null;
+  const ae=document.activeElement,aeId=ae&&ae.id,aeSel=ae&&typeof ae.selectionStart==='number'?[ae.selectionStart,ae.selectionEnd]:null;
   $('#app').innerHTML=view==='setup'?setupHTML():view==='history'?historyHTML():view==='leaderboard'?leaderboardHTML():view==='tv'?tvHTML():bracketHTML();
   if(sl!==null&&$('#rounds'))$('#rounds').scrollLeft=sl;
   if(sl2!==null&&$('#lbrounds'))$('#lbrounds').scrollLeft=sl2;
   const sd=$('#setdet');if(sd)sd.addEventListener('toggle',()=>ui.setOpen=sd.open);
+  const sgd=$('#sigdet');if(sgd)sgd.addEventListener('toggle',()=>ui.sigOpen=sgd.open);
+  if(aeId){const n=document.getElementById(aeId);if(n&&n!==document.activeElement){n.focus({preventScroll:true});if(aeSel&&n.setSelectionRange)try{n.setSelectionRange(aeSel[0],aeSel[1])}catch(e){}}}
   updateStatus();
 }
 function route(){
@@ -988,14 +1044,13 @@ document.addEventListener('click',e=>{
   switch(a){
     case'undo':undo();break;
     case'new':openSetup();break;
-    case'cancel-setup':view='bracket';draft=null;render();break;
+    case'cancel-setup':view='bracket';draft=null;saveDraft();render();break;
     case'start':start();break;
-    case'paste':{const lines=$('#s-paste').value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean);if(lines.length<2){toast('Paste at least 2 names');break}draft.names=lines.slice(0,128);draft.count=draft.names.length;render();break}
+    case'paste':{const lines=$('#s-paste').value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean);if(lines.length<2){toast('Paste at least 2 names');break}draft.names=lines.slice(0,128);draft.count=draft.names.length;saveDraft();render();break}
     case'pick':{const [r,h]=heatAt(el);
       if(!r.final&&!h.adv.includes(pid)&&h.players.length>1&&h.adv.length+1>=h.players.length){toast('At least one player in each game has to be knocked out.');break}
       commit(()=>{const i=h.adv.indexOf(pid);if(i>=0)h.adv.splice(i,1);else h.adv.push(pid);if(!r.final&&h.adv.length)h.n=Math.min(h.adv.length,3)});
       if(el.dataset.b==='main'){const c=champ();if(c&&r.final&&c[0]===pid&&h.adv.length===1)toast(`${P(pid).name} wins the cup`,true)}break}
-    case'restoggle':{const k=el.dataset.key,live=k.split(':')[0]&&!RO&&+k.split(':')[1]===BR(k.split(':')[0]).length-1;const now=ui.res[k]!==undefined?ui.res[k]:live;ui.res[k]=!now;render();break}
     case'reshuffle':{const b=el.dataset.b,arr=BR(b),r=arr[arr.length-1];
       commit(()=>{const nr=makeRound(r.heats.flatMap(h=>h.players),r.adv,r.final,r);if(r.fromMain!==undefined)nr.fromMain=r.fromMain;arr[arr.length-1]=nr},'Games reshuffled');break}
     case'draw':{const r=cur();let pool=nextPool(r).concat(S.late);const fin=pool.length<=finalAt();
@@ -1012,6 +1067,10 @@ document.addEventListener('click',e=>{
       let w;commit(()=>{const p={id:uid(),name,out:false};S.players.push(p);w=seat(p.id)});toast(seatMsg(name,w),true);setTimeout(()=>$('#add-name')&&$('#add-name').focus());break}
     case'host':ui.hostOpen=!ui.hostOpen;ui.hostMsg='';ui.holder=null;render();if(ui.hostOpen&&$('#hostkey'))$('#hostkey').focus();if(ui.hostOpen&&keyConfigured===null)refreshList();break;
     case'logout':logout();break;
+    case'sig-open':sigAction('open');break;
+    case'sig-close':sigAction('close');break;
+    case'sig-reopen':sigAction('reopen');break;
+    case'sig-copy':{const u=joinUrl();try{navigator.clipboard.writeText(u).then(()=>toast('Link copied'),()=>toast(u))}catch(err){toast(u)}break}
     case'takeover-host':login(hostKey,true);break;
     case'refresh':LIST=null;refreshList();break;
     case'open':openSaved(el.dataset.id);break;
@@ -1029,8 +1088,8 @@ document.addEventListener('change',e=>{
   const el=e.target,id=el.id;
   if(view==='setup'){
     if(id==='s-count')setCount(+el.value);
-    else if(id==='s-date')draft.date=el.value;
-    else if(id.startsWith('s-')&&readField(el,draft.cfg))render();
+    else if(id==='s-date'){draft.date=el.value;saveDraft()}
+    else if(id.startsWith('s-')&&readField(el,draft.cfg)){saveDraft();render()}
     return;
   }
   if(RO)return;
@@ -1043,10 +1102,6 @@ document.addEventListener('change',e=>{
   else if(a==='lbnadv')commit(()=>{S.lbNextAdv=+el.value});
   else if(a==='nsize')commit(()=>{S.cfg.size=+el.value});
   else if(a==='cup'){const [r,h]=heatAt(el);commit(()=>{h.cup=el.value.trim()||null})}
-  else if(a==='res'){const [r,h]=heatAt(el),pid=el.dataset.p,i=+el.dataset.i,v=el.value?+el.value:null;
-    const out=commit(()=>{const arr=h.res[pid]||(h.res[pid]=[]);arr[i]=v;return autoAdvance(r,h)});
-    if(out==='tie')toast('Points are tied for an advancing spot. Tap racers to choose who advances.');
-    else if(out==='ok')toast(r.final?`${P(h.adv[0]).name} wins on points`:'Advancers set from points',true);}
   else if(a==='move'){const v=el.value,pid=el.dataset.p,b=el.dataset.b;if(!v)return;
     if(v==='new')moveTo(b,pid,'new');
     else if(v==='wd')commit(()=>{removeFromCurrent(pid);P(pid).out=true},`${P(pid).name} withdrawn`);
@@ -1057,6 +1112,7 @@ document.addEventListener('input',e=>{
   if(view!=='setup')return;
   if(e.target.classList.contains('nm-in'))draft.names[+e.target.dataset.i]=e.target.value;
   else if(e.target.id==='s-tname')draft.name=e.target.value;
+  saveDraft();
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='add-name'){e.preventDefault();$('[data-act="add"]').click()}});
 window.addEventListener('hashchange',route);
@@ -1065,6 +1121,8 @@ window.addEventListener('hashchange',route);
 (async function boot(){
   try{const raw=lsGet(LKEY);if(raw){const s=JSON.parse(raw);if(s&&s.players&&s.rounds)S=normalize(s)}}catch(e){}
   if(!S)S=example();
+  // Pick up a setup form that was in progress (names may have come from sign-ups).
+  try{const d=JSON.parse(lsGet(DKEY));if(d&&d.names&&d.cfg){d.cfg=Object.assign(defCfg(),d.cfg);draft=d;if(!location.hash||location.hash==='#bracket')view='setup'}}catch(e){}
   route();
   await refreshList();
   const live=(LIST||[]).find(t=>t.status!=='done');
@@ -1077,6 +1135,7 @@ window.addEventListener('hashchange',route);
     if(!saved||saved.updatedAt!==S.updatedAt)queueRemote();
   }
   route();
+  pollSignups();
 })();
 })();
 </script>

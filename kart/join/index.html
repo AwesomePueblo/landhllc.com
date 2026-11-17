@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#eef0f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Join the Kart Cup - L and H LLC</title>
+<meta name="description" content="Add your name to tonight's kart racing tournament.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3R5NJ422YS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3R5NJ422YS');
+  gtag('config', 'G-C36SJ9851K');
+</script>
+<style>
+/* Layout: one centered card on a phone; display mode fills a TV with the QR code beside the names. */
+:root{
+  --bg:#eef0f4; --surface:#ffffff; --surface-2:#f6f7fa; --ink:#14161d; --muted:#5a6070; --line:#d6d9e2;
+  --accent:#d81f2a; --accent-ink:#ffffff; --go:#17834a; --go-tint:#e2f4ea; --flag:#f2b705;
+  --display:"Russo One","Arial Black",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1117; --surface:#181b24; --surface-2:#1f2330; --ink:#eceef4; --muted:#9aa1b3; --line:#2c3141;
+  --accent:#ff4b55; --accent-ink:#14161d; --go:#41d184; --go-tint:#173426; --flag:#ffd33d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1117; --surface:#181b24; --surface-2:#1f2330; --ink:#eceef4; --muted:#9aa1b3; --line:#2c3141;
+  --accent:#ff4b55; --accent-ink:#14161d; --go:#41d184; --go-tint:#173426; --flag:#ffd33d; color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+[hidden]{display:none!important}
+.checker{height:14px;background:repeating-conic-gradient(var(--ink) 0 25%,var(--surface) 0 50%) 0 0/14px 14px}
+.wrap{max-width:480px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-weight:400;font-size:34px;line-height:1.05;margin:0}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:8px 0 22px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px}
+label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+input{font:600 20px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;width:100%}
+input.code{font-family:var(--mono);letter-spacing:.3em}
+button{font:700 18px/1 var(--body);border-radius:10px;padding:16px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-size:15px;padding:12px}
+button:disabled{opacity:.5}
+:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+.err{color:var(--accent);font-weight:600;margin:0}
+.done{text-align:center;gap:10px}
+.done .big{font-family:var(--display);font-size:30px;line-height:1.1;word-break:break-word}
+.done .tick{width:56px;height:56px;border-radius:50%;background:var(--go);color:var(--surface);display:grid;place-items:center;font-size:30px;margin:0 auto}
+.names{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.names span{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:14px;font-weight:600}
+.names span.me{background:var(--go-tint);border-color:var(--go);color:var(--go)}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono)}
+a{color:inherit}
+
+/* TV sign-up screen */
+body.display .wrap{max-width:none;padding:3vw}
+.tv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:4vw;align-items:start}
+@media (max-width:760px){.tv{grid-template-columns:1fr}}
+.tv h1{font-size:clamp(34px,5vw,80px)}
+.tv .qr{background:#fff;border-radius:18px;padding:18px;display:inline-block;max-width:100%}
+.tv .qr svg{display:block;width:min(34vw,520px);height:auto;max-width:100%}
+.tv .how{font-size:clamp(16px,1.8vw,28px);margin:18px 0 6px}
+.tv .url{font:700 clamp(16px,1.8vw,28px) var(--mono);word-break:break-all}
+.tv .code{font:700 clamp(40px,6vw,96px) var(--mono);letter-spacing:.15em;color:var(--accent)}
+.tv .count{font-family:var(--display);font-size:clamp(28px,3.4vw,56px);margin:0 0 16px}
+.tv .names{justify-content:flex-start;gap:10px}
+.tv .names span{font-size:clamp(16px,1.6vw,26px);padding:8px 16px}
+</style>
+</head>
+<body>
+<div class="checker" aria-hidden="true"></div>
+<main class="wrap" id="app"></main>
+<script src="/kart/qrcode.js"></script>
+<script>
+(function(){
+const API='/api/kart/join';
+const params=new URLSearchParams(location.search);
+let code=(params.get('c')||'').replace(/\D/g,'').slice(0,4);
+const display=params.get('display')==='1';
+const KEY='kart-join-'+code;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+let state={mine:lsGet(KEY)||[],names:[],open:true,err:'',busy:false,joined:null,badCode:!/^\d{4}$/.test(code)};
+
+async function getInfo(){
+  const r=await fetch(API+'?c='+encodeURIComponent(code),{cache:'no-store'});
+  const b=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(b.error||'Could not reach the sign-up list.');
+  return b;
+}
+async function join(name){
+  const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code,name})});
+  const b=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error(b.error||'Could not sign you up. Try again.');e.badCode=r.status===400&&/code/i.test(b.error||'');throw e}
+  return b;
+}
+
+function namesHTML(){
+  const mine=new Set(state.mine.map(n=>n.toLowerCase()));
+  return `<div class="names">${state.names.map(n=>`<span class="${mine.has(n.toLowerCase())?'me':''}">${esc(n)}</span>`).join('')}</div>`;
+}
+function formHTML(){
+  const needCode=state.badCode||!/^\d{4}$/.test(code);
+  return `<h1>Join the <span>Kart Cup</span></h1>
+    <p class="sub">Add your name and the host will put you in a game.</p>
+    <form class="card" id="f">
+      ${needCode?`<label for="code">Code from the host<input id="code" class="code" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" value="${esc(/^\d{4}$/.test(code)?code:'')}"></label>`:''}
+      <label for="name">Your name<input id="name" maxlength="30" autocomplete="nickname" autocapitalize="words" placeholder="Name the host will call out" required></label>
+      ${state.err?`<p class="err" role="alert">${esc(state.err)}</p>`:''}
+      ${state.open?'':'<p class="err">Sign-ups are closed. Ask the host to add you.</p>'}
+      <button type="submit"${state.busy||!state.open?' disabled':''}>${state.busy?'Joining…':'Join'}</button>
+    </form>
+    ${state.names.length?`<p class="muted" style="text-align:center;margin:22px 0 10px">${state.names.length} signed up so far</p>${namesHTML()}`:''}`;
+}
+function doneHTML(){
+  const j=state.joined;
+  return `<h1>Join the <span>Kart Cup</span></h1>
+    <div class="card done" style="margin-top:22px">
+      <div class="tick" aria-hidden="true">✓</div>
+      <div class="big">${esc(j.name)}</div>
+      <p style="margin:0">${j.already?'was already on the list.':'is on the list.'} The host will put you in a game.</p>
+      <p class="muted" style="margin:0">${state.names.length} signed up so far</p>
+      ${namesHTML()}
+      <button class="ghost" data-act="another">Sign up someone else</button>
+    </div>`;
+}
+function displayHTML(){
+  const url=location.origin+'/kart/join/?c='+code;
+  let svg='';
+  try{const q=qrcode(0,'M');q.addData(url);q.make();svg=q.createSvgTag({cellSize:8,margin:2,scalable:true})}catch(e){}
+  return `<div class="tv">
+    <div><h1>Join the <span>Kart Cup</span></h1>
+      <p class="how">Scan with your phone camera:</p>
+      <div class="qr">${svg}</div>
+      <p class="how">Or go to <span class="url">${esc(location.host)}/kart/join</span> and enter</p>
+      <div class="code">${esc(code)}</div></div>
+    <div><p class="count">${state.names.length} racer${state.names.length===1?'':'s'} signed up${state.open?'':' · sign-ups closed'}</p>${namesHTML()}${state.err?`<p class="err">${esc(state.err)}</p>`:''}</div>
+  </div>`;
+}
+function render(){
+  document.body.classList.toggle('display',display);
+  $('#app').innerHTML=display?displayHTML():state.joined?doneHTML():formHTML();
+}
+async function refresh(){
+  if(!/^\d{4}$/.test(code))return;
+  try{const b=await getInfo();state.names=b.names||[];state.open=b.open;state.err=''}catch(e){if(display)state.err=e.message}
+  if(!document.activeElement||!['INPUT'].includes(document.activeElement.tagName))render();
+}
+
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='f')return;e.preventDefault();
+  if($('#code')){code=$('#code').value.replace(/\D/g,'');if(code.length!==4){state.err='Enter the 4-digit code from the host.';render();return}}
+  const name=$('#name').value.trim();if(!name){$('#name').focus();return}
+  state.busy=true;state.err='';render();
+  try{
+    const b=await join(name);
+    state.joined=b;state.badCode=false;state.mine.push(b.name);lsSet('kart-join-'+code,state.mine);
+    history.replaceState(null,'','?c='+code);
+    try{const i=await getInfo();state.names=i.names||[];state.open=i.open}catch(err){}
+  }catch(err){state.err=err.message;if(err.badCode)state.badCode=true}
+  state.busy=false;render();
+  if(!state.joined&&$('#name')){$('#name').value=name}
+});
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-act="another"]')){state.joined=null;render();setTimeout(()=>$('#name')&&$('#name').focus(),0)}
+});
+
+render();
+refresh();
+if(display)setInterval(refresh,4000);
+})();
+</script>
+</body>
+</html>
