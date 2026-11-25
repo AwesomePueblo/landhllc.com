@@ -1,0 +1,14 @@
+{
+  "name": "landhllc-site",
+  "private": true,
+  "description": "Static site for landhllc.com plus Netlify Functions (Kart Cup tournament storage).",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@netlify/blobs": "11.1.6"
+  },
+  "devDependencies": {
+    "@netlify/functions": "6.0.3"
+  }
+}

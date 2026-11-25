@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#eef0f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Kart Cup Bracket - L and H LLC</title>
+<meta name="description" content="Run a kart racing tournament: random 4-player games, a losers bracket, TV mode, and a history and leaderboard of every cup.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="/kart/favicon-32.png">
+<link rel="apple-touch-icon" href="/kart/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Kart Cup">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/kart/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3R5NJ422YS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3R5NJ422YS');
+  gtag('config', 'G-C36SJ9851K');
+</script>
+<style>
+/* Layout: race-control board. Checkered strip, header with tabs, then a horizontally scrolling bracket of round columns, roster below. */
+:root{
+  --bg:#eef0f4; --surface:#ffffff; --surface-2:#f6f7fa; --ink:#14161d; --muted:#5a6070; --line:#d6d9e2;
+  --accent:#d81f2a; --accent-ink:#ffffff; --go:#17834a; --go-tint:#e2f4ea; --flag:#f2b705; --flag-tint:#fff4cc;
+  --display:"Russo One","Arial Black",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1117; --surface:#181b24; --surface-2:#1f2330; --ink:#eceef4; --muted:#9aa1b3; --line:#2c3141;
+  --accent:#ff4b55; --accent-ink:#14161d; --go:#41d184; --go-tint:#173426; --flag:#ffd33d; --flag-tint:#3a3214; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1117; --surface:#181b24; --surface-2:#1f2330; --ink:#eceef4; --muted:#9aa1b3; --line:#2c3141;
+  --accent:#ff4b55; --accent-ink:#14161d; --go:#41d184; --go-tint:#173426; --flag:#ffd33d; --flag-tint:#3a3214; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;overflow-x:clip}
+[hidden]{display:none!important}
+.wrap{max-width:1280px;margin:0 auto;padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.checker{height:14px;background:repeating-conic-gradient(var(--ink) 0 25%,var(--surface) 0 50%) 0 0/14px 14px}
+.home{display:inline-block;margin-top:12px;font-size:13px;color:var(--muted);text-decoration:none}
+.home:hover{color:var(--ink)}
+header.top{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;padding-block:8px 12px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,5vw,38px);letter-spacing:.01em;margin:0;line-height:1}
+h1 span{color:var(--accent)}
+.tagline{color:var(--muted);margin:4px 0 0;font-size:14px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:400;font-size:17px;margin:0}
+
+nav.tabs{display:flex;flex-wrap:wrap;gap:0 4px;border-bottom:2px solid var(--line);margin-bottom:18px}
+nav.tabs a{font:600 14px var(--body);color:var(--muted);text-decoration:none;padding:10px 12px;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-color:var(--accent)}
+.savestate{font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--surface);white-space:nowrap}
+.savestate.ok{color:var(--go);border-color:var(--go)}
+.savestate.bad{color:var(--accent);border-color:var(--accent)}
+
+button,.btn{font:600 14px/1 var(--body);border-radius:8px;padding:10px 14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.primary:hover{filter:brightness(1.08)}
+button.ghost{background:transparent}
+button.small{padding:7px 10px;font-size:13px}
+button.danger{color:var(--accent);border-color:var(--accent);background:transparent}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+input,select,textarea{font:500 15px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-width:0}
+input[readonly]{background:transparent;border-color:transparent}
+textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:12px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.hostpanel{margin-bottom:16px;display:flex;flex-direction:column;gap:10px}
+.setup{display:flex;flex-direction:column;gap:18px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.fields .wide{grid-column:1/-1}
+.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.names label{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.names input{flex:1;width:100%}
+.plan{background:var(--surface-2);border-radius:8px;padding:12px 14px;font-size:14px}
+.plan ol{margin:6px 0 0;padding-left:20px}
+.plan .bad{color:var(--accent);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+details summary{cursor:pointer;font-weight:600;font-size:14px}
+details[open] summary{margin-bottom:10px}
+
+.banner{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;border-radius:12px;padding:14px 16px;margin-bottom:16px;border:1px solid var(--line);background:var(--surface)}
+.banner.ex{background:var(--flag-tint);border-color:var(--flag)}
+.banner.win{border:2px solid var(--flag)}
+.banner p{margin:0}
+.tname{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-bottom:14px}
+.tname h2{font-size:24px}
+
+.roundtabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;flex-wrap:wrap;gap:6px;padding-block:8px;margin-bottom:6px;background:var(--bg)}
+.rtab{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:9px 14px;font-size:14px;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.rtab.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.rtab .dot{width:8px;height:8px;border-radius:50%;background:var(--go)}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:12px;align-items:start}
+.games>.newgame{grid-column:1/-1}
+.champwrap{margin-bottom:14px}
+.colhead{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:10px;background:var(--ink);color:var(--bg)}
+.colhead .meta{font-family:var(--mono);font-size:12px;opacity:.8}
+.colhead .row{gap:8px}
+.colhead select{padding:5px 6px;font-size:13px}
+.colhead button{background:transparent;color:var(--bg);border-color:color-mix(in srgb,var(--bg) 40%,transparent)}
+.col.past .colhead{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.col.past .colhead button{color:var(--ink);border-color:var(--line)}
+.heat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.heat header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:2px 4px 4px}
+.heat .ct{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.heat .ct.ok{color:var(--go)}
+.heat .ct.warn{color:var(--accent)}
+.heat .hint{font-size:12px;color:var(--muted);padding:0 4px}
+.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}
+.chip .pick{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:transparent;border:0;padding:9px 10px;text-align:left;font-weight:600}
+.chip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .badge{flex:none;width:30px;height:22px;border-radius:5px;display:grid;place-items:center;font:700 11px var(--mono);border:1px dashed var(--line);color:var(--muted)}
+.chip.on{border-color:var(--go);background:var(--go-tint)}
+.chip.on .badge{background:var(--go);border:0;color:var(--surface)}
+.chip.lost .nm{color:var(--muted);text-decoration:line-through;font-weight:500}
+.chip .pick:disabled{opacity:1;cursor:default}
+.grip{flex:none;align-self:stretch;display:grid;place-items:center;width:26px;margin-left:2px;color:var(--muted);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;font-size:16px}
+.grip:hover{color:var(--ink)}
+.advsel{display:flex;align-items:center;gap:6px}
+.advsel select{padding:3px 4px;font-size:13px}
+.heat.drop{outline:3px dashed var(--accent);outline-offset:2px}
+.heat.full.drop{outline-color:var(--muted)}
+.chip.drop{outline:3px solid var(--flag);outline-offset:1px}
+.newgame{border:2px dashed var(--line);border-radius:10px;padding:16px 12px;text-align:center;font-size:13px;color:var(--muted)}
+.newgame.drop{border-color:var(--accent);color:var(--ink);background:var(--surface)}
+.sigpanel{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.sigbar{display:block;margin-bottom:16px;background:var(--flag-tint);border-color:var(--flag)}
+.sigbar summary{font-weight:700}
+.sigbar[open] .sigbody{margin-top:12px}
+.sigbody{display:flex;flex-wrap:wrap;gap:16px;align-items:center;width:100%}
+.sigqr{background:#fff;border-radius:10px;padding:6px;flex:none}
+.sigqr svg{display:block;width:150px;height:150px}
+.siginfo{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.sigcode{font:700 40px/1 var(--mono);letter-spacing:.15em;color:var(--accent)}
+a.btn{display:inline-block;text-decoration:none}
+a.btn.small{padding:7px 10px;font-size:13px}
+.dragghost{position:fixed;left:0;top:0;z-index:60;pointer-events:none;background:var(--ink);color:var(--bg);font-weight:700;padding:8px 12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+body.dragging,body.dragging *{user-select:none;-webkit-user-select:none;cursor:grabbing}
+.chip select.mv{width:34px;padding:4px;margin-right:4px;border:0;background:transparent;font-size:16px;color:var(--muted);appearance:none;-webkit-appearance:none;text-align:center;cursor:pointer}
+.next{border:2px dashed var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.next .row select{padding:5px 6px}
+.next .warn{color:var(--accent);font-weight:600}
+.waiting{font-size:13px;color:var(--muted);padding:4px}
+
+.champ{border:2px solid var(--flag);border-radius:12px;background:var(--surface);overflow:hidden}
+.champ .checker{height:12px;background-size:12px 12px}
+.champ .in{padding:16px;display:flex;flex-direction:column;gap:10px}
+.champ .who{font-family:var(--display);font-size:28px;line-height:1.1;word-break:break-word}
+.podium{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
+.podium b{color:var(--ink);font-family:var(--mono);font-size:12px;margin-right:6px}
+
+.roster{margin-top:20px;display:flex;flex-direction:column;gap:14px}
+.rlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
+.ritem{display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}
+.ritem input{flex:1;width:100%;padding:6px 8px;background:var(--surface)}
+.ritem input[readonly]{background:transparent}
+.status{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 7px;border-radius:5px;white-space:nowrap;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.status.live{color:var(--go);border-color:var(--go)}
+.status.gold{color:#14161d;background:var(--flag);border-color:var(--flag)}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono)}
+
+.hlist{display:flex;flex-direction:column;gap:10px}
+.hitem{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.hitem .t{display:flex;flex-direction:column;gap:4px;min-width:0}
+.hitem .t strong{font-size:16px;overflow-wrap:anywhere}
+.hitem .sub{font-size:13px;color:var(--muted)}
+.empty{padding:28px;text-align:center;color:var(--muted);border:2px dashed var(--line);border-radius:12px}
+
+.tablewrap{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table.lb{border-collapse:collapse;width:100%;font-size:14px}
+table.lb th,table.lb td{padding:10px 8px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+table.lb th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;cursor:pointer;user-select:none;white-space:nowrap}
+table.lb th[aria-sort]{color:var(--ink)}
+table.lb th:nth-child(-n+2),table.lb td:nth-child(-n+2){text-align:left}
+table.lb td:nth-child(2){font-weight:600;overflow-wrap:anywhere}
+table.lb th:not(:nth-child(2)),table.lb td:not(:nth-child(2)){width:1%;white-space:nowrap}
+table.lb .sh{display:none}
+table.lb tr:last-child td{border-bottom:0}
+table.lb td.rank{font-family:var(--mono);color:var(--muted);width:40px}
+table.lb th.rank{text-align:left}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:6px 18px;margin:0 0 12px;font-size:13px}
+.legend div{display:flex;gap:6px;min-width:0}
+.legend dt{font-weight:700}
+.legend dd{margin:0;color:var(--muted)}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 12px 10px 16px;border-radius:10px;display:flex;gap:12px;align-items:center;font-size:14px;max-width:calc(100% - 32px);z-index:20}
+#toast button{background:transparent;color:var(--flag);border-color:transparent}
+@media (prefers-reduced-motion:no-preference){.chip,.heat{transition:background .15s,border-color .15s}}
+
+/* Cups, losers bracket, settings */
+.cupline{display:flex;gap:6px;align-items:center;padding:0 2px}
+.cupline select{flex:1;min-width:0;padding:6px 8px;font-size:13px}
+.cupline button{padding:6px 9px;font-size:12px}
+.cup{font:700 12px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink);background:var(--flag-tint);border:1px solid var(--flag);border-radius:6px;padding:4px 8px;align-self:flex-start}
+.lbsec{margin-top:26px;display:flex;flex-direction:column;gap:12px}
+.lbsec .colhead{background:var(--muted)}
+.lbsec .col.past .colhead{background:var(--surface-2)}
+.settings{margin-top:20px}
+.settings .fields{margin-top:12px}
+.checkrow{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink)}
+.checkrow input{width:18px;height:18px}
+
+/* TV mode */
+body.tv .home,body.tv header.top,body.tv nav.tabs,body.tv #hostpanel{display:none}
+body.tv .wrap{max-width:none;padding-block:16px 24px}
+.tvbar{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:20px}
+.tvname{font-family:var(--display);font-size:clamp(28px,4vw,56px);line-height:1.05}
+.tvsub{font:600 clamp(14px,1.6vw,22px) var(--mono);color:var(--muted)}
+.tvh{font-size:clamp(22px,2.6vw,36px);margin:8px 0 14px}
+.tvgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px}
+.tvheat{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.tvheat .hd{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.tvheat h3{font-size:clamp(20px,2.2vw,32px)}
+.tvheat .cup{font-size:clamp(12px,1.2vw,16px)}
+.tvrow{display:flex;align-items:center;gap:12px;font-size:clamp(18px,2vw,30px);font-weight:600;padding:8px 12px;border-radius:10px;background:var(--surface-2)}
+.tvrow .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tvrow .p{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tvrow.on{background:var(--go-tint);color:var(--go)}
+.tvrow .tag{font:700 clamp(11px,1vw,14px) var(--mono);padding:3px 8px;border-radius:6px;background:var(--go);color:var(--surface)}
+.tvchamp{text-align:center;padding:40px 16px;border:3px solid var(--flag);border-radius:20px;background:var(--surface)}
+.tvchamp .who{font-family:var(--display);font-size:clamp(44px,8vw,120px);line-height:1;margin:14px 0;word-break:break-word}
+.tvchamp .pod{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 40px;font-size:clamp(18px,2.4vw,32px)}
+@media (max-width:480px){table.lb .lg{display:none}table.lb .sh{display:inline}table.lb{font-size:13px}table.lb th,table.lb td{padding:8px 4px}table.lb th{font-size:10px;letter-spacing:.02em;white-space:normal}table.lb td.rank{width:22px}}
+.support{margin-top:40px;text-align:center;font-size:13px;color:var(--muted)}
+.support a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.support a:hover{color:var(--ink)}
+body.tv .support{display:none}
+/* App feel on phones: no double-tap zoom, and text boxes at 16px so iPhone never zooms in when one is tapped. */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (pointer:coarse){input,select,textarea{font-size:16px!important}}
+</style>
+</head>
+<body>
+<div class="checker" aria-hidden="true"></div>
+<div class="wrap">
+  <a class="home" href="/">&larr; L and H LLC</a>
+  <header class="top">
+    <div>
+      <h1>Kart Cup <span>Bracket</span></h1>
+      <p class="tagline">Random 4-player games, pick who advances, repeat until one racer is left.</p>
+    </div>
+    <div class="actions">
+      <span id="savestate" class="savestate" role="status"></span>
+      <button id="hostbtn" data-act="host" class="ghost small">Host login</button>
+      <button id="undo" data-act="undo" class="ghost">Undo</button>
+      <button id="newbtn" data-act="new" class="primary">New tournament</button>
+    </div>
+  </header>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#bracket" data-tab="bracket">Bracket</a>
+    <a href="#history" data-tab="history">History</a>
+    <a href="#leaderboard" data-tab="leaderboard">Leaderboard</a>
+    <a href="#tv" data-tab="tv">TV mode</a>
+  </nav>
+  <div id="hostpanel"></div>
+  <div id="app"></div>
+  <p class="support">Enjoying Kart Cup? <a href="https://venmo.com/u/lukhig" target="_blank" rel="noopener">Support it on Venmo</a> · <a href="/kart/privacy/">Privacy</a></p>
+</div>
+<datalist id="known-names"></datalist>
+<div id="toast" hidden></div>
+
+<script src="/kart/qrcode.js"></script>
+<script>
+(function(){
+const API='/api/kart';
+const LKEY='kart-cup-current-v2', HKEY='kart-cup-host-key', TKEY='kart-cup-host-token', DKEY='kart-cup-draft', SKEY='kart-cup-signup-seen';
+const LET='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const SIZES=[2,3,4]; // a Switch game holds 4 players at most
+const DEF_POINTS=[15,12,10,9,8,7,6,5,4,3,2,1];
+const LB_MODES={off:'Single elimination',consolation:'Single elimination + consolation bracket',second:'Double elimination: losers bracket winner joins the Final'};
+const AVGS=[1,1.5,2,2.5,3];
+const $=s=>document.querySelector(s);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ord=n=>n+(['th','st','nd','rd'][(n%100>10&&n%100<14)?0:(n%10<4?n%10:0)]);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const fmtDate=s=>{if(!s)return'';const [y,m,d]=s.slice(0,10).split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'})};
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}
+
+/* ---------- State ---------- */
+let S;                 // the tournament on screen
+let RO=false;          // true when viewing without host access (read only)
+let view='bracket';    // bracket | setup | history | leaderboard | tv
+let draft=null;
+let undoStack=[];
+let hostKey=lsGet(HKEY)||'', hostToken=lsGet(TKEY)||'';
+let canWrite=false, keyConfigured=null, apiOk=null;
+let LIST=null, listLoading=false;
+let saveState='idle', saveTimer=null, pollTimer=null, toastTimer=null, wakeLock=null, beatTimer=null;
+const ui={sel:{main:null,lb:null},hostOpen:false,hostMsg:'',holder:null,delConfirm:null,sort:'rank',res:{},setOpen:false};
+
+function defCfg(){return{size:4,adv:2,avg:2,races:4,points:DEF_POINTS.slice(),lb:'off',noRematch:true}}
+function normalize(d){
+  d.cfg=Object.assign(defCfg(),d.cfg||{});
+  if(!SIZES.includes(d.cfg.size))d.cfg.size=4;
+  if(!AVGS.includes(d.cfg.avg))d.cfg.avg=d.cfg.adv||2;
+  d.late=d.late||[];
+  d.rounds=d.rounds||[];d.lb=d.lb||[];d.players=d.players||[];
+  d.nextAdv=d.nextAdv||d.cfg.adv;d.lbNextAdv=d.lbNextAdv||d.cfg.adv;
+  d.rounds.concat(d.lb).forEach(r=>r.heats.forEach(h=>{h.adv=h.adv||[];h.res=h.res||{};if(h.cup===undefined)h.cup=null}));
+  return d;
+}
+function blankDoc(){return normalize({id:'',name:'',date:today(),createdAt:new Date().toISOString(),updatedAt:null,status:'active',champion:null,lbChampion:null})}
+function example(){
+  const d=blankDoc();d.example=true;d.name='Example cup';
+  d.players=['Avery','Blake','Casey','Devon','Emerson','Finley','Harper','Jordan','Kendall','Logan','Morgan','Quinn'].map(n=>({id:uid(),name:n,out:false}));
+  S=d;const r=makeRound(d.players.map(p=>p.id),2,false);
+  const h=r.heats[0];h.adv=[h.players[2],h.players[0]];
+  d.rounds=[r];return d;
+}
+function docOf(){const c=champ(),lc=S.cfg.lb!=='off'?lbState().champ:null;
+  return{id:S.id,name:S.name,date:S.date,createdAt:S.createdAt,updatedAt:S.updatedAt,status:c?'done':'active',
+    champion:c?{id:c[0],name:P(c[0]).name}:null,lbChampion:lc?{id:lc,name:P(lc).name}:null,
+    cfg:S.cfg,nextAdv:S.nextAdv,lbNextAdv:S.lbNextAdv,players:S.players,rounds:S.rounds,lb:S.lb,late:S.late}}
+function saveLocal(){if(!RO)lsSet(LKEY,JSON.stringify(S))}
+function commit(fn,msg){undoStack.push(JSON.stringify(S));if(undoStack.length>80)undoStack.shift();const out=fn();saveLocal();queueRemote();render();if(msg)toast(msg,true);return out}
+function undo(){if(!undoStack.length)return;S=JSON.parse(undoStack.pop());saveLocal();queueRemote();render();toast('Undone')}
+function toast(msg,withUndo){const t=$('#toast');t.innerHTML=`<span>${esc(msg)}</span>`+(withUndo&&!RO?'<button data-act="undo" class="small">Undo</button>':'');t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.hidden=true,5000)}
+
+/* ---------- Server ---------- */
+async function api(path,opts={}){
+  const headers=Object.assign({},opts.headers||{});
+  if(hostKey)headers['x-kart-key']=hostKey;
+  if(hostToken)headers['x-kart-host']=hostToken;
+  const r=await fetch(API+path,Object.assign({},opts,{headers}));
+  let body=null;try{body=await r.json()}catch(e){}
+  if(!r.ok){const err=new Error((body&&body.error)||('Request failed ('+r.status+')'));err.status=r.status;err.body=body;throw err}
+  return body;
+}
+async function refreshList(){
+  listLoading=true;if(view==='history'||view==='leaderboard')render();
+  try{const b=await api('');LIST=(b.tournaments||[]).map(normalize);canWrite=!!b.canWrite;keyConfigured=b.keyConfigured;apiOk=true;
+    if(!canWrite&&hostToken){hostToken='';lsSet(TKEY,null)}
+    heartbeat()}
+  catch(e){apiOk=false;LIST=LIST||[]}
+  listLoading=false;updateKnown();render();
+}
+function queueRemote(){
+  clearTimeout(saveTimer);
+  if(RO||S.example||!S.id){updateStatus();return}
+  if(!canWrite){saveState='local';updateStatus();return}
+  saveState='saving';updateStatus();
+  saveTimer=setTimeout(pushRemote,700);
+}
+async function pushRemote(){
+  try{const b=await api('/'+S.id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(docOf())});
+    S.updatedAt=b.updatedAt;saveLocal();saveState='saved';
+    if(LIST){const i=LIST.findIndex(t=>t.id===S.id),d=normalize(JSON.parse(JSON.stringify(docOf())));if(i>=0)LIST[i]=d;else LIST.unshift(d);updateKnown()}
+  }catch(e){if(e.status===409){demote();return}saveState=e.status===401?'auth':'error';if(e.status===401)canWrite=false}
+  updateStatus();
+}
+function updateStatus(){
+  const el=$('#savestate');let txt='',cls='';
+  if(ui.waiting&&!canWrite)txt='Waiting for the cup to start';
+  else if(RO)txt=champ()?'Viewing saved cup':'Watching live (view only)';
+  else if(S.example)txt='Example only';
+  else if(apiOk===false){txt='Saved on this device only';cls='bad'}
+  else if(!canWrite){txt='Not saved to history';cls='bad'}
+  else txt={saving:'Saving…',saved:'Saved to history',error:'Save failed. Retrying on next change',auth:'Passcode rejected',local:'Not saved to history',idle:'Saved to history'}[saveState]||'';
+  if(canWrite&&!RO&&!S.example&&(saveState==='saved'||saveState==='idle'))cls='ok';
+  if(saveState==='error'||saveState==='auth')cls='bad';
+  el.textContent=txt;el.className='savestate '+cls;el.hidden=!txt;
+  $('#hostbtn').textContent=canWrite?'Hosting':'Host login';
+  $('#undo').hidden=RO;$('#undo').disabled=!undoStack.length;
+  $('#newbtn').hidden=!canWrite&&apiOk!==false&&(RO||ui.waiting);
+}
+// The in-progress cup viewers should see: the most recently updated one. Someone coming
+// from the sign-up page only follows a cup started after sign-ups opened.
+function pickLive(){
+  const since=ui.watch?+(lsGet('kart-watch-since')||0):0;
+  return (LIST||[]).filter(t=>t.status!=='done'&&(!since||Date.parse(t.createdAt)>=since))
+    .sort((a,b)=>String(b.updatedAt||b.createdAt).localeCompare(String(a.updatedAt||a.createdAt)))[0]||null;
+}
+function startPolling(){
+  clearInterval(pollTimer);
+  const tv=view==='tv';
+  if(ui.waiting&&!canWrite){
+    // Waiting for the host to start: check every 5 seconds and switch over when the cup begins.
+    pollTimer=setInterval(async()=>{
+      if(document.hidden)return;
+      try{const b=await api('');LIST=(b.tournaments||[]).map(normalize);const l=pickLive();if(l){ui.waiting=false;await openSaved(l.id,true);toast('The cup has started')}}catch(e){}
+    },5000);
+    return;
+  }
+  if(!RO&&!tv)return;
+  pollTimer=setInterval(async()=>{
+    if(document.hidden)return;
+    try{
+      if(RO&&S.id&&!champ()){const b=await api('/'+S.id);if(b.tournament.updatedAt!==S.updatedAt){S=normalize(b.tournament);render()}}
+      if(view==='tv'&&(S.example||!S.id||champ())){
+        const b=await api('');LIST=(b.tournaments||[]).map(normalize);
+        const live=pickLive();
+        if(live&&live.id!==S.id)openSaved(live.id,true);
+      }
+    }catch(e){}
+  },tv?5000:10000);
+}
+
+/* ---------- Bracket logic ---------- */
+const P=id=>S.players.find(p=>p.id===id)||{name:'?',id};
+const BR=b=>b==='lb'?S.lb:S.rounds;
+const curOf=b=>{const a=BR(b);return a[a.length-1]};
+const cur=()=>curOf('main');
+const poolSize=r=>r.heats.reduce((a,h)=>a+h.players.length,0);
+const nextPool=r=>r.heats.flatMap(h=>h.adv);
+const maxAdv=h=>Math.max(1,Math.min(3,h.players.length-1));
+const target=(r,h)=>Math.min(h.n||(r.final?1:r.adv),maxAdv(h));
+// A round drawn as one game (r.final) is the Final only while it sends one racer on.
+// If the host advances 2 or 3 from it, it becomes a regular round and another round follows.
+const isFinal=r=>!!(r&&r.final&&r.heats[0]&&target(r,r.heats[0])===1);
+const complete=r=>r.heats.every(h=>!h.players.length||h.adv.length>=1);
+function champ(){const r=S&&cur();return isFinal(r)&&r.heats[0].adv.length===1?r.heats[0].adv:null}
+const heatLabel=(r,i,b)=>isFinal(r)?(b==='lb'?'Losers final':'Final'):'Game '+(i+1);
+// With a second-chance losers bracket the Final keeps one seat open for its winner.
+const finalAt=c=>(c||S.cfg).size-((c||S.cfg).lb==='second'?1:0);
+const roundTitle=(b,r,i)=>isFinal(r)?(b==='lb'?'Losers final':'Final'):(b==='lb'?'LB Round ':'Round ')+(i+1);
+
+const pairKey=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+function pastPairs(skip){const m=new Map();S.rounds.concat(S.lb).forEach(r=>{if(r===skip)return;r.heats.forEach(h=>{const p=h.players;for(let i=0;i<p.length;i++)for(let j=i+1;j<p.length;j++){const k=pairKey(p[i],p[j]);m.set(k,(m.get(k)||0)+1)}})});return m}
+function split(ids,k){const g=Array.from({length:k},()=>[]);ids.forEach((id,i)=>g[i%k].push(id));return g}
+function bestSplit(ids,k,skip){
+  if(!S.cfg.noRematch||k<=1)return split(shuffle(ids.slice()),k);
+  const m=pastPairs(skip);if(!m.size)return split(shuffle(ids.slice()),k);
+  let best=null,bs=Infinity;
+  for(let t=0;t<500&&bs>0;t++){const g=split(shuffle(ids.slice()),k);let s=0;
+    for(const h of g)for(let i=0;i<h.length;i++)for(let j=i+1;j<h.length;j++)s+=m.get(pairKey(h[i],h[j]))||0;
+    if(s<bs){bs=s;best=g}}
+  return best;
+}
+function makeRound(ids,adv,isFinal,skip){
+  const k=isFinal?1:Math.max(1,Math.ceil(ids.length/S.cfg.size));
+  const r={final:!!isFinal,adv:isFinal?1:adv,heats:[]};
+  bestSplit(ids,k,skip).forEach(p=>r.heats.push({players:p,adv:[],cup:null,res:{}}));
+  return r;
+}
+function heatSizes(n,size){const k=Math.ceil(n/size);return Array.from({length:k},(_,i)=>Math.floor(n/k)+(i<n%k?1:0))}
+function shrink(n,size,avg){const hs=heatSizes(n,size);return{n,hs,next:Math.max(1,Math.round(hs.reduce((a,x)=>a+Math.min(avg,Math.max(1,x-1)),0)))}}
+function project(n,c){
+  const size=c.size,adv=c.avg||c.adv,fa=finalAt(c);
+  if(n<2)return{error:'You need at least 2 racers.'};
+  const main=[];let m=n;
+  while(m>fa){const r=shrink(m,size,adv);if(r.next>=m||main.length>40)return{error:`With ${adv} advancing per game, the field stops shrinking at ${m} racers. Lower the average.`};r.losers=m-r.next;main.push(r);m=r.next}
+  const lbr=[];let lbFinal=0,lbWinner=false;
+  if(c.lb!=='off'&&main.length){
+    let carry=0;
+    for(let i=0;i<main.length;i++){
+      let pool=carry+main[i].losers;
+      if(i<main.length-1){if(pool>=2){const r=shrink(pool,size,adv);lbr.push(r);carry=r.next}else carry=pool}
+      else{
+        while(pool>size){const r=shrink(pool,size,adv);if(r.next>=pool||lbr.length>40)return{error:'The losers bracket would stop shrinking. Lower the number advancing.'};lbr.push(r);pool=r.next}
+        if(pool>=2)lbFinal=pool;lbWinner=pool>=1;
+      }
+    }
+  }
+  const finalN=m+(c.lb==='second'&&lbWinner?1:0);
+  const games=main.reduce((a,r)=>a+r.hs.length,0)+1+lbr.reduce((a,r)=>a+r.hs.length,0)+(lbFinal?1:0);
+  return{main,finalN,lbr,lbFinal,games,races:games*c.races};
+}
+function sizesText(hs){const c={};hs.forEach(s=>c[s]=(c[s]||0)+1);return Object.keys(c).sort((a,b)=>b-a).map(s=>`${c[s]} game${c[s]>1?'s':''} of ${s}`).join(' + ')}
+
+/* Points */
+const ptsFor=place=>place?(S.cfg.points[place-1]||0):0;
+function totals(h){const R=S.cfg.races,t={};h.players.forEach(id=>{const a=h.res[id]||[];let p=0,w=0,n=0;for(let i=0;i<R;i++){const v=a[i];if(v){p+=ptsFor(v);n++;if(v===1)w++}}t[id]={p,w,n}});return t}
+const anyRes=h=>h.players.some(id=>(h.res[id]||[]).slice(0,S.cfg.races).some(Boolean));
+const resDone=h=>h.players.length>0&&h.players.every(id=>(h.res[id]||[]).slice(0,S.cfg.races).filter(Boolean).length===S.cfg.races);
+function autoAdvance(r,h){
+  if(!resDone(h)||h.adv.length)return null;
+  const t=totals(h),order=h.players.slice().sort((a,b)=>t[b].p-t[a].p);
+  const need=target(r,h);
+  if(order[need]&&t[order[need-1]].p===t[order[need]].p)return'tie';
+  h.adv=order.slice(0,need);return'ok';
+}
+
+/* Losers bracket */
+function mainFinalizedCount(){
+  const L=S.rounds.length;let n=0;
+  S.rounds.forEach((r,i)=>{if(isFinal(r))return;if(i<L-1||(complete(r)&&nextPool(r).length+S.late.length<=finalAt()))n=i+1});
+  return n;
+}
+function lbState(){
+  const fin=mainFinalizedCount();
+  const entered=new Set(S.lb.flatMap(r=>r.heats.flatMap(h=>h.players)));
+  const elim=[];S.rounds.slice(0,fin).forEach(r=>{if(isFinal(r))return;r.heats.forEach(h=>h.players.forEach(id=>{if(!h.adv.includes(id))elim.push(id)}))});
+  const waiting=elim.filter(id=>!entered.has(id)&&!P(id).out);
+  const last=curOf('lb');
+  const lastDone=!last||complete(last);
+  const carry=last&&!isFinal(last)&&lastDone?nextPool(last):[];
+  const pool=lastDone?carry.concat(waiting):[];
+  const m=cur();
+  const noMore=!!m&&(isFinal(m)||(complete(m)&&nextPool(m).length+S.late.length<=finalAt()));
+  let ch=null;
+  if(isFinal(last)&&last.heats[0].adv.length===1)ch=last.heats[0].adv[0];
+  else if(noMore&&lastDone&&pool.length===1&&!isFinal(last))ch=pool[0];
+  const finalNext=noMore&&pool.length<=S.cfg.size;
+  // Draw only when new knockouts have arrived, or the main bracket is wrapping up and the round shrinks the field.
+  const shrinks=finalNext||shrink(pool,S.cfg.size,S.lbNextAdv).next<pool.length;
+  const canDraw=S.cfg.lb!=='off'&&lastDone&&!isFinal(last)&&pool.length>=2&&(waiting.length>0||(noMore&&shrinks));
+  const needed=entered.size>0||waiting.length>0;
+  return{fin,entered,waiting,last,lastDone,carry,pool,noMore,champ:ch,finalNext,canDraw,needed,shrinks};
+}
+
+/* ---------- Setup ---------- */
+// Default cup name with the date and time it was set up, e.g. "Kart Night Nov 16, 2026, 9:46 PM".
+function defaultName(){return 'Kart Night '+fmtDate(today())+', '+new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
+function openSetup(){
+  // A new tournament starts from a blank slate: no players, default settings, and its own sign-up list.
+  draft={name:defaultName(),date:today(),count:8,names:Array(8).fill(''),cfg:defCfg(),sid:null};
+  view='setup';saveDraft();if(location.hash!=='#bracket')history.replaceState(null,'','#bracket');render();
+}
+function opt(arr,v,labels){return arr.map(x=>`<option value="${x}"${String(x)===String(v)?' selected':''}>${labels?esc(labels[x]):x}</option>`).join('')}
+function optionFields(px,c,withShape){
+  return `${withShape?`
+      <label class="f" for="${px}-size">Players per game<select id="${px}-size" data-k="size">${opt(SIZES,c.size)}</select></label>
+      <label class="f" for="${px}-avg">Average advancing per game<select id="${px}-avg" data-k="avg">${opt(AVGS,c.avg)}</select></label>`:''}
+      <label class="f" for="${px}-races">Races per game<select id="${px}-races" data-k="races">${opt([1,2,3,4,5,6,8],c.races)}</select></label>
+      <label class="f" for="${px}-elim">Elimination<select id="${px}-elim" data-k="elim">${opt(['single','double'],c.lb==='second'?'double':'single',{single:'Single elimination',double:'Double elimination'})}</select></label>
+      ${c.lb==='second'?`<label class="f">Losers bracket<span class="checkrow" style="font-size:13px">Required. Its winner joins the Final.</span></label>`:`<label class="f" for="${px}-consol">Losers bracket<span class="checkrow"><input type="checkbox" id="${px}-consol" data-k="consol"${c.lb==='consolation'?' checked':''}>Consolation bracket (never rejoins)</span></label>`}
+      <label class="f" for="${px}-norematch">Rematches<span class="checkrow"><input type="checkbox" id="${px}-norematch" data-k="noRematch"${c.noRematch?' checked':''}>Avoid repeat matchups</span></label>
+`;
+}
+function readField(el,c){
+  const k=el.dataset.k;if(!k)return false;
+  if(k==='size'||k==='adv'||k==='races')c[k]=+el.value;
+  else if(k==='avg'){c.avg=+el.value;c.adv=Math.min(3,Math.max(1,Math.round(c.avg)))}
+  else if(k==='elim')c.lb=el.value==='double'?'second':'off';
+  else if(k==='consol')c.lb=el.checked?'consolation':'off';
+  else if(k==='noRematch')c[k]=el.checked;
+  else if(k==='points'){const v=el.value.split(/[\s,]+/).map(Number).filter(x=>Number.isFinite(x)&&x>=0);c.points=v.length?v:DEF_POINTS.slice()}
+  else if(k==='cups'){c.cups=el.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).slice(0,80)}
+  else c[k]=el.value;
+  return true;
+}
+function setupHTML(){
+  const d=draft,c=d.cfg;
+  const pr=project(d.count,c);
+  let plan;
+  if(pr.error)plan=`<span class="bad">${esc(pr.error)}</span>`;
+  else{
+    const g=n=>`${n} game${n>1?'s':''}`;
+    const li=pr.main.map((x,i)=>`<li>Round ${i+1}: ${i?'about ':''}${x.n} racers, ${sizesText(x.hs)}. About ${x.next} advance. <span class="mono">${g(x.hs.length)}</span></li>`).join('');
+    const lb=pr.lbr.map((x,i)=>`<li>LB Round ${i+1}: about ${x.n} racers, ${sizesText(x.hs)}. <span class="mono">${g(x.hs.length)}</span></li>`).join('')+(pr.lbFinal?`<li>Losers final: ${pr.lbFinal} racers. <span class="mono">1 game</span></li>`:'');
+    plan=`<div style="font-size:18px"><strong>About ${g(pr.games)} to crown a champion</strong> <span class="muted">(about ${pr.races} races at ${c.races} per game)</span></div>
+      <div class="muted" style="font-size:13px">Estimate based on about ${c.avg} advancing from each game. Each game can advance a different number on the night.</div>
+      <ol>${li}<li>Final: about ${pr.finalN} racers${c.lb==='second'&&pr.finalN>1&&pr.lbr.length+(pr.lbFinal?1:0)?', including the losers bracket winner':''}. <span class="mono">1 game</span></li></ol>
+      ${lb?`<div style="margin-top:8px"><strong>Losers bracket</strong> (estimate, if you draw one losers round after each main round)</div><ol>${lb}</ol>`:''}`;
+  }
+  const names=d.names.map((n,i)=>`<label for="s-name-${i}">${String(i+1).padStart(2,'0')}<input id="s-name-${i}" data-i="${i}" class="nm-in" list="known-names" value="${esc(n)}" placeholder="Racer ${i+1}" autocomplete="off"></label>`).join('');
+  const saveNote=canWrite?'This cup will be saved to the history and leaderboard.':(apiOk===false?'History is unreachable right now, so this cup will only be saved on this device.':'You are not logged in as host, so this cup will not be saved to the history. Use Host login first to keep it.');
+  return `<section class="panel setup">
+    <div><h2>Set up the cup</h2><p class="muted" style="margin:6px 0 0">Enter the field and choose the format. A game is one set of races on the Switch, up to 4 players. Everything here can be changed later, round by round.</p></div>
+    <div class="fields">
+      <label class="f wide" for="s-tname">Tournament name<input id="s-tname" value="${esc(d.name)}" maxlength="120" autocomplete="off"></label>
+      <label class="f" for="s-date">Date<input id="s-date" type="date" value="${esc(d.date)}"></label>
+      <label class="f" for="s-count">How many racers<input id="s-count" type="number" min="2" max="128" value="${d.count}"></label>
+      ${optionFields('s',c,true)}
+    </div>
+    ${signupPanelHTML(false)}
+    <div class="plan">${plan}</div>
+    <p class="muted" style="margin:0;font-size:13px">Use the same spelling for a person every time so the leaderboard links their results. Past names are suggested as you type.</p>
+    <div class="names">${names}</div>
+    <details><summary>Paste a list of names instead</summary>
+      <textarea id="s-paste" placeholder="One name per line"></textarea>
+      <div class="row" style="margin-top:8px"><button data-act="paste" class="small">Use these names</button></div>
+    </details>
+    <p style="margin:0;font-size:14px"><strong>${esc(saveNote)}</strong></p>
+    <div class="row">
+      <button data-act="start" class="primary"${pr.error?' disabled':''}>Start and draw Round 1</button>
+      <button data-act="cancel-setup" class="ghost">Cancel</button>
+    </div>
+  </section>`;
+}
+function saveDraft(){lsSet(DKEY,draft?JSON.stringify(draft):null)}
+function setCount(n){const d=draft;n=Math.max(0,Math.min(128,n|0||2));d.count=n;while(d.names.length<n)d.names.push('');d.names.length=n;saveDraft();render()}
+function start(){
+  // Once the cup starts nobody else can sign up.
+  if(sig.session&&sig.session.open){sig.session.open=false;sigCall({action:'close',reason:'started'}).catch(()=>{})}
+  const d=draft;const seen={};
+  undoStack=[];RO=false;clearInterval(pollTimer);
+  const doc=blankDoc();
+  doc.id=(d.date||today())+'-'+uid().slice(0,5);
+  doc.name=(d.name||'').trim()||defaultName();
+  doc.date=d.date||today();
+  doc.cfg=d.cfg;doc.nextAdv=d.cfg.adv;doc.lbNextAdv=d.cfg.adv;
+  doc.players=d.names.map((n,i)=>{let nm=n.trim()||`Racer ${i+1}`;const k=nm.toLowerCase();if(seen[k])nm+=' '+(++seen[k]);else seen[k]=1;return{id:uid(),name:nm,out:false}});
+  S=doc;S.rounds=[makeRound(S.players.map(p=>p.id),d.cfg.adv,S.players.length<=finalAt(d.cfg))];
+  sig.entries.forEach(e=>{if(!sigSeen.ids.includes(e.id))sigSeen.ids.push(e.id)});lsSet(SKEY,JSON.stringify(sigSeen));
+  draft=null;saveDraft();view='bracket';ui.sel={main:null,lb:null};
+  saveLocal();queueRemote();render();toast('Round 1 drawn');scrollToFirstGame('main');
+}
+
+/* ---------- Bracket view ---------- */
+function waitingHTML(){
+  return `<div class="banner" style="flex-direction:column;align-items:flex-start;gap:6px;padding:22px 20px"><h2>The cup hasn't started yet</h2>
+    <p class="muted">You're all set. This page switches to the live bracket as soon as the host starts, so you can leave it open.</p></div>`;
+}
+function bracketHTML(){
+  if(ui.waiting&&!canWrite)return waitingHTML();
+  let h='';
+  if(S.example)h+=`<div class="banner ex"><p><strong>Example tournament.</strong> These 12 names are placeholders and nothing here is saved. Tap racers to try it, then set up your own.</p><button data-act="new" class="primary small">Set up my tournament</button></div>`;
+  else h+=`<div class="tname"><h2>${esc(S.name)}</h2><span class="muted mono" style="font-size:13px">${esc(fmtDate(S.date))}${RO?' · view only':''}</span>${RO&&canWrite?'<button class="small" data-act="takeover">Edit this cup</button>':''}</div>`;
+  const c=champ();
+  if(RO&&!c)h+=`<div class="banner"><p><strong>Live.</strong> This page updates by itself every 10 seconds. Only the host can change results.</p></div>`;
+  if(c)h+=`<div class="champwrap">${champCol(c,'Champion',RO?'':'Open the Final to change the winner.')}</div>`;
+  h+=roundsHTML('main');
+  if(S.cfg.lb!=='off')h+=lbHTML();
+  h+=rosterHTML();
+  if(!RO)h+=settingsHTML();
+  return h;
+}
+// One round on screen at a time; buttons switch rounds. null means "follow the newest round".
+function selRound(b){const n=BR(b).length-1,v=ui.sel[b];return v==null||v>n?n:v}
+function roundsHTML(b){
+  const arr=BR(b);if(!arr.length)return'';
+  const sel=selRound(b),last=arr.length-1;
+  const tabs=arr.map((r,i)=>{const live=i===last&&!(isFinal(r)&&r.heats[0].adv.length===1);
+    return `<button class="rtab${i===sel?' on':''}" role="tab" aria-selected="${i===sel}" data-act="rsel" data-b="${b}" data-i="${i}">${roundTitle(b,r,i)}${live?'<span class="dot" title="Being played now"></span>':''}</button>`}).join('');
+  return `<div class="roundtabs" role="tablist" aria-label="${b==='lb'?'Losers bracket rounds':'Rounds'}">${tabs}</div><div id="${b==='lb'?'lbrounds':'rounds'}">${roundCol(b,arr[sel],sel)}</div>`;
+}
+function roundCol(b,r,ri){
+  const arr=BR(b),isCur=ri===arr.length-1,live=isCur&&!RO,n=poolSize(r);
+  const adv=isFinal(r)?0:nextPool(r).length;
+  const meta=isFinal(r)?`${n} racers · ${S.cfg.races} race${S.cfg.races>1?'s':''}`:`${n} racers · ${r.heats.length} game${r.heats.length>1?'s':''}${adv?` · ${adv} advancing`:''}`;
+  let ctl='';
+  if(live&&!r.final)ctl=`<div class="row"><button class="small" data-act="reshuffle" data-b="${b}">Reshuffle games</button></div>`;
+  else if(live&&r.final&&n>1)ctl=`<div class="row"><button class="small" data-act="reshuffle" data-b="${b}">Redraw ${isFinal(r)?'final':'game'}</button></div>`;
+  else if(!isCur&&!RO)ctl=`<div class="row"><button class="small" data-act="reopen" data-b="${b}" data-r="${ri}">Reopen this round</button></div>`;
+  let heats=r.heats.map((h,hi)=>heatCard(b,r,ri,h,hi,live)).join('');
+  if(live&&!r.final){const ng=`<div class="newgame" data-b="${b}">Drop a player here to start Game ${r.heats.length+1}</div>`;heats=ng+heats+ng}
+  heats=`<div class="games">${heats}</div>`;
+  let foot='';
+  if(isCur&&!isFinal(r)){
+    if(!complete(r))foot=`<div class="waiting">${RO?'Results for this round are still coming in.':'Tap who advances in every game to finish the round.'}</div>`;
+    else if(b==='main')foot=RO?`<div class="waiting">Waiting for the host to draw the next round.</div>`:nextPanel(r);
+  }
+  return `<section class="col${isCur?'':' past'}"><div class="colhead"><h3>${roundTitle(b,r,ri)}</h3><span class="meta">${meta}</span>${ctl}</div>${heats}${foot}</section>`;
+}
+function heatCard(b,r,ri,h,hi,live){
+  const t=target(r,h),got=h.adv.length,isCur=ri===BR(b).length-1,key=`${b}:${ri}:${hi}`;
+  let ct;
+  if(live)ct=`<label class="ct advsel">Advance <select data-act="hadv" data-b="${b}" data-r="${ri}" data-h="${hi}" aria-label="How many advance from ${heatLabel(r,hi,b)}">${Array.from({length:maxAdv(h)},(_,k)=>`<option${k+1===t?' selected':''}>${k+1}</option>`).join('')}</select></label>`;
+  else ct=isFinal(r)?`<span class="ct ok">${got?'Winner':'No result'}</span>`:`<span class="ct ${got?'ok':''}">${got} advanced</span>`;
+  let cupl='';
+  if(live)cupl=`<div class="cupline"><input data-act="cup" data-b="${b}" data-r="${ri}" data-h="${hi}" value="${esc(h.cup||'')}" maxlength="40" placeholder="Cup played (optional)" aria-label="Cup played in ${heatLabel(r,hi,b)}" autocomplete="off"></div>`;
+  else if(h.cup)cupl=`<span class="cup">${esc(h.cup)}</span>`;
+  const hint=live?`<div class="hint">${isFinal(r)?'Tap the winner. If more than one racer should move on, tap them too (or raise Advance) and this becomes another round.':r.final?'This game sends more than one racer on, so another round follows. Set Advance to 1 to make it the Final.':'Tap everyone who advances. Drag ⠿ to move a player; drop on a player to swap.'}</div>`:'';
+  const chips=h.players.map(id=>{
+    const rank=h.adv.indexOf(id),on=rank>=0,p=P(id);
+    const badge=on?(isFinal(r)?'WIN':'ADV'):(isCur?'':'OUT');
+    let mv='';
+    if(live){
+      const opts=r.final?'':r.heats.map((x,j)=>(j===hi||x.players.length>=S.cfg.size)?'':`<option value="h:${j}">Move to ${heatLabel(r,j,b)}</option>`).join('')+`<option value="new">Move to a new game</option>`;
+      mv=`<select class="mv" data-act="move" data-b="${b}" data-p="${id}" aria-label="More for ${esc(p.name)}"><option value="">⋯</option>${opts}<option value="wd">Withdraw ${esc(p.name)}</option></select>`;
+    }
+    const grip=live&&!r.final?`<span class="grip" data-p="${id}" data-b="${b}" title="Drag to another game" aria-hidden="true">⠿</span>`:'';
+    return `<div class="chip${on?' on':(!isCur?' lost':'')}" data-pid="${id}">${grip}<button class="pick" data-act="pick" data-b="${b}" data-r="${ri}" data-h="${hi}" data-p="${id}"${live?'':' disabled'}><span class="badge">${badge}</span><span class="nm">${esc(p.name)}</span></button>${mv}</div>`;
+  }).join('');
+  const full=live&&!r.final&&h.players.length>=S.cfg.size?' full':'';
+  return `<article class="heat${full}" data-b="${b}" data-hi="${hi}"><header><h3>${heatLabel(r,hi,b)}</h3>${ct}</header>${cupl}${hint}${chips||'<div class="hint">Empty game</div>'}</article>`;
+}
+function nextPanel(r){
+  const adv=nextPool(r),pool=adv.concat(S.late),m=pool.length,n=poolSize(r),fa=finalAt();
+  if(adv.length>=n)return `<div class="next"><span class="warn">Everyone in this round is marked to advance, so the field would not shrink. Deselect some racers.</span></div>`;
+  const sizeSel=`<select id="nsize" data-act="nsize">${SIZES.map(x=>`<option${x===S.cfg.size?' selected':''}>${x}</option>`).join('')}</select>`;
+  const late=S.late.length?`<div class="muted">Includes ${S.late.length} late arrival${S.late.length>1?'s':''}.</div>`:'';
+  if(m<=fa){
+    let extra='',block=false;
+    if(S.cfg.lb==='second'&&!S.rounds.some(x=>x.lbJoin)){const st=lbState();if(st.needed){if(st.champ)extra=`<div>${esc(P(st.champ).name)} takes the last seat from the losers bracket.</div>`;else{extra='<span class="warn">Finish the losers bracket first. Its winner takes the last seat in the Final.</span>';block=true}}}
+    return `<div class="next"><div><strong>${m} racer${m>1?'s':''} advance.</strong> Next up: the Final.</div>${late}${extra}<button class="primary" data-act="draw"${block?' disabled':''}>Draw the Final</button></div>`;
+  }
+  const hs=heatSizes(m,S.cfg.size);
+  const advSel=`<select id="nadv" data-act="nadv">${[1,2,3].map(x=>`<option${x===S.nextAdv?' selected':''}>${x}</option>`).join('')}</select>`;
+  const pr=project(m,S.cfg);
+  const left=pr.error?'':`<span class="muted">About ${pr.main.reduce((a,x)=>a+x.hs.length,0)+1} more main bracket games to a champion, at about ${S.cfg.avg} advancing per game.</span>`;
+  return `<div class="next"><div><strong>${m} racers advance.</strong> Next round: ${sizesText(hs)}.</div>${late}
+    <div class="row"><span>Players per game</span>${sizeSel}</div>
+    <div class="row"><span>Start each game at</span>${advSel}<span>advancing</span></div>
+    ${left}
+    <button class="primary" data-act="draw">Draw Round ${S.rounds.length+1}</button></div>`;
+}
+function lbHTML(){
+  const st=lbState();
+  const cols=roundsHTML('lb');
+  let panel='';
+  if(st.champ)panel=champCol([st.champ],'Losers bracket winner',S.cfg.lb==='second'?'Joins the main Final':'');
+  else if(!RO){
+    const names=st.waiting.map(id=>esc(P(id).name)).join(', ');
+    let body=`<div><strong>${st.waiting.length} waiting</strong>${names?': '+names:''}</div>`;
+    if(st.carry.length)body+=`<div class="muted">${st.carry.length} still alive from the last losers round.</div>`;
+    if(!st.lastDone)body+='<div class="muted">Finish the current losers round first.</div>';
+    else if(st.pool.length<2)body+='<div class="muted">Racers drop in here when they are knocked out of the main bracket. Draw a losers round after each main round.</div>';
+    else if(!st.canDraw&&!st.waiting.length&&!st.noMore)body+='<div class="muted">These racers wait for the next main round to finish, then race the new knockouts.</div>';
+    else if(!st.canDraw)body+=`<div class="row"><span>Top</span><select id="lbnadv" data-act="lbnadv">${[1,2,3].map(x=>`<option${x===S.lbNextAdv?' selected':''}>${x}</option>`).join('')}</select><span>advance</span></div><span class="warn">That would not shrink the losers bracket. Lower the number advancing.</span>`;
+    else{
+      const label=st.finalNext?'Draw the losers final':`Draw LB Round ${S.lb.length+1}`;
+      const advSel=st.finalNext?'':`<div class="row"><span>Top</span><select id="lbnadv" data-act="lbnadv">${[1,2,3].map(x=>`<option${x===S.lbNextAdv?' selected':''}>${x}</option>`).join('')}</select><span>advance</span></div>`;
+      body+=`${advSel}<button class="primary" data-act="lbdraw">${label} (${st.pool.length} racers)</button>`;
+    }
+    panel=`<div class="next" style="margin-top:12px">${body}</div>`;
+  }
+  if(!cols&&!panel)return '';
+  return `<section class="lbsec"><div class="row" style="justify-content:space-between"><h2>Losers bracket</h2><span class="muted" style="font-size:13px">${esc(LB_MODES[S.cfg.lb])}</span></div>${cols}${panel}</section>`;
+}
+function champCol(c,label,sub){
+  const pod=c.slice(1).map((id,i)=>`<div><b>${ord(i+2)}</b>${esc(P(id).name)}</div>`).join('');
+  return `<section class="col"><div class="champ"><div class="checker"></div><div class="in"><span class="status gold" style="align-self:flex-start">${esc(label)}</span><div class="who">${esc(P(c[0]).name)}</div>${sub?`<div class="muted">${esc(sub)}</div>`:''}${pod?`<div class="podium">${pod}</div>`:''}</div></div></section>`;
+}
+function statusOf(p,st){
+  const c=champ();
+  if(c&&c[0]===p.id)return['Champion','gold'];
+  if(st&&st.champ===p.id&&!(isFinal(cur())&&cur().heats[0].players.includes(p.id)))return['LB winner','gold'];
+  const r=cur();
+  if(r){const hi=r.heats.findIndex(h=>h.players.includes(p.id));
+    if(hi>=0){if(c)return['Finalist',''];return[isFinal(r)?'Final':'Game '+(hi+1),'live']}}
+  const l=curOf('lb');
+  if(l){const hi=l.heats.findIndex(h=>h.players.includes(p.id));if(hi>=0&&!(isFinal(l)&&l.heats[0].adv.length===1))return[isFinal(l)?'LB final':'LB game '+(hi+1),'live']}
+  if(S.late.includes(p.id))return['Next round','live'];
+  if(st&&(st.waiting.includes(p.id)||st.carry.includes(p.id)))return['LB waiting','live'];
+  if(p.out)return['Withdrawn',''];
+  for(let i=S.rounds.length-1;i>=0;i--)if(S.rounds[i].heats.some(h=>h.players.includes(p.id)))return[`Out in ${isFinal(S.rounds[i])?'Final':'R'+(i+1)}`,''];
+  return['Not drawn',''];
+}
+function rosterHTML(){
+  const r=cur(),inCur=new Set(r?r.heats.flatMap(h=>h.players):[]),c=champ();
+  const st=S.cfg.lb!=='off'?lbState():null;
+  const items=S.players.map(p=>{
+    const [s,cls]=statusOf(p,st);
+    let act='';
+    if(!RO&&r&&!c)act=inCur.has(p.id)||S.late.includes(p.id)?`<button class="small ghost" data-act="withdraw" data-p="${p.id}">Withdraw</button>`:`<button class="small ghost" data-act="addback" data-p="${p.id}">Put back in</button>`;
+    return `<div class="ritem"><input class="rn" id="rn-${p.id}" data-p="${p.id}" value="${esc(p.name)}" aria-label="Name"${RO?' readonly':''}><span class="status ${cls}">${esc(s)}</span>${act}</div>`;
+  }).join('');
+  return `<section class="panel roster">
+    <div class="row" style="justify-content:space-between"><h2>Racers</h2><span class="muted mono" style="font-size:13px">${S.players.length} entered · ${c?'cup finished':inCur.size+' in the main bracket'}</span></div>
+    ${RO?'':'<p class="muted" style="margin:0;font-size:14px">Edit a name to rename everywhere. Add a late arrival here: they take an open seat in the current round, or join the next round if every game is full. "Put back in" returns a knocked-out racer to the current round.</p>'}
+    ${(c||RO)?'':`<div class="row"><input id="add-name" list="known-names" placeholder="New racer name" autocomplete="off" style="flex:1;max-width:320px"><button data-act="add">Add racer</button></div>`}
+    <div class="rlist">${items}</div>
+  </section>`;
+}
+function settingsHTML(){
+  return `<details class="panel settings" id="setdet"${ui.setOpen?' open':''}><summary>Cup settings</summary>
+    <p class="muted" style="margin:0;font-size:14px">Changes apply right away. Players per game and number advancing are set when you draw each round.</p>
+    <div class="fields">${optionFields('c',S.cfg,false)}</div></details>`;
+}
+
+/* ---------- TV ---------- */
+function tvHTML(){
+  const bar=(title,sub)=>`<div class="tvbar"><div><div class="tvname">${esc(title)}</div><div class="tvsub">${sub}</div></div><div class="row"><button data-act="fs">Full screen</button><button data-act="tvexit">Exit TV mode</button></div></div>`;
+  if(S.example&&!S.id)return bar('Kart Cup','Waiting for a cup to start')+`<div class="empty">No cup is running right now. This screen switches to the next cup as soon as the host starts one.</div>`;
+  const c=champ(),st=S.cfg.lb!=='off'?lbState():null;
+  if(c){
+    const pod=c.slice(1).map((id,i)=>`<div><span class="muted mono">${ord(i+2)}</span> ${esc(P(id).name)}</div>`).join('');
+    const lbw=st&&st.champ&&S.cfg.lb==='consolation'?`<div style="margin-top:22px" class="tvsub">Losers bracket winner: ${esc(P(st.champ).name)}</div>`:'';
+    return bar(S.name,esc(fmtDate(S.date)))+`<div class="tvchamp"><span class="status gold" style="font-size:16px">Champion</span><div class="who">${esc(P(c[0]).name)}</div><div class="pod">${pod}</div>${lbw}</div>`;
+  }
+  const r=cur(),ri=S.rounds.length-1;
+  let h=bar(S.name,`${esc(fmtDate(S.date))} · ${roundTitle('main',r,ri)}`);
+  h+=`<div class="tvgrid">${r.heats.map((x,i)=>tvHeat('main',r,x,i)).join('')}</div>`;
+  const l=curOf('lb');
+  if(st&&l&&!(isFinal(l)&&l.heats[0].adv.length===1)){
+    h+=`<h2 class="tvh" style="margin-top:28px">Losers bracket · ${roundTitle('lb',l,S.lb.length-1)}</h2><div class="tvgrid">${l.heats.map((x,i)=>tvHeat('lb',l,x,i)).join('')}</div>`;
+  }
+  return h;
+}
+function tvHeat(b,r,h,i){
+  const has=anyRes(h),t=has?totals(h):null;
+  const order=has?h.players.slice().sort((a,b2)=>t[b2].p-t[a].p):h.players;
+  const rows=order.map(id=>{const k=h.adv.indexOf(id),on=k>=0;return `<div class="tvrow${on?' on':''}"><span class="n">${esc(P(id).name)}</span>${has?`<span class="p">${t[id].p}</span>`:''}${on?`<span class="tag">${isFinal(r)?'WIN':'ADV'}</span>`:''}</div>`}).join('');
+  const done=has?Math.min(...h.players.map(id=>t[id].n)):0;
+  return `<div class="tvheat"><div class="hd"><h3>${heatLabel(r,i,b)}</h3>${has?`<span class="tvsub">Race ${Math.min(done+1,S.cfg.races)} of ${S.cfg.races}</span>`:''}</div>${h.cup?`<span class="cup">${esc(h.cup)}</span>`:''}${rows}</div>`;
+}
+
+/* ---------- History ---------- */
+function historyHTML(){
+  let h=`<div class="row" style="justify-content:space-between;margin-bottom:14px"><h2>Past cups</h2><button class="small" data-act="refresh">Refresh</button></div>`;
+  if(apiOk===false)return h+`<div class="empty">The history could not be loaded. Check your connection and refresh.</div>`;
+  if(!LIST||listLoading&&!LIST.length)return h+`<div class="empty">Loading history…</div>`;
+  if(!LIST.length)return h+`<div class="empty">No cups saved yet. ${canWrite?'Start a new tournament and it will show up here.':'Log in as host, then start a tournament to save it here.'}</div>`;
+  const items=LIST.map(t=>{
+    const done=t.status==='done'&&t.champion;
+    let pill=done?`<span class="status gold">Won by ${esc(t.champion.name)}</span>`:`<span class="status live">Live now</span>`;
+    if(t.lbChampion)pill+=`<span class="status">LB: ${esc(t.lbChampion.name)}</span>`;
+    const rounds=(t.rounds||[]).length;
+    const del=canWrite?(ui.delConfirm===t.id?`<button class="small danger" data-act="del-yes" data-id="${esc(t.id)}">Delete for good</button><button class="small ghost" data-act="del-no">Keep</button>`:`<button class="small ghost" data-act="del" data-id="${esc(t.id)}">Delete</button>`):'';
+    const isOpen=S&&S.id===t.id;
+    return `<div class="hitem"><div class="t"><strong>${esc(t.name)}</strong><span class="sub">${esc(fmtDate(t.date))} · ${(t.players||[]).length} racers · ${rounds} round${rounds===1?'':'s'}${t.lb&&t.lb.length?' + losers bracket':''}</span></div>
+      <div class="row">${pill}<button class="small${isOpen?'':' primary'}" data-act="open" data-id="${esc(t.id)}">${isOpen?'Showing':(canWrite&&!done?'Continue':(done?'View':'Watch'))}</button>${del}</div></div>`;
+  }).join('');
+  return h+`<div class="hlist">${items}</div>`;
+}
+
+/* ---------- Leaderboard ---------- */
+// Leaderboard. A "game" is one set of races. In every game before a Final, a racer
+// either advances (moves on to the next round) or is disqualified (does not qualify
+// to advance). Main and losers bracket games both count. Finals count toward wins only.
+function stats(){
+  const M={};
+  const get=name=>{const k=name.trim().toLowerCase();return M[k]||(M[k]={name:name.trim(),played:0,won:0,adv:0,dq:0})};
+  (LIST||[]).forEach(t=>{
+    const byId={};(t.players||[]).forEach(p=>byId[p.id]=p.name);
+    const inCup=new Set();
+    (t.rounds||[]).concat(t.lb||[]).forEach(r=>(r.heats||[]).forEach(h=>(h.players||[]).forEach(id=>{
+      const nm=byId[id];if(!nm)return;const s=get(nm);inCup.add(s);
+      if(r.final&&r.heats[0]&&Math.min(r.heats[0].n||1,Math.max(1,Math.min(3,r.heats[0].players.length-1)))===1)return;
+      if((h.adv||[]).includes(id))s.adv++;else s.dq++;
+    })));
+    inCup.forEach(s=>s.played++);
+    if(t.status==='done'&&t.champion&&byId[t.champion.id])get(byId[t.champion.id]).won++;
+  });
+  return Object.values(M);
+}
+const COLS=[
+  {k:'name',l:'Racer'},{k:'played',l:'Played'},{k:'won',l:'Won'},{k:'adv',l:'Adv'},{k:'dq',l:'DQ'}];
+// Standings: most tournaments won, then most advances, then fewest disqualifications.
+const standing=(a,b)=>(b.won-a.won)||(b.adv-a.adv)||(a.dq-b.dq);
+const byName=(a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'});
+function leaderboardHTML(){
+  let h=`<div class="row" style="justify-content:space-between;margin-bottom:14px"><h2>Leaderboard</h2><button class="small" data-act="refresh">Refresh</button></div>`;
+  if(apiOk===false)return h+`<div class="empty">The leaderboard could not be loaded. Check your connection and refresh.</div>`;
+  if(!LIST)return h+`<div class="empty">Loading…</div>`;
+  const rows=stats();
+  if(!rows.length)return h+`<div class="empty">No results yet. The leaderboard fills in as cups are saved.</div>`;
+  // Rank by standings; tied racers share a rank.
+  rows.sort((a,b)=>standing(a,b)||byName(a,b));
+  rows.forEach((r,i)=>{r.rank=i&&standing(rows[i-1],r)===0?rows[i-1].rank:i+1});
+  const k=COLS.some(c=>c.k===ui.sort)?ui.sort:'rank';
+  if(k==='name')rows.sort(byName);
+  else if(k==='dq')rows.sort((a,b)=>(a.dq-b.dq)||(a.rank-b.rank)||byName(a,b));
+  else if(k!=='rank')rows.sort((a,b)=>(b[k]-a[k])||(a.rank-b.rank)||byName(a,b));
+  const head=`<tr><th class="rank" scope="col" data-act="sort" data-k="rank"${k==='rank'?' aria-sort="ascending"':''}>#</th>${COLS.map(c=>`<th scope="col" data-act="sort" data-k="${c.k}"${c.k===k?` aria-sort="${k==='name'||k==='dq'?'ascending':'descending'}"`:''}>${c.sh?`<span class="lg">${c.l}</span><span class="sh">${c.sh}</span>`:c.l}</th>`).join('')}</tr>`;
+  const body=rows.map(s=>`<tr><td class="rank">${s.rank}</td>${COLS.map(c=>`<td>${c.k==='name'?esc(s.name):s[c.k]}</td>`).join('')}</tr>`).join('');
+  return h+`<dl class="legend">
+      <div><dt>Played</dt><dd>tournaments played</dd></div>
+      <div><dt>Won</dt><dd>tournaments won</dd></div>
+      <div><dt>Adv</dt><dd>advances: times they moved on from one round to the next</dd></div>
+      <div><dt>DQ</dt><dd>disqualifications: times they did not qualify to advance</dd></div>
+    </dl>
+    <div class="tablewrap"><table class="lb"><thead>${head}</thead><tbody>${body}</tbody></table></div>
+    <p class="muted" style="font-size:13px;margin-top:10px">Ranked by tournaments won, then advances, then fewest disqualifications. Racers tied on all three share a rank. Games in the losers bracket count; Finals count only toward Won. Results are linked by name, ignoring capitals. Tap a column heading to sort by it, or # to go back to the rankings.</p>`;
+}
+function updateKnown(){
+  const names=new Set();(LIST||[]).forEach(t=>(t.players||[]).forEach(p=>names.add(p.name)));
+  $('#known-names').innerHTML=[...names].sort().map(n=>`<option value="${esc(n)}"></option>`).join('');
+}
+
+/* ---------- Host login ---------- */
+function guessDevice(){const u=navigator.userAgent;return /iPad/.test(u)?'iPad':/iPhone/.test(u)?'iPhone':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows PC':'This device'}
+const ago=ms=>{const m=Math.round((Date.now()-ms)/60000);return m<1?'just now':m<60?`${m} min ago`:`${Math.round(m/60)} hr ago`};
+function hostPanelHTML(){
+  if(!ui.hostOpen)return'';
+  if(canWrite)return `<section class="panel hostpanel"><h3>This device is the host</h3><p class="muted" style="margin:0;font-size:14px">Only one device can host at a time. Cups you run here are saved to the history automatically. Everyone else sees them read only.</p><div class="row"><button class="small" data-act="logout">Stop hosting on this device</button><button class="small ghost" data-act="host">Close</button></div></section>`;
+  if(ui.holder){const h=ui.holder;
+    return `<section class="panel hostpanel"><h3>Another device is hosting</h3>
+      <p style="margin:0;font-size:14px"><strong>${esc(h.device)}</strong> has been the host since ${esc(new Date(h.since).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}))} and was last active ${esc(ago(h.lastSeen))}. Only one device can host at a time.</p>
+      <p class="muted" style="margin:0;font-size:14px">Taking over makes that device view only. Use this if the host phone died or you are handing off.</p>
+      <div class="row"><button class="primary" data-act="takeover-host">Take over hosting</button><button class="ghost" data-act="host">Cancel</button></div></section>`}
+  const unset=keyConfigured===false?'<p style="margin:0;color:var(--accent);font-weight:600;font-size:14px">Saving is not set up on the site yet. A host passcode has to be added in the site settings first.</p>':'';
+  return `<section class="panel hostpanel"><h3>Host login</h3>
+    <p class="muted" style="margin:0;font-size:14px">Enter the host passcode to run cups and save them. Only one device can host at a time. Everyone else can watch the live cup, the history and the leaderboard without it.</p>${unset}
+    <form class="row" id="hostform"><input id="hostkey" type="password" autocomplete="current-password" placeholder="Host passcode" style="flex:1;max-width:240px"><input id="hostdev" value="${esc(guessDevice())}" maxlength="60" aria-label="Name for this device" title="Name for this device" style="max-width:160px"><button class="primary" type="submit">Log in</button><button class="ghost" type="button" data-act="host">Cancel</button></form>
+    ${ui.hostMsg?`<p style="margin:0;color:var(--accent);font-size:14px">${esc(ui.hostMsg)}</p>`:''}</section>`;
+}
+async function login(key,force){
+  hostKey=key;ui.hostMsg='';
+  const device=($('#hostdev')&&$('#hostdev').value.trim())||ui.device||guessDevice();ui.device=device;
+  try{
+    const b=await api('/host',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'claim',force:!!force,device})});
+    hostToken=b.token;lsSet(HKEY,key);lsSet(TKEY,hostToken);ui.holder=null;ui.hostOpen=false;
+    await refreshList();pollSignups();
+    toast('This device is now the host. Cups will be saved.');
+    if(RO&&S.id&&!champ()){RO=false;clearInterval(pollTimer);undoStack=[];saveLocal();saveState='saved'}
+    else if(!RO&&!S.example&&S.id)queueRemote();
+  }catch(e){
+    if(e.status===409&&e.body&&e.body.holder){ui.holder=e.body.holder}
+    else{hostKey='';ui.hostMsg=e.status===401?'That passcode is not right.':e.status===503?'Saving is not set up on the site yet.':'Could not reach the server. Try again.'}
+  }
+  render();
+}
+async function logout(){
+  try{if(hostToken)await api('/host',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'release'})})}catch(e){}
+  hostKey='';hostToken='';canWrite=false;lsSet(HKEY,null);lsSet(TKEY,null);ui.hostOpen=false;
+  if(!S.example&&S.id)RO=true;render();startPolling();toast('This device stopped hosting');
+}
+function demote(){
+  hostToken='';lsSet(TKEY,null);canWrite=false;clearInterval(beatTimer);
+  if(!S.example&&S.id){RO=true;undoStack=[]}
+  render();startPolling();toast('Another device took over hosting. This device is now view only.');
+}
+function heartbeat(){
+  clearInterval(beatTimer);if(!canWrite)return;
+  beatTimer=setInterval(async()=>{if(!canWrite)return;
+    try{await api('/host',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'ping'})})}
+    catch(e){if(e.status===409||e.status===401)demote()}},60000);
+}
+
+/* ---------- Actions ---------- */
+function removeFromCurrent(id){
+  ['main','lb'].forEach(b=>{const r=curOf(b);if(!r)return;
+    r.heats.forEach(h=>{h.players=h.players.filter(x=>x!==id);h.adv=h.adv.filter(x=>x!==id);delete h.res[id]});
+    if(!r.final)r.heats=r.heats.filter(h=>h.players.length)});
+  S.late=S.late.filter(x=>x!==id);
+}
+// Seat a late or returning racer: an open seat now, else the next round.
+function seat(id){const r=cur(),open=r.heats.filter(h=>h.players.length<S.cfg.size);
+  if(open.length){open.reduce((a,h)=>h.players.length<a.players.length?h:a).players.push(id);return'now'}
+  if(r.final)return'full';if(!S.late.includes(id))S.late.push(id);return'next'}
+const seatMsg=(n,w)=>w==='now'?`${n} added to the current round`:w==='next'?`Every game is full. ${n} joins the next round.`:`The Final is full, so ${n} could not be added.`;
+async function openSaved(id,keepView){
+  let t=(LIST||[]).find(x=>x.id===id);
+  try{const b=await api('/'+id);t=b.tournament}catch(e){if(!t){toast('Could not open that cup.');return}}
+  const done=t.status==='done';
+  undoStack=[];
+  S=normalize(JSON.parse(JSON.stringify(t)));ui.sel={main:null,lb:null};
+  RO=!(canWrite&&!done);
+  if(!RO){saveLocal();saveState='saved'}
+  if(!keepView){view='bracket';if(location.hash!=='#bracket')history.replaceState(null,'','#bracket')}
+  render();startPolling();
+  if(done&&canWrite&&!keepView)toast('Finished cups open as view only. Use Edit this cup to change results.');
+}
+/* ---------- Player sign-ups ---------- */
+let sig={session:null,entries:[]},sigTimer=null,sigSeen={sid:'',ids:[]};
+try{const v=JSON.parse(lsGet(SKEY));if(v&&v.ids)sigSeen=v}catch(e){}
+const joinUrl=()=>sig.session?`${location.origin}/kart/join/?c=${sig.session.code}`:'';
+function qrSvg(text){try{const q=qrcode(0,'M');q.addData(text);q.make();return q.createSvgTag({cellSize:6,margin:2,scalable:true})}catch(e){return''}}
+async function sigCall(body){return api('/signup',body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{})}
+async function pollSignups(){
+  clearTimeout(sigTimer);
+  if(!canWrite){sig={session:null,entries:[]};return}
+  try{
+    const b=await sigCall();sig.session=b.session;sig.entries=b.entries||[];
+    if(sig.session&&sigSeen.sid!==sig.session.sid){sigSeen={sid:sig.session.sid,ids:[]}}
+    mergeSignups();
+  }catch(e){if(e.status===409)demote()}
+  if(canWrite&&sig.session&&sig.session.open)sigTimer=setTimeout(pollSignups,4000);
+}
+function mergeSignups(){
+  const fresh=sig.entries.filter(e=>!sigSeen.ids.includes(e.id));
+  const before=ui.sigCount;ui.sigCount=sig.entries.length;
+  if(!fresh.length){if(before!==ui.sigCount&&(view==='setup'||view==='bracket'))render();return}
+  const has=(list,name)=>list.some(n=>n.trim().toLowerCase()===name.toLowerCase());
+  if(view==='setup'&&draft){
+    if(!sig.session||sig.session.sid!==draft.sid)return;
+    fresh.forEach(e=>{
+      if(!has(draft.names,e.name)){const i=draft.names.findIndex(n=>!n.trim());if(i>=0)draft.names[i]=e.name;else draft.names.push(e.name)}
+      sigSeen.ids.push(e.id);
+    });
+    draft.count=draft.names.length;saveDraft();
+  }else return;
+  lsSet(SKEY,JSON.stringify(sigSeen));
+  render();
+}
+async function sigAction(action){
+  if(!canWrite){toast('Log in as host first.');return}
+  try{
+    const b=await sigCall({action});sig.session=b.session;if(b.entries)sig.entries=b.entries;
+    if(action==='open'){sigSeen={sid:b.session.sid,ids:[]};lsSet(SKEY,JSON.stringify(sigSeen));
+      if(view==='setup'&&draft){draft.sid=b.session.sid;draft.names=draft.names.filter(n=>n.trim());draft.count=draft.names.length;saveDraft()}
+      toast(`Sign-ups open. Code ${b.session.code}`)}
+    else toast(action==='close'?'Sign-ups closed':'Sign-ups reopened');
+  }catch(e){toast(e.message)}
+  render();pollSignups();
+}
+function signupPanelHTML(compact){
+  // In setup, an older sign-up list (from a previous cup) is ignored; opening sign-ups starts a new one.
+  const ss=compact||(draft&&sig.session&&sig.session.sid===draft.sid)?sig.session:null,n=ss?sig.entries.length:0;
+  if(!canWrite)return compact?'':`<div class="sigpanel"><strong>Let players sign themselves up</strong><span class="muted">Log in as host to open sign-ups. Players add their own names from their phones.</span></div>`;
+  if(!ss||(!ss.open&&compact))return compact?'':`<div class="sigpanel"><div><strong>Let players sign themselves up</strong><div class="muted">Players scan a QR code or go to ${esc(location.host)}/kart/join, type their name, and it shows up in the list below.</div></div>
+    <div class="row">${ss?`<button data-act="sig-reopen">Reopen sign-ups (code ${esc(ss.code)})</button><button class="ghost" data-act="sig-open">Start a new sign-up list</button>`:'<button class="primary" data-act="sig-open">Open sign-ups</button>'}</div></div>`;
+  if(!ss.open)return `<div class="sigpanel"><div><strong>Sign-ups are closed</strong> <span class="muted">${n} signed up with code ${esc(ss.code)}.</span></div><div class="row"><button data-act="sig-reopen">Reopen sign-ups</button><button class="ghost" data-act="sig-open">Start a new sign-up list</button></div></div>`;
+  const url=joinUrl();
+  const qr=`<div class="sigqr">${qrSvg(url)}</div>`;
+  const info=`<div class="siginfo"><div class="muted" style="font-size:13px">Scan, or go to <strong>${esc(location.host)}/kart/join</strong> and enter</div><div class="sigcode">${esc(ss.code)}</div>
+    <div><strong>${n} signed up</strong>${compact?' · new names join the current round automatically':' · names fill the list below automatically'}</div>
+    <div class="row"><button class="small" data-act="sig-copy">Copy link</button><a class="btn small" href="${esc(url)}&amp;display=1" target="_blank" rel="noopener">TV sign-up screen</a><button class="small ghost" data-act="sig-close">Close sign-ups</button></div></div>`;
+  if(compact)return `<details class="sigpanel sigbar"${ui.sigOpen?' open':''} id="sigdet"><summary>Sign-ups open · code <span class="mono">${esc(ss.code)}</span> · ${n} signed up</summary><div class="sigbody">${qr}${info}</div></details>`;
+  return `<div class="sigpanel"><div class="sigbody">${qr}${info}</div></div>`;
+}
+
+// Scroll a game so its top sits just under the sticky round buttons.
+const calm=()=>window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function scrollToGame(b,hi,smooth){
+  requestAnimationFrame(()=>{
+    const wrap=document.getElementById(b==='lb'?'lbrounds':'rounds');if(!wrap)return;
+    const g=hi==null?wrap.querySelector('.heat'):wrap.querySelector(`.heat[data-hi="${hi}"]`);if(!g)return;
+    const tabs=wrap.previousElementSibling&&wrap.previousElementSibling.classList.contains('roundtabs')?wrap.previousElementSibling.offsetHeight:0;
+    window.scrollTo({top:Math.max(0,g.getBoundingClientRect().top+window.scrollY-tabs-8),behavior:smooth&&!calm()?'smooth':'auto'});
+  });
+}
+// After a draw, Game 1 goes to the top.
+const scrollToFirstGame=b=>scrollToGame(b,null,false);
+function heatAt(el){const r=BR(el.dataset.b)[+el.dataset.r];return[r,r.heats[+el.dataset.h]]}
+
+/* Moving players between games. A moved player loses their race results and advance mark in the old game. */
+function clearIn(h,id){h.adv=h.adv.filter(x=>x!==id);delete h.res[id];if(h.n&&h.n>maxAdv(h))h.n=maxAdv(h)}
+function moveTo(b,pid,dest){
+  const r=curOf(b),from=r.heats.find(h=>h.players.includes(pid));if(!from||r.final)return;
+  let to;
+  if(dest==='new'){if(from.players.length===1){toast('That player is already alone in a game.');return}to={players:[],adv:[],cup:null,res:{}}}
+  else{to=r.heats[dest];if(!to||to===from)return;if(to.players.length>=S.cfg.size){toast(`${heatLabel(r,dest,b)} is full. Drop onto a player to swap instead.`);return}}
+  commit(()=>{
+    from.players=from.players.filter(x=>x!==pid);clearIn(from,pid);
+    if(dest==='new')r.heats.push(to);
+    to.players.push(pid);
+    if(!from.players.length)r.heats=r.heats.filter(h=>h!==from);
+  },`${P(pid).name} moved to ${dest==='new'?'a new game':heatLabel(r,dest,b)}`);
+}
+function swapPlayers(b,a,c){
+  const r=curOf(b),ha=r.heats.find(h=>h.players.includes(a)),hc=r.heats.find(h=>h.players.includes(c));
+  if(!ha||!hc||ha===hc||r.final)return;
+  commit(()=>{
+    ha.players[ha.players.indexOf(a)]=c;hc.players[hc.players.indexOf(c)]=a;
+    clearIn(ha,a);clearIn(hc,c);
+  },`Swapped ${P(a).name} and ${P(c).name}`);
+}
+
+/* Drag and drop with pointer events, so it works with a finger as well as a mouse. */
+let drag=null;
+function dropTarget(x,y){
+  const el=document.elementFromPoint(x,y);if(!el)return null;
+  const chip=el.closest('.chip[data-pid]'),heat=el.closest('.heat[data-hi]'),ng=el.closest('.newgame');
+  if(chip&&chip.dataset.pid!==drag.pid&&heat&&heat.dataset.b===drag.b&&chip.querySelector('.grip'))return{kind:'swap',el:chip,pid:chip.dataset.pid};
+  if(heat&&heat.dataset.b===drag.b)return{kind:'move',el:heat,hi:+heat.dataset.hi};
+  if(ng&&ng.dataset.b===drag.b)return{kind:'new',el:ng};
+  return null;
+}
+function endDrag(){if(!drag)return;if(drag.loop)cancelAnimationFrame(drag.loop);if(drag.ghost)drag.ghost.remove();if(drag.t)drag.t.el.classList.remove('drop');document.body.classList.remove('dragging');drag=null}
+document.addEventListener('pointerdown',e=>{
+  const g=e.target.closest('.grip');if(!g||RO)return;
+  e.preventDefault();
+  drag={pid:g.dataset.p,b:g.dataset.b,x:e.clientX,y:e.clientY,on:false,ghost:null,t:null};
+});
+document.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  if(!drag.on){if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;
+    drag.on=true;drag.ghost=document.createElement('div');drag.ghost.className='dragghost';drag.ghost.textContent=P(drag.pid).name;document.body.appendChild(drag.ghost);document.body.classList.add('dragging')}
+  e.preventDefault();
+  drag.ghost.style.transform=`translate(${e.clientX+10}px,${e.clientY+10}px)`;
+  const t=dropTarget(e.clientX,e.clientY);
+  if(drag.t&&(!t||t.el!==drag.t.el))drag.t.el.classList.remove('drop');
+  if(t)t.el.classList.add('drop');drag.t=t;
+  drag.lx=e.clientX;drag.ly=e.clientY;
+  if(!drag.loop)drag.loop=requestAnimationFrame(autoScroll);
+},{passive:false});
+// Keep scrolling while a dragged player is held near an edge.
+function autoScroll(){
+  if(!drag||!drag.on)return;
+  let moved=false;
+  if(drag.ly<90){window.scrollBy(0,-14);moved=true}else if(drag.ly>innerHeight-90){window.scrollBy(0,14);moved=true}
+  const rc=document.getElementById(drag.b==='lb'?'lbrounds':'rounds');
+  if(rc){const bx=rc.getBoundingClientRect();if(drag.lx<bx.left+50){rc.scrollLeft-=14;moved=true}else if(drag.lx>bx.right-50){rc.scrollLeft+=14;moved=true}}
+  if(moved){const t=dropTarget(drag.lx,drag.ly);if(drag.t&&(!t||t.el!==drag.t.el))drag.t.el.classList.remove('drop');if(t)t.el.classList.add('drop');drag.t=t}
+  drag.loop=requestAnimationFrame(autoScroll);
+}
+document.addEventListener('pointerup',()=>{
+  if(!drag)return;const d=drag,t=d.t;endDrag();
+  if(!d.on||!t)return;
+  if(t.kind==='swap')swapPlayers(d.b,d.pid,t.pid);
+  else if(t.kind==='new')moveTo(d.b,d.pid,'new');
+  else moveTo(d.b,d.pid,t.hi);
+});
+document.addEventListener('pointercancel',endDrag);
+
+function render(){
+  const tab=view==='setup'?'bracket':view;
+  document.body.classList.toggle('tv',view==='tv');
+  document.querySelectorAll('nav.tabs a').forEach(a=>{if(a.dataset.tab===tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  $('#hostpanel').innerHTML=hostPanelHTML();
+  const sl=$('#rounds')?$('#rounds').scrollLeft:null,sl2=$('#lbrounds')?$('#lbrounds').scrollLeft:null;
+  const ae=document.activeElement,aeId=ae&&ae.id,aeSel=ae&&typeof ae.selectionStart==='number'?[ae.selectionStart,ae.selectionEnd]:null;
+  $('#app').innerHTML=view==='setup'?setupHTML():view==='history'?historyHTML():view==='leaderboard'?leaderboardHTML():view==='tv'?tvHTML():bracketHTML();
+  if(sl!==null&&$('#rounds'))$('#rounds').scrollLeft=sl;
+  if(sl2!==null&&$('#lbrounds'))$('#lbrounds').scrollLeft=sl2;
+  const sd=$('#setdet');if(sd)sd.addEventListener('toggle',()=>ui.setOpen=sd.open);
+  const sgd=$('#sigdet');if(sgd)sgd.addEventListener('toggle',()=>ui.sigOpen=sgd.open);
+  if(aeId){const n=document.getElementById(aeId);if(n&&n!==document.activeElement){n.focus({preventScroll:true});if(aeSel&&n.setSelectionRange)try{n.setSelectionRange(aeSel[0],aeSel[1])}catch(e){}}}
+  updateStatus();
+}
+function route(){
+  const h=location.hash.replace('#','');
+  if(h==='watch'){ui.watch=true;if(view==='setup'&&!canWrite)view='bracket'}
+  if(h==='history'||h==='leaderboard'||h==='tv'){view=h;if(!LIST&&h!=='tv')refreshList()}
+  else if(view!=='setup')view='bracket';
+  if(view==='tv'){try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(l=>wakeLock=l,()=>{})}catch(e){}}
+  else if(wakeLock){try{wakeLock.release()}catch(e){}wakeLock=null}
+  render();startPolling();
+}
+
+const EDIT_ACTS=['pick','reshuffle','draw','lbdraw','reopen','withdraw','addback','add','undo'];
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el||el.tagName==='SELECT')return;
+  const a=el.dataset.act,pid=el.dataset.p;
+  if(RO&&EDIT_ACTS.includes(a))return;
+  switch(a){
+    case'undo':undo();break;
+    case'rsel':{const b=el.dataset.b,i=+el.dataset.i;ui.sel[b]=i===BR(b).length-1?null:i;render();const t=document.getElementById(b==='lb'?'lbrounds':'rounds');if(t&&t.getBoundingClientRect().top<0)t.scrollIntoView({block:'start'});break}
+    case'new':openSetup();break;
+    case'cancel-setup':view='bracket';draft=null;saveDraft();render();break;
+    case'start':start();break;
+    case'paste':{const lines=$('#s-paste').value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean);if(lines.length<2){toast('Paste at least 2 names');break}draft.names=lines.slice(0,128);draft.count=draft.names.length;saveDraft();render();break}
+    case'pick':{const [r,h]=heatAt(el);
+      if(!h.adv.includes(pid)&&h.players.length>1&&h.adv.length+1>=h.players.length){toast('At least one player in each game has to be knocked out.');break}
+      commit(()=>{const i=h.adv.indexOf(pid);if(i>=0)h.adv.splice(i,1);else h.adv.push(pid);if(h.adv.length)h.n=Math.min(h.adv.length,3);else if(r.final)delete h.n});
+      if(!isFinal(r))scrollToGame(el.dataset.b,+el.dataset.h,true);
+      if(el.dataset.b==='main'){const c=champ();if(c&&c[0]===pid)toast(`${P(pid).name} wins the cup`,true);else if(r.final&&!isFinal(r)&&h.adv.length===2&&h.adv.includes(pid))toast('More than one racer is moving on, so this is now a regular round.',true)}break}
+    case'reshuffle':{const b=el.dataset.b,arr=BR(b),r=arr[arr.length-1];
+      commit(()=>{const nr=makeRound(r.heats.flatMap(h=>h.players),r.adv,r.final,r);if(r.fromMain!==undefined)nr.fromMain=r.fromMain;arr[arr.length-1]=nr},'Games reshuffled');break}
+    case'draw':{const r=cur();let pool=nextPool(r).concat(S.late);const fin=pool.length<=finalAt();
+      let joined=null;if(fin&&S.cfg.lb==='second'&&!S.rounds.some(x=>x.lbJoin)){const st=lbState();if(st.champ&&!pool.includes(st.champ)){pool=pool.concat(st.champ);joined=st.champ}}
+      ui.sel.main=null;commit(()=>{S.late=[];const nr=makeRound(pool,S.nextAdv,fin);if(joined)nr.lbJoin=joined;S.rounds.push(nr)},fin?'Final drawn':`Round ${S.rounds.length+1} drawn`);scrollToFirstGame('main');break}
+    case'lbdraw':{const st=lbState();if(!st.canDraw)break;
+      ui.sel.lb=null;commit(()=>{const r=makeRound(st.pool,S.lbNextAdv,st.finalNext);r.fromMain=st.fin;S.lb.push(r)},st.finalNext?'Losers final drawn':`LB Round ${S.lb.length+1} drawn`);scrollToFirstGame('lb');break}
+    case'reopen':{const ri=+el.dataset.r,b=el.dataset.b;ui.sel={main:null,lb:null};
+      commit(()=>{if(b==='lb')S.lb=S.lb.slice(0,ri+1);else{S.rounds=S.rounds.slice(0,ri+1);const keep=[];for(const r of S.lb){if((r.fromMain||0)<=ri)keep.push(r);else break}S.lb=keep}},
+        `${b==='lb'?'LB ':''}Round ${ri+1} reopened. Later rounds cleared.`);break}
+    case'withdraw':commit(()=>{removeFromCurrent(pid);P(pid).out=true},`${P(pid).name} withdrawn`);break;
+    case'addback':{let w;commit(()=>{removeFromCurrent(pid);P(pid).out=false;w=seat(pid)});toast(seatMsg(P(pid).name,w),true);break}
+    case'add':{const inp=$('#add-name'),name=inp.value.trim();if(!name){inp.focus();break}
+      let w;commit(()=>{const p={id:uid(),name,out:false};S.players.push(p);w=seat(p.id)});toast(seatMsg(name,w),true);setTimeout(()=>$('#add-name')&&$('#add-name').focus());break}
+    case'host':ui.hostOpen=!ui.hostOpen;ui.hostMsg='';ui.holder=null;render();if(ui.hostOpen&&$('#hostkey'))$('#hostkey').focus();if(ui.hostOpen&&keyConfigured===null)refreshList();break;
+    case'logout':logout();break;
+    case'sig-open':sigAction('open');break;
+    case'sig-close':sigAction('close');break;
+    case'sig-reopen':sigAction('reopen');break;
+    case'sig-copy':{const u=joinUrl();try{navigator.clipboard.writeText(u).then(()=>toast('Link copied'),()=>toast(u))}catch(err){toast(u)}break}
+    case'takeover-host':login(hostKey,true);break;
+    case'refresh':LIST=null;refreshList();break;
+    case'open':openSaved(el.dataset.id);break;
+    case'takeover':RO=false;clearInterval(pollTimer);undoStack=[];saveLocal();saveState='saved';render();toast('Editing. Changes save to the history.');break;
+    case'del':ui.delConfirm=el.dataset.id;render();break;
+    case'del-no':ui.delConfirm=null;render();break;
+    case'del-yes':{const id=el.dataset.id;ui.delConfirm=null;api('/'+id,{method:'DELETE'}).then(()=>{LIST=LIST.filter(t=>t.id!==id);updateKnown();if(S.id===id){S=example();RO=false;lsSet(LKEY,null)}render();toast('Cup deleted')}).catch(err=>toast(err.message));break}
+    case'sort':ui.sort=el.dataset.k;render();break;
+    case'fs':{const d=document.documentElement;try{const p=d.requestFullscreen&&d.requestFullscreen();if(p&&p.catch)p.catch(()=>{})}catch(err){}break}
+    case'tvexit':try{document.fullscreenElement&&document.exitFullscreen()}catch(err){}location.hash='#bracket';break;
+  }
+});
+document.addEventListener('submit',e=>{if(e.target.id==='hostform'){e.preventDefault();const v=$('#hostkey').value.trim();if(v)login(v)}});
+document.addEventListener('change',e=>{
+  const el=e.target,id=el.id;
+  if(view==='setup'){
+    if(id==='s-count')setCount(+el.value);
+    else if(id==='s-date'){draft.date=el.value;saveDraft()}
+    else if(id.startsWith('s-')&&readField(el,draft.cfg)){saveDraft();render()}
+    return;
+  }
+  if(RO)return;
+  if(id.startsWith('c-')&&el.dataset.k){commit(()=>readField(el,S.cfg),'Settings updated');return}
+  const a=el.dataset.act;
+  if(a==='hadv'){const [r,h]=heatAt(el),v=+el.value;let out;
+    out=commit(()=>{h.n=v;if(resDone(h)){h.adv=[];return autoAdvance(r,h)}if(h.adv.length>v)h.adv=h.adv.slice(0,v)});
+    if(out==='tie')toast('Points are tied for an advancing spot. Tap racers to choose who advances.');}
+  else if(a==='nadv')commit(()=>{S.nextAdv=+el.value});
+  else if(a==='lbnadv')commit(()=>{S.lbNextAdv=+el.value});
+  else if(a==='nsize')commit(()=>{S.cfg.size=+el.value});
+  else if(a==='cup'){const [r,h]=heatAt(el);commit(()=>{h.cup=el.value.trim()||null})}
+  else if(a==='move'){const v=el.value,pid=el.dataset.p,b=el.dataset.b;if(!v)return;
+    if(v==='new')moveTo(b,pid,'new');
+    else if(v==='wd')commit(()=>{removeFromCurrent(pid);P(pid).out=true},`${P(pid).name} withdrawn`);
+    else moveTo(b,pid,+v.slice(2));}
+  else if(el.classList.contains('rn')){const nm=el.value.trim();if(!nm){el.value=P(el.dataset.p).name;return}commit(()=>{P(el.dataset.p).name=nm})}
+});
+document.addEventListener('input',e=>{
+  if(view!=='setup')return;
+  if(e.target.classList.contains('nm-in'))draft.names[+e.target.dataset.i]=e.target.value;
+  else if(e.target.id==='s-tname')draft.name=e.target.value;
+  saveDraft();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='add-name'){e.preventDefault();$('[data-act="add"]').click()}});
+window.addEventListener('hashchange',route);
+
+/* ---------- Boot ---------- */
+(async function boot(){
+  try{const raw=lsGet(LKEY);if(raw){const s=JSON.parse(raw);if(s&&s.players&&s.rounds)S=normalize(s)}}catch(e){}
+  if(!S)S=example();
+  // Pick up a setup form that was in progress (names may have come from sign-ups).
+  try{const d=JSON.parse(lsGet(DKEY));if(d&&d.names&&d.cfg){d.cfg=Object.assign(defCfg(),d.cfg);draft=d;if(!location.hash||location.hash==='#bracket')view='setup'}}catch(e){}
+  route();
+  await refreshList();
+  const live=pickLive();
+  if(!canWrite){
+    // Visitors always see the cup that is running, read only.
+    if(live)await openSaved(live.id,true);
+    else if(ui.watch){ui.waiting=true;draft=null;view='bracket'}
+  }else if(S.example&&live)await openSaved(live.id,true);
+  else if(!RO&&!S.example&&S.id){
+    const saved=(LIST||[]).find(t=>t.id===S.id);
+    if(!saved||saved.updatedAt!==S.updatedAt)queueRemote();
+  }
+  route();startPolling();
+  pollSignups();
+})();
+})();
+</script>
+<script>if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/kart/sw.js',{scope:'/kart/'}).catch(()=>{}));</script>
+</body>
+</html>
