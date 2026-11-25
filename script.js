@@ -332,6 +332,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Album collection search (albums.html only)
+    const albumSearch = document.querySelector('.album-search');
+    const albumCards = document.querySelectorAll('.album-card');
+    const albumsEmpty = document.querySelector('.albums-empty');
+
+    if (albumSearch && albumCards.length) {
+        albumSearch.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            albumCards.forEach(card => {
+                const haystack = (card.dataset.title + ' ' + card.dataset.artist).toLowerCase();
+                const matches = haystack.includes(query);
+                card.style.display = matches ? '' : 'none';
+                if (matches) visibleCount++;
+            });
+
+            if (albumsEmpty) {
+                albumsEmpty.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+        });
+    }
+
     // Projects nav dropdown (in the main site nav)
     const navDropdown = document.querySelector('.nav-dropdown');
     const dropdownToggle = document.querySelector('.dropdown-toggle');

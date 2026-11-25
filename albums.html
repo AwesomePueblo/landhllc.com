@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Album Collection</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        (function () {
+            try {
+                var saved = JSON.parse(localStorage.getItem('landh-theme'));
+                if (!saved) return;
+                var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var pair = (saved.light && saved.dark) ? (isDark ? saved.dark : saved.light) : saved;
+                if (pair && pair.primary && pair.secondary) {
+                    var root = document.documentElement.style;
+                    root.setProperty('--primary-color', pair.primary);
+                    root.setProperty('--secondary-color', pair.secondary);
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3R5NJ422YS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-3R5NJ422YS');
+  gtag('config', 'G-C36SJ9851K');
+</script>
+
+</head>
+<body>
+    <!-- Header & Navigation -->
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1>L and H <span>LLC</span></h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="index.html#services">Services</a></li>
+                    <li><a href="index.html#about">About</a></li>
+                    <li><a href="index.html#expertise">Expertise</a></li>
+                    <li class="nav-dropdown">
+                        <a href="projects.html">Projects</a>
+                        <button type="button" class="dropdown-toggle" aria-label="Show project list" aria-expanded="false">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a href="projects.html#siebel-migration">Enterprise CRM Migration</a></li>
+                            <li><a href="projects.html#ai-dev-enablement">AI Dev Enablement Pilot</a></li>
+                            <li><a href="projects.html#data-integrity-initiative">Data Integrity Initiative</a></li>
+                            <li><a href="projects.html#integration-architecture">Integration Architecture</a></li>
+                            <li><a href="projects.html#song-party">Song Party</a></li>
+                            <li><a href="projects.html#ai-simulation-game">AI Simulation Game</a></li>
+                            <li><a href="projects.html#email-agent">Email Management Agent</a></li>
+                            <li><a href="projects.html#tonys-land-clearing">Tony's Land Clearing</a></li>
+                            <li><a href="projects.html#rag-chatbot">Local LLM RAG Chatbot</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="index.html#contact">Contact</a></li>
+                    <li class="theme-switcher">
+                        <button type="button" class="theme-toggle" aria-label="Change theme color" aria-expanded="false" title="Change theme color">
+                            <i class="fas fa-palette"></i>
+                        </button>
+                        <div class="theme-panel">
+                            <p class="theme-panel-label">Theme color</p>
+                            <div class="theme-swatches">
+                                <button type="button" class="theme-swatch" data-theme-key="default" style="background:#0066cc" title="Salesforce Blue (default)"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="purple" style="background:#6a1fc7" title="Purple"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="red" style="background:#c1121f" title="Red"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="green" style="background:#04844b" title="Green"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="orange" style="background:#e85d04" title="Orange"></button>
+                                <button type="button" class="theme-swatch" data-theme-key="charcoal" style="background:#212529" title="Charcoal"></button>
+                            </div>
+                            <label class="theme-custom">
+                                Custom
+                                <input type="color" id="theme-custom-color" value="#0066cc" aria-label="Pick a custom theme color">
+                            </label>
+                            <button type="button" class="theme-reset">Reset to default</button>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+            <div class="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Hero -->
+    <section class="page-hero">
+        <div class="container">
+            <h1>Album Collection</h1>
+            <p>A personal, running catalog of albums I keep coming back to</p>
+        </div>
+    </section>
+
+    <!-- Albums Section -->
+    <section class="projects">
+        <div class="container">
+            <input type="text" class="album-search" placeholder="Search by album or artist&hellip;" aria-label="Search albums">
+
+            <!-- Placeholder entries -- replace with your real album list and notes -->
+            <div class="albums-grid">
+                <div class="album-card" data-title="OK Computer" data-artist="Radiohead">
+                    <div class="album-cover"><i class="fas fa-compact-disc"></i></div>
+                    <div class="album-info">
+                        <p class="album-title">OK Computer</p>
+                        <p class="album-artist">Radiohead</p>
+                        <div class="album-meta">
+                            <span>1997</span>
+                            <span>Alternative Rock</span>
+                        </div>
+                        <p class="album-note">Sample note &mdash; replace with your own thoughts on this album.</p>
+                    </div>
+                </div>
+
+                <div class="album-card" data-title="Thriller" data-artist="Michael Jackson">
+                    <div class="album-cover"><i class="fas fa-compact-disc"></i></div>
+                    <div class="album-info">
+                        <p class="album-title">Thriller</p>
+                        <p class="album-artist">Michael Jackson</p>
+                        <div class="album-meta">
+                            <span>1982</span>
+                            <span>Pop</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="album-card" data-title="Rumours" data-artist="Fleetwood Mac">
+                    <div class="album-cover"><i class="fas fa-compact-disc"></i></div>
+                    <div class="album-info">
+                        <p class="album-title">Rumours</p>
+                        <p class="album-artist">Fleetwood Mac</p>
+                        <div class="album-meta">
+                            <span>1977</span>
+                            <span>Rock</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="album-card" data-title="The Dark Side of the Moon" data-artist="Pink Floyd">
+                    <div class="album-cover"><i class="fas fa-compact-disc"></i></div>
+                    <div class="album-info">
+                        <p class="album-title">The Dark Side of the Moon</p>
+                        <p class="album-artist">Pink Floyd</p>
+                        <div class="album-meta">
+                            <span>1973</span>
+                            <span>Progressive Rock</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="album-card" data-title="Back to Black" data-artist="Amy Winehouse">
+                    <div class="album-cover"><i class="fas fa-compact-disc"></i></div>
+                    <div class="album-info">
+                        <p class="album-title">Back to Black</p>
+                        <p class="album-artist">Amy Winehouse</p>
+                        <div class="album-meta">
+                            <span>2006</span>
+                            <span>Soul</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="album-card" data-title="To Pimp a Butterfly" data-artist="Kendrick Lamar">
+                    <div class="album-cover"><i class="fas fa-compact-disc"></i></div>
+                    <div class="album-info">
+                        <p class="album-title">To Pimp a Butterfly</p>
+                        <p class="album-artist">Kendrick Lamar</p>
+                        <div class="album-meta">
+                            <span>2015</span>
+                            <span>Hip Hop</span>
+                        </div>
+                        <p class="album-note">Sample note &mdash; replace with your own thoughts on this album.</p>
+                    </div>
+                </div>
+
+                <div class="album-card" data-title="Blue" data-artist="Joni Mitchell">
+                    <div class="album-cover"><i class="fas fa-compact-disc"></i></div>
+                    <div class="album-info">
+                        <p class="album-title">Blue</p>
+                        <p class="album-artist">Joni Mitchell</p>
+                        <div class="album-meta">
+                            <span>1971</span>
+                            <span>Folk</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="album-card" data-title="Random Access Memories" data-artist="Daft Punk">
+                    <div class="album-cover"><i class="fas fa-compact-disc"></i></div>
+                    <div class="album-info">
+                        <p class="album-title">Random Access Memories</p>
+                        <p class="album-artist">Daft Punk</p>
+                        <div class="album-meta">
+                            <span>2013</span>
+                            <span>Electronic</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="albums-empty">No albums match your search.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h2>L and H <span>LLC</span></h2>
+                    <p>Salesforce Consulting Experts</p>
+                    <div class="social-links footer-social">
+                        <a href="https://www.linkedin.com/in/lukehiggins7/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="index.html#services">Services</a></li>
+                        <li><a href="index.html#about">About</a></li>
+                        <li><a href="index.html#expertise">Expertise</a></li>
+                        <li><a href="projects.html">Projects</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 L and H LLC. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
