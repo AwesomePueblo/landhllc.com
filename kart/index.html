@@ -286,7 +286,7 @@ const LKEY='kart-cup-current-v2', HKEY='kart-cup-host-key', TKEY='kart-cup-host-
 const LET='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const SIZES=[2,3,4]; // a Switch game holds 4 players at most
 const DEF_POINTS=[15,12,10,9,8,7,6,5,4,3,2,1];
-const LB_MODES={off:'Single elimination',consolation:'Single elimination + consolation bracket',second:'Double elimination: losers bracket winner joins the Final'};
+const LB_MODES={off:'Single elimination',consolation:'Single elimination + consolation bracket',second:'Double elimination: the losers bracket winner plays the unbeaten winner in a grand final'};
 const AVGS=[1,1.5,2,2.5,3];
 const $=s=>document.querySelector(s);
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -308,17 +308,17 @@ let hostKey=lsGet(HKEY)||'', hostToken=lsGet(TKEY)||'';
 let canWrite=false, keyConfigured=null, apiOk=null;
 let LIST=null, listLoading=false;
 let saveState='idle', saveTimer=null, pollTimer=null, toastTimer=null, wakeLock=null, beatTimer=null;
-const ui={sel:{main:null,lb:null},hostOpen:false,hostMsg:'',holder:null,delConfirm:null,sort:'rank',res:{},setOpen:false};
+const ui={sel:{main:null,lb:null,gf:null},hostOpen:false,hostMsg:'',holder:null,delConfirm:null,sort:'rank',res:{},setOpen:false};
 
-function defCfg(){return{size:4,adv:2,avg:2,races:4,points:DEF_POINTS.slice(),lb:'off',noRematch:true}}
+function defCfg(){return{size:4,adv:2,avg:2,races:4,points:DEF_POINTS.slice(),lb:'off',gf:'reset',noRematch:true}}
 function normalize(d){
   d.cfg=Object.assign(defCfg(),d.cfg||{});
   if(!SIZES.includes(d.cfg.size))d.cfg.size=4;
   if(!AVGS.includes(d.cfg.avg))d.cfg.avg=d.cfg.adv||2;
   d.late=d.late||[];
-  d.rounds=d.rounds||[];d.lb=d.lb||[];d.players=d.players||[];
+  d.rounds=d.rounds||[];d.lb=d.lb||[];d.gf=d.gf||[];d.players=d.players||[];
   d.nextAdv=d.nextAdv||d.cfg.adv;d.lbNextAdv=d.lbNextAdv||d.cfg.adv;
-  d.rounds.concat(d.lb).forEach(r=>r.heats.forEach(h=>{h.adv=h.adv||[];h.res=h.res||{};if(h.cup===undefined)h.cup=null}));
+  d.rounds.concat(d.lb,d.gf).forEach(r=>r.heats.forEach(h=>{h.adv=h.adv||[];h.res=h.res||{};if(h.cup===undefined)h.cup=null}));
   return d;
 }
 function blankDoc(){return normalize({id:'',name:'',date:today(),createdAt:new Date().toISOString(),updatedAt:null,status:'active',champion:null,lbChampion:null})}
@@ -332,7 +332,7 @@ function example(){
 function docOf(){const c=champ(),lc=S.cfg.lb!=='off'?lbState().champ:null;
   return{id:S.id,name:S.name,date:S.date,createdAt:S.createdAt,updatedAt:S.updatedAt,status:c?'done':'active',
     champion:c?{id:c[0],name:P(c[0]).name}:null,lbChampion:lc?{id:lc,name:P(lc).name}:null,
-    cfg:S.cfg,nextAdv:S.nextAdv,lbNextAdv:S.lbNextAdv,players:S.players,rounds:S.rounds,lb:S.lb,late:S.late}}
+    cfg:S.cfg,nextAdv:S.nextAdv,lbNextAdv:S.lbNextAdv,players:S.players,rounds:S.rounds,lb:S.lb,gf:S.gf,late:S.late}}
 function saveLocal(){if(!RO)lsSet(LKEY,JSON.stringify(S))}
 function commit(fn,msg){undoStack.push(JSON.stringify(S));if(undoStack.length>80)undoStack.shift();const out=fn();saveLocal();queueRemote();render();if(msg)toast(msg,true);return out}
 function undo(){if(!undoStack.length)return;S=JSON.parse(undoStack.pop());saveLocal();queueRemote();render();toast('Undone')}
@@ -419,7 +419,9 @@ function startPolling(){
 
 /* ---------- Bracket logic ---------- */
 const P=id=>S.players.find(p=>p.id===id)||{name:'?',id};
-const BR=b=>b==='lb'?S.lb:S.rounds;
+const BR=b=>b==='lb'?S.lb:b==='gf'?S.gf:S.rounds;
+const DOUBLE=()=>S.cfg.lb==='second';
+const wrapId=b=>b==='lb'?'lbrounds':b==='gf'?'gfrounds':'rounds';
 const curOf=b=>{const a=BR(b);return a[a.length-1]};
 const cur=()=>curOf('main');
 const poolSize=r=>r.heats.reduce((a,h)=>a+h.players.length,0);
@@ -430,11 +432,30 @@ const target=(r,h)=>Math.min(h.n||(r.final?1:r.adv),maxAdv(h));
 // If the host advances 2 or 3 from it, it becomes a regular round and another round follows.
 const isFinal=r=>!!(r&&r.final&&r.heats[0]&&target(r,r.heats[0])===1);
 const complete=r=>r.heats.every(h=>!h.players.length||h.adv.length>=1);
-function champ(){const r=S&&cur();return isFinal(r)&&r.heats[0].adv.length===1?r.heats[0].adv:null}
-const heatLabel=(r,i,b)=>isFinal(r)?(b==='lb'?'Losers final':'Final'):'Game '+(i+1);
+// Winner of the main bracket's Final. In single elimination that is the champion; in double
+// elimination it is the unbeaten winners bracket champion, who goes on to the grand final.
+function wbChamp(){const r=S&&cur();return isFinal(r)&&r.heats[0].adv.length===1?r.heats[0].adv[0]:null}
+// Grand final (double elimination): unbeaten winner vs losers bracket winner. With gf 'reset' the
+// losers bracket winner must win twice: if they take game 1, game 2 decides it.
+const gfRound=(wb,lb,game)=>({final:true,adv:1,gfGame:game,wbId:wb,lbId:lb,heats:[{players:[wb,lb],adv:[],cup:null,res:{}}]});
+function gfChamp(){
+  if(!S.gf||!S.gf.length)return null;
+  const g1=S.gf[0],last=S.gf[S.gf.length-1],w=last.heats[0].adv[0];if(!w)return null;
+  if(S.gf.length===1&&S.cfg.gf!=='one'&&w===g1.lbId)return null;
+  return[w];
+}
+function syncGf(){
+  if(!S.gf.length)return;
+  const g1=S.gf[0],w=g1.heats[0].adv[0],need=S.cfg.gf!=='one'&&!!w&&w===g1.lbId;
+  if(need&&S.gf.length===1)S.gf.push(gfRound(g1.wbId,g1.lbId,2));
+  if(!need&&S.gf.length>1)S.gf=S.gf.slice(0,1);
+}
+function champ(){if(!S)return null;if(DOUBLE())return gfChamp();const w=wbChamp();return w?[w]:null}
+const finalName=(b,r)=>b==='gf'?(r.gfGame===2?'Grand final, game 2':'Grand final'):b==='lb'?'Losers final':DOUBLE()?'Winners final':'Final';
+const heatLabel=(r,i,b)=>isFinal(r)?finalName(b,r):'Game '+(i+1);
 // With a second-chance losers bracket the Final keeps one seat open for its winner.
-const finalAt=c=>(c||S.cfg).size-((c||S.cfg).lb==='second'?1:0);
-const roundTitle=(b,r,i)=>isFinal(r)?(b==='lb'?'Losers final':'Final'):(b==='lb'?'LB Round ':'Round ')+(i+1);
+const finalAt=c=>(c||S.cfg).size;
+const roundTitle=(b,r,i)=>isFinal(r)?finalName(b,r):(b==='lb'?'LB Round ':'Round ')+(i+1);
 
 const pairKey=(a,b)=>a<b?a+'|'+b:b+'|'+a;
 function pastPairs(skip){const m=new Map();S.rounds.concat(S.lb).forEach(r=>{if(r===skip)return;r.heats.forEach(h=>{const p=h.players;for(let i=0;i<p.length;i++)for(let j=i+1;j<p.length;j++){const k=pairKey(p[i],p[j]);m.set(k,(m.get(k)||0)+1)}})});return m}
@@ -462,20 +483,22 @@ function project(n,c){
   const main=[];let m=n;
   while(m>fa){const r=shrink(m,size,adv);if(r.next>=m||main.length>40)return{error:`With ${adv} advancing per game, the field stops shrinking at ${m} racers. Lower the average.`};r.losers=m-r.next;main.push(r);m=r.next}
   const lbr=[];let lbFinal=0,lbWinner=false;
+  if(c.lb==='second'&&!main.length&&m>1){lbWinner=true;if(m-1>=2)lbFinal=m-1}
   if(c.lb!=='off'&&main.length){
     let carry=0;
     for(let i=0;i<main.length;i++){
       let pool=carry+main[i].losers;
       if(i<main.length-1){if(pool>=2){const r=shrink(pool,size,adv);lbr.push(r);carry=r.next}else carry=pool}
       else{
+        if(c.lb==='second')pool+=m-1;
         while(pool>size){const r=shrink(pool,size,adv);if(r.next>=pool||lbr.length>40)return{error:'The losers bracket would stop shrinking. Lower the number advancing.'};lbr.push(r);pool=r.next}
         if(pool>=2)lbFinal=pool;lbWinner=pool>=1;
       }
     }
   }
-  const finalN=m+(c.lb==='second'&&lbWinner?1:0);
-  const games=main.reduce((a,r)=>a+r.hs.length,0)+1+lbr.reduce((a,r)=>a+r.hs.length,0)+(lbFinal?1:0);
-  return{main,finalN,lbr,lbFinal,games,races:games*c.races};
+  const finalN=m,gf=c.lb==='second'&&lbWinner?1:0;
+  const games=main.reduce((a,r)=>a+r.hs.length,0)+1+lbr.reduce((a,r)=>a+r.hs.length,0)+(lbFinal?1:0)+gf;
+  return{main,finalN,lbr,lbFinal,gf,games,races:games*c.races};
 }
 function sizesText(hs){const c={};hs.forEach(s=>c[s]=(c[s]||0)+1);return Object.keys(c).sort((a,b)=>b-a).map(s=>`${c[s]} game${c[s]>1?'s':''} of ${s}`).join(' + ')}
 
@@ -495,20 +518,21 @@ function autoAdvance(r,h){
 /* Losers bracket */
 function mainFinalizedCount(){
   const L=S.rounds.length;let n=0;
-  S.rounds.forEach((r,i)=>{if(isFinal(r))return;if(i<L-1||(complete(r)&&nextPool(r).length+S.late.length<=finalAt()))n=i+1});
+  S.rounds.forEach((r,i)=>{if(isFinal(r)){if(DOUBLE()&&r.heats[0].adv.length===1)n=i+1;return}if(i<L-1||(complete(r)&&nextPool(r).length+S.late.length<=finalAt()))n=i+1});
   return n;
 }
 function lbState(){
   const fin=mainFinalizedCount();
   const entered=new Set(S.lb.flatMap(r=>r.heats.flatMap(h=>h.players)));
-  const elim=[];S.rounds.slice(0,fin).forEach(r=>{if(isFinal(r))return;r.heats.forEach(h=>h.players.forEach(id=>{if(!h.adv.includes(id))elim.push(id)}))});
+  const elim=[];S.rounds.slice(0,fin).forEach(r=>{if(isFinal(r)&&!DOUBLE())return;r.heats.forEach(h=>h.players.forEach(id=>{if(!h.adv.includes(id))elim.push(id)}))});
   const waiting=elim.filter(id=>!entered.has(id)&&!P(id).out);
   const last=curOf('lb');
   const lastDone=!last||complete(last);
   const carry=last&&!isFinal(last)&&lastDone?nextPool(last):[];
   const pool=lastDone?carry.concat(waiting):[];
   const m=cur();
-  const noMore=!!m&&(isFinal(m)||(complete(m)&&nextPool(m).length+S.late.length<=finalAt()));
+  // No more knockouts are coming: single elimination once the Final is next; double once the winners final is decided.
+  const noMore=!!m&&(DOUBLE()?!!wbChamp():(isFinal(m)||(complete(m)&&nextPool(m).length+S.late.length<=finalAt())));
   let ch=null;
   if(isFinal(last)&&last.heats[0].adv.length===1)ch=last.heats[0].adv[0];
   else if(noMore&&lastDone&&pool.length===1&&!isFinal(last))ch=pool[0];
@@ -535,7 +559,7 @@ function optionFields(px,c,withShape){
       <label class="f" for="${px}-avg">Average advancing per game<select id="${px}-avg" data-k="avg">${opt(AVGS,c.avg)}</select></label>`:''}
       <label class="f" for="${px}-races">Races per game<select id="${px}-races" data-k="races">${opt([1,2,3,4,5,6,8],c.races)}</select></label>
       <label class="f" for="${px}-elim">Elimination<select id="${px}-elim" data-k="elim">${opt(['single','double'],c.lb==='second'?'double':'single',{single:'Single elimination',double:'Double elimination'})}</select></label>
-      ${c.lb==='second'?`<label class="f">Losers bracket<span class="checkrow" style="font-size:13px">Required. Its winner joins the Final.</span></label>`:`<label class="f" for="${px}-consol">Losers bracket<span class="checkrow"><input type="checkbox" id="${px}-consol" data-k="consol"${c.lb==='consolation'?' checked':''}>Consolation bracket (never rejoins)</span></label>`}
+      ${c.lb==='second'?`<label class="f" for="${px}-gf">Grand final<select id="${px}-gf" data-k="gf">${opt(['reset','one'],c.gf==='one'?'one':'reset',{reset:'Unbeaten player must lose twice',one:'One game decides it'})}</select></label>`:`<label class="f" for="${px}-consol">Losers bracket<span class="checkrow"><input type="checkbox" id="${px}-consol" data-k="consol"${c.lb==='consolation'?' checked':''}>Consolation bracket (never rejoins)</span></label>`}
       <label class="f" for="${px}-norematch">Rematches<span class="checkrow"><input type="checkbox" id="${px}-norematch" data-k="noRematch"${c.noRematch?' checked':''}>Avoid repeat matchups</span></label>
 `;
 }
@@ -560,10 +584,13 @@ function setupHTML(){
     const g=n=>`${n} game${n>1?'s':''}`;
     const li=pr.main.map((x,i)=>`<li>Round ${i+1}: ${i?'about ':''}${x.n} racers, ${sizesText(x.hs)}. About ${x.next} advance. <span class="mono">${g(x.hs.length)}</span></li>`).join('');
     const lb=pr.lbr.map((x,i)=>`<li>LB Round ${i+1}: about ${x.n} racers, ${sizesText(x.hs)}. <span class="mono">${g(x.hs.length)}</span></li>`).join('')+(pr.lbFinal?`<li>Losers final: ${pr.lbFinal} racers. <span class="mono">1 game</span></li>`:'');
-    plan=`<div style="font-size:18px"><strong>About ${g(pr.games)} to crown a champion</strong> <span class="muted">(about ${pr.races} races at ${c.races} per game)</span></div>
+    const gfLine=pr.gf?`<li>Grand final: the unbeaten winner vs the losers bracket winner. <span class="mono">${c.gf==='one'?'1 game':'1 or 2 games'}</span></li>`:'';
+    const extra=pr.gf&&c.gf!=='one'?`, plus 1 if the losers bracket winner takes the first grand final`:'';
+    plan=`<div style="font-size:18px"><strong>About ${g(pr.games)} to crown a champion</strong> <span class="muted">(about ${pr.races} races at ${c.races} per game${extra})</span></div>
       <div class="muted" style="font-size:13px">Estimate based on about ${c.avg} advancing from each game. Each game can advance a different number on the night.</div>
-      <ol>${li}<li>Final: about ${pr.finalN} racers${c.lb==='second'&&pr.finalN>1&&pr.lbr.length+(pr.lbFinal?1:0)?', including the losers bracket winner':''}. <span class="mono">1 game</span></li></ol>
-      ${lb?`<div style="margin-top:8px"><strong>Losers bracket</strong> (estimate, if you draw one losers round after each main round)</div><ol>${lb}</ol>`:''}`;
+      <ol>${li}<li>${c.lb==='second'?'Winners final':'Final'}: about ${pr.finalN} racers. <span class="mono">1 game</span></li></ol>
+      ${lb?`<div style="margin-top:8px"><strong>Losers bracket</strong> (estimate, if you draw one losers round after each main round)</div><ol>${lb}</ol>`:''}
+      ${gfLine?`<ol style="list-style:none;padding-left:0">${gfLine}</ol>`:''}`;
   }
   const names=d.names.map((n,i)=>`<label for="s-name-${i}">${String(i+1).padStart(2,'0')}<input id="s-name-${i}" data-i="${i}" class="nm-in" list="known-names" value="${esc(n)}" placeholder="Racer ${i+1}" autocomplete="off"></label>`).join('');
   const saveNote=canWrite?'This cup will be saved to the history and leaderboard.':(apiOk===false?'History is unreachable right now, so this cup will only be saved on this device.':'You are not logged in as host, so this cup will not be saved to the history. Use Host login first to keep it.');
@@ -605,7 +632,7 @@ function start(){
   doc.players=d.names.map((n,i)=>{let nm=n.trim()||`Racer ${i+1}`;const k=nm.toLowerCase();if(seen[k])nm+=' '+(++seen[k]);else seen[k]=1;return{id:uid(),name:nm,out:false}});
   S=doc;S.rounds=[makeRound(S.players.map(p=>p.id),d.cfg.adv,S.players.length<=finalAt(d.cfg))];
   sig.entries.forEach(e=>{if(!sigSeen.ids.includes(e.id))sigSeen.ids.push(e.id)});lsSet(SKEY,JSON.stringify(sigSeen));
-  draft=null;saveDraft();view='bracket';ui.sel={main:null,lb:null};
+  draft=null;saveDraft();view='bracket';ui.sel={main:null,lb:null,gf:null};
   saveLocal();queueRemote();render();toast('Round 1 drawn');scrollToFirstGame('main');
 }
 
@@ -624,6 +651,7 @@ function bracketHTML(){
   if(c)h+=`<div class="champwrap">${champCol(c,'Champion',RO?'':'Open the Final to change the winner.')}</div>`;
   h+=roundsHTML('main');
   if(S.cfg.lb!=='off')h+=lbHTML();
+  h+=gfHTML();
   h+=rosterHTML();
   if(!RO)h+=settingsHTML();
   return h;
@@ -635,7 +663,7 @@ function roundsHTML(b){
   const sel=selRound(b),last=arr.length-1;
   const tabs=arr.map((r,i)=>{const live=i===last&&!(isFinal(r)&&r.heats[0].adv.length===1);
     return `<button class="rtab${i===sel?' on':''}" role="tab" aria-selected="${i===sel}" data-act="rsel" data-b="${b}" data-i="${i}">${roundTitle(b,r,i)}${live?'<span class="dot" title="Being played now"></span>':''}</button>`}).join('');
-  return `<div class="roundtabs" role="tablist" aria-label="${b==='lb'?'Losers bracket rounds':'Rounds'}">${tabs}</div><div id="${b==='lb'?'lbrounds':'rounds'}">${roundCol(b,arr[sel],sel)}</div>`;
+  return `<div class="roundtabs" role="tablist" aria-label="${b==='lb'?'Losers bracket rounds':b==='gf'?'Grand final games':'Rounds'}">${tabs}</div><div id="${wrapId(b)}">${roundCol(b,arr[sel],sel)}</div>`;
 }
 function roundCol(b,r,ri){
   const arr=BR(b),isCur=ri===arr.length-1,live=isCur&&!RO,n=poolSize(r);
@@ -643,8 +671,8 @@ function roundCol(b,r,ri){
   const meta=isFinal(r)?`${n} racers · ${S.cfg.races} race${S.cfg.races>1?'s':''}`:`${n} racers · ${r.heats.length} game${r.heats.length>1?'s':''}${adv?` · ${adv} advancing`:''}`;
   let ctl='';
   if(live&&!r.final)ctl=`<div class="row"><button class="small" data-act="reshuffle" data-b="${b}">Reshuffle games</button></div>`;
-  else if(live&&r.final&&n>1)ctl=`<div class="row"><button class="small" data-act="reshuffle" data-b="${b}">Redraw ${isFinal(r)?'final':'game'}</button></div>`;
-  else if(!isCur&&!RO)ctl=`<div class="row"><button class="small" data-act="reopen" data-b="${b}" data-r="${ri}">Reopen this round</button></div>`;
+  else if(live&&r.final&&n>1&&b!=='gf')ctl=`<div class="row"><button class="small" data-act="reshuffle" data-b="${b}">Redraw ${isFinal(r)?'final':'game'}</button></div>`;
+  else if(!isCur&&!RO&&b!=='gf')ctl=`<div class="row"><button class="small" data-act="reopen" data-b="${b}" data-r="${ri}">Reopen this round</button></div>`;
   let heats=r.heats.map((h,hi)=>heatCard(b,r,ri,h,hi,live)).join('');
   if(live&&!r.final){const ng=`<div class="newgame" data-b="${b}">Drop a player here to start Game ${r.heats.length+1}</div>`;heats=ng+heats+ng}
   heats=`<div class="games">${heats}</div>`;
@@ -658,15 +686,17 @@ function roundCol(b,r,ri){
 function heatCard(b,r,ri,h,hi,live){
   const t=target(r,h),got=h.adv.length,isCur=ri===BR(b).length-1,key=`${b}:${ri}:${hi}`;
   let ct;
-  if(live)ct=`<label class="ct advsel">Advance <select data-act="hadv" data-b="${b}" data-r="${ri}" data-h="${hi}" aria-label="How many advance from ${heatLabel(r,hi,b)}">${Array.from({length:maxAdv(h)},(_,k)=>`<option${k+1===t?' selected':''}>${k+1}</option>`).join('')}</select></label>`;
+  if(b==='gf')ct=`<span class="ct ${got?'ok':''}">${got?'Winner':'Tap the winner'}</span>`;
+  else if(live)ct=`<label class="ct advsel">Advance <select data-act="hadv" data-b="${b}" data-r="${ri}" data-h="${hi}" aria-label="How many advance from ${heatLabel(r,hi,b)}">${Array.from({length:maxAdv(h)},(_,k)=>`<option${k+1===t?' selected':''}>${k+1}</option>`).join('')}</select></label>`;
   else ct=isFinal(r)?`<span class="ct ok">${got?'Winner':'No result'}</span>`:`<span class="ct ${got?'ok':''}">${got} advanced</span>`;
   let cupl='';
   if(live)cupl=`<div class="cupline"><input data-act="cup" data-b="${b}" data-r="${ri}" data-h="${hi}" value="${esc(h.cup||'')}" maxlength="40" placeholder="Cup played (optional)" aria-label="Cup played in ${heatLabel(r,hi,b)}" autocomplete="off"></div>`;
   else if(h.cup)cupl=`<span class="cup">${esc(h.cup)}</span>`;
-  const hint=live?`<div class="hint">${isFinal(r)?'Tap the winner. If more than one racer should move on, tap them too (or raise Advance) and this becomes another round.':r.final?'This game sends more than one racer on, so another round follows. Set Advance to 1 to make it the Final.':'Tap everyone who advances. Drag ⠿ to move a player; drop on a player to swap.'}</div>`:'';
+  const gfHint=b==='gf'?(r.gfGame===2?'Winner of this game is the champion.':S.cfg.gf==='one'?'Winner is the champion.':`${esc(P(r.wbId).name)} is unbeaten and only has to win once. ${esc(P(r.lbId).name)} has one loss: if they win this, a second game decides it.`):'';
+  const hint=live&&b==='gf'?`<div class="hint">${gfHint}</div>`:live?`<div class="hint">${isFinal(r)?'Tap the winner. If more than one racer should move on, tap them too (or raise Advance) and this becomes another round.':r.final?'This game sends more than one racer on, so another round follows. Set Advance to 1 to make it the Final.':'Tap everyone who advances. Drag ⠿ to move a player; drop on a player to swap.'}</div>`:'';
   const chips=h.players.map(id=>{
     const rank=h.adv.indexOf(id),on=rank>=0,p=P(id);
-    const badge=on?(isFinal(r)?'WIN':'ADV'):(isCur?'':'OUT');
+    const badge=on?(isFinal(r)?'WIN':'ADV'):(isCur?(b==='gf'&&!h.adv.length?(id===r.wbId?'0 L':'1 L'):''):'OUT');
     let mv='';
     if(live){
       const opts=r.final?'':r.heats.map((x,j)=>(j===hi||x.players.length>=S.cfg.size)?'':`<option value="h:${j}">Move to ${heatLabel(r,j,b)}</option>`).join('')+`<option value="new">Move to a new game</option>`;
@@ -684,9 +714,7 @@ function nextPanel(r){
   const sizeSel=`<select id="nsize" data-act="nsize">${SIZES.map(x=>`<option${x===S.cfg.size?' selected':''}>${x}</option>`).join('')}</select>`;
   const late=S.late.length?`<div class="muted">Includes ${S.late.length} late arrival${S.late.length>1?'s':''}.</div>`:'';
   if(m<=fa){
-    let extra='',block=false;
-    if(S.cfg.lb==='second'&&!S.rounds.some(x=>x.lbJoin)){const st=lbState();if(st.needed){if(st.champ)extra=`<div>${esc(P(st.champ).name)} takes the last seat from the losers bracket.</div>`;else{extra='<span class="warn">Finish the losers bracket first. Its winner takes the last seat in the Final.</span>';block=true}}}
-    return `<div class="next"><div><strong>${m} racer${m>1?'s':''} advance.</strong> Next up: the Final.</div>${late}${extra}<button class="primary" data-act="draw"${block?' disabled':''}>Draw the Final</button></div>`;
+    return `<div class="next"><div><strong>${m} racer${m>1?'s':''} advance.</strong> Next up: the ${DOUBLE()?'winners final':'Final'}.</div>${late}<button class="primary" data-act="draw">Draw the ${DOUBLE()?'winners final':'Final'}</button></div>`;
   }
   const hs=heatSizes(m,S.cfg.size);
   const advSel=`<select id="nadv" data-act="nadv">${[1,2,3].map(x=>`<option${x===S.nextAdv?' selected':''}>${x}</option>`).join('')}</select>`;
@@ -702,7 +730,7 @@ function lbHTML(){
   const st=lbState();
   const cols=roundsHTML('lb');
   let panel='';
-  if(st.champ)panel=champCol([st.champ],'Losers bracket winner',S.cfg.lb==='second'?'Joins the main Final':'');
+  if(st.champ)panel=champCol([st.champ],'Losers bracket winner',DOUBLE()?'Plays the unbeaten winner in the grand final':'');
   else if(!RO){
     const names=st.waiting.map(id=>esc(P(id).name)).join(', ');
     let body=`<div><strong>${st.waiting.length} waiting</strong>${names?': '+names:''}</div>`;
@@ -721,6 +749,23 @@ function lbHTML(){
   if(!cols&&!panel)return '';
   return `<section class="lbsec"><div class="row" style="justify-content:space-between"><h2>Losers bracket</h2><span class="muted" style="font-size:13px">${esc(LB_MODES[S.cfg.lb])}</span></div>${cols}${panel}</section>`;
 }
+function gfHTML(){
+  if(!DOUBLE())return'';
+  const wb=wbChamp();if(!wb)return'';
+  const lbc=lbState().champ,nm=id=>esc(P(id).name);
+  const head=`<div class="row" style="justify-content:space-between"><h2>Grand final</h2><span class="muted" style="font-size:13px">${S.cfg.gf==='one'?'One game decides it':'Unbeaten player must lose twice'}</span></div>`;
+  const stale=S.gf.length&&(S.gf[0].wbId!==wb||S.gf[0].lbId!==lbc);
+  let body;
+  if(!S.gf.length||stale){
+    if(!lbc)body=`<div class="next"><div><strong>${nm(wb)}</strong> is unbeaten and waits in the grand final.</div><div class="muted">Finish the losers bracket to find their opponent.</div></div>`;
+    else if(RO)body=`<div class="waiting">${nm(wb)} (no losses) vs ${nm(lbc)} (one loss). Waiting for the host to start the grand final.</div>`;
+    else body=`<div class="next">${stale?'<span class="warn">The winners or losers bracket changed after the grand final was drawn. Redraw it.</span>':''}
+      <div><strong>${nm(wb)}</strong> (no losses) vs <strong>${nm(lbc)}</strong> (one loss)</div>
+      <div class="muted">${S.cfg.gf==='one'?'One game decides the champion.':`${nm(lbc)} has to win twice. ${nm(wb)} only has to win once.`}</div>
+      <button class="primary" data-act="gfdraw">${stale?'Redraw':'Start'} the grand final</button></div>`;
+  }else body=roundsHTML('gf');
+  return `<section class="lbsec gfsec">${head}${body}</section>`;
+}
 function champCol(c,label,sub){
   const pod=c.slice(1).map((id,i)=>`<div><b>${ord(i+2)}</b>${esc(P(id).name)}</div>`).join('');
   return `<section class="col"><div class="champ"><div class="checker"></div><div class="in"><span class="status gold" style="align-self:flex-start">${esc(label)}</span><div class="who">${esc(P(c[0]).name)}</div>${sub?`<div class="muted">${esc(sub)}</div>`:''}${pod?`<div class="podium">${pod}</div>`:''}</div></div></section>`;
@@ -728,10 +773,13 @@ function champCol(c,label,sub){
 function statusOf(p,st){
   const c=champ();
   if(c&&c[0]===p.id)return['Champion','gold'];
+  if(DOUBLE()&&c&&S.gf.length&&S.gf[0].heats[0].players.includes(p.id))return['Runner-up',''];
+  if(DOUBLE()&&S.gf.length&&!c&&S.gf[S.gf.length-1].heats[0].players.includes(p.id))return['Grand final','live'];
+  if(DOUBLE()&&!c&&wbChamp()===p.id)return['Unbeaten','gold'];
   if(st&&st.champ===p.id&&!(isFinal(cur())&&cur().heats[0].players.includes(p.id)))return['LB winner','gold'];
   const r=cur();
   if(r){const hi=r.heats.findIndex(h=>h.players.includes(p.id));
-    if(hi>=0){if(c)return['Finalist',''];return[isFinal(r)?'Final':'Game '+(hi+1),'live']}}
+    if(hi>=0&&!(DOUBLE()&&wbChamp())){if(c)return['Finalist',''];return[isFinal(r)?finalName('main',r):'Game '+(hi+1),'live']}}
   const l=curOf('lb');
   if(l){const hi=l.heats.findIndex(h=>h.players.includes(p.id));if(hi>=0&&!(isFinal(l)&&l.heats[0].adv.length===1))return[isFinal(l)?'LB final':'LB game '+(hi+1),'live']}
   if(S.late.includes(p.id))return['Next round','live'];
@@ -772,6 +820,7 @@ function tvHTML(){
     const lbw=st&&st.champ&&S.cfg.lb==='consolation'?`<div style="margin-top:22px" class="tvsub">Losers bracket winner: ${esc(P(st.champ).name)}</div>`:'';
     return bar(S.name,esc(fmtDate(S.date)))+`<div class="tvchamp"><span class="status gold" style="font-size:16px">Champion</span><div class="who">${esc(P(c[0]).name)}</div><div class="pod">${pod}</div>${lbw}</div>`;
   }
+  if(DOUBLE()&&S.gf.length){const g=S.gf[S.gf.length-1];return bar(S.name,`${esc(fmtDate(S.date))} · ${finalName('gf',g)}`)+`<div class="tvgrid">${tvHeat('gf',g,g.heats[0],0)}</div>`}
   const r=cur(),ri=S.rounds.length-1;
   let h=bar(S.name,`${esc(fmtDate(S.date))} · ${roundTitle('main',r,ri)}`);
   h+=`<div class="tvgrid">${r.heats.map((x,i)=>tvHeat('main',r,x,i)).join('')}</div>`;
@@ -929,7 +978,7 @@ async function openSaved(id,keepView){
   try{const b=await api('/'+id);t=b.tournament}catch(e){if(!t){toast('Could not open that cup.');return}}
   const done=t.status==='done';
   undoStack=[];
-  S=normalize(JSON.parse(JSON.stringify(t)));ui.sel={main:null,lb:null};
+  S=normalize(JSON.parse(JSON.stringify(t)));ui.sel={main:null,lb:null,gf:null};
   RO=!(canWrite&&!done);
   if(!RO){saveLocal();saveState='saved'}
   if(!keepView){view='bracket';if(location.hash!=='#bracket')history.replaceState(null,'','#bracket')}
@@ -999,7 +1048,7 @@ function signupPanelHTML(compact){
 const calm=()=>window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function scrollToGame(b,hi,smooth){
   requestAnimationFrame(()=>{
-    const wrap=document.getElementById(b==='lb'?'lbrounds':'rounds');if(!wrap)return;
+    const wrap=document.getElementById(wrapId(b));if(!wrap)return;
     const g=hi==null?wrap.querySelector('.heat'):wrap.querySelector(`.heat[data-hi="${hi}"]`);if(!g)return;
     const tabs=wrap.previousElementSibling&&wrap.previousElementSibling.classList.contains('roundtabs')?wrap.previousElementSibling.offsetHeight:0;
     window.scrollTo({top:Math.max(0,g.getBoundingClientRect().top+window.scrollY-tabs-8),behavior:smooth&&!calm()?'smooth':'auto'});
@@ -1111,25 +1160,29 @@ document.addEventListener('click',e=>{
   if(RO&&EDIT_ACTS.includes(a))return;
   switch(a){
     case'undo':undo();break;
-    case'rsel':{const b=el.dataset.b,i=+el.dataset.i;ui.sel[b]=i===BR(b).length-1?null:i;render();const t=document.getElementById(b==='lb'?'lbrounds':'rounds');if(t&&t.getBoundingClientRect().top<0)t.scrollIntoView({block:'start'});break}
+    case'rsel':{const b=el.dataset.b,i=+el.dataset.i;ui.sel[b]=i===BR(b).length-1?null:i;render();const t=document.getElementById(wrapId(b));if(t&&t.getBoundingClientRect().top<0)t.scrollIntoView({block:'start'});break}
     case'new':openSetup();break;
     case'cancel-setup':view='bracket';draft=null;saveDraft();render();break;
     case'start':start();break;
     case'paste':{const lines=$('#s-paste').value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean);if(lines.length<2){toast('Paste at least 2 names');break}draft.names=lines.slice(0,128);draft.count=draft.names.length;saveDraft();render();break}
     case'pick':{const [r,h]=heatAt(el);
       if(!h.adv.includes(pid)&&h.players.length>1&&h.adv.length+1>=h.players.length){toast('At least one player in each game has to be knocked out.');break}
-      commit(()=>{const i=h.adv.indexOf(pid);if(i>=0)h.adv.splice(i,1);else h.adv.push(pid);if(h.adv.length)h.n=Math.min(h.adv.length,3);else if(r.final)delete h.n});
+      const gfBefore=S.gf.length;
+      commit(()=>{const i=h.adv.indexOf(pid);if(i>=0)h.adv.splice(i,1);else h.adv.push(pid);if(h.adv.length)h.n=Math.min(h.adv.length,3);else if(r.final)delete h.n;if(el.dataset.b==='gf')syncGf()});
+      if(el.dataset.b==='gf'&&S.gf.length>gfBefore){ui.sel.gf=null;render();toast(`${P(pid).name} forces a second game. Winner takes the cup.`,true);scrollToFirstGame('gf')}
       if(!isFinal(r))scrollToGame(el.dataset.b,+el.dataset.h,true);
-      if(el.dataset.b==='main'){const c=champ();if(c&&c[0]===pid)toast(`${P(pid).name} wins the cup`,true);else if(r.final&&!isFinal(r)&&h.adv.length===2&&h.adv.includes(pid))toast('More than one racer is moving on, so this is now a regular round.',true)}break}
+      if(el.dataset.b==='gf'){const c=champ();if(c&&c[0]===pid)toast(`${P(pid).name} wins the cup`,true)}
+      if(el.dataset.b==='main'){const c=champ();if(c&&c[0]===pid)toast(`${P(pid).name} wins the cup`,true);else if(DOUBLE()&&wbChamp()===pid&&isFinal(r))toast(`${P(pid).name} wins the winners final. Everyone else in it drops to the losers bracket.`,true);else if(r.final&&!isFinal(r)&&h.adv.length===2&&h.adv.includes(pid))toast('More than one racer is moving on, so this is now a regular round.',true)}break}
     case'reshuffle':{const b=el.dataset.b,arr=BR(b),r=arr[arr.length-1];
       commit(()=>{const nr=makeRound(r.heats.flatMap(h=>h.players),r.adv,r.final,r);if(r.fromMain!==undefined)nr.fromMain=r.fromMain;arr[arr.length-1]=nr},'Games reshuffled');break}
     case'draw':{const r=cur();let pool=nextPool(r).concat(S.late);const fin=pool.length<=finalAt();
-      let joined=null;if(fin&&S.cfg.lb==='second'&&!S.rounds.some(x=>x.lbJoin)){const st=lbState();if(st.champ&&!pool.includes(st.champ)){pool=pool.concat(st.champ);joined=st.champ}}
-      ui.sel.main=null;commit(()=>{S.late=[];const nr=makeRound(pool,S.nextAdv,fin);if(joined)nr.lbJoin=joined;S.rounds.push(nr)},fin?'Final drawn':`Round ${S.rounds.length+1} drawn`);scrollToFirstGame('main');break}
+      ui.sel.main=null;commit(()=>{S.late=[];S.rounds.push(makeRound(pool,S.nextAdv,fin))},fin?`${DOUBLE()?'Winners final':'Final'} drawn`:`Round ${S.rounds.length+1} drawn`);scrollToFirstGame('main');break}
+    case'gfdraw':{const wb=wbChamp(),lbc=lbState().champ;if(!wb||!lbc)break;
+      ui.sel.gf=null;commit(()=>{S.gf=[gfRound(wb,lbc,1)]},'Grand final drawn');scrollToFirstGame('gf');break}
     case'lbdraw':{const st=lbState();if(!st.canDraw)break;
       ui.sel.lb=null;commit(()=>{const r=makeRound(st.pool,S.lbNextAdv,st.finalNext);r.fromMain=st.fin;S.lb.push(r)},st.finalNext?'Losers final drawn':`LB Round ${S.lb.length+1} drawn`);scrollToFirstGame('lb');break}
-    case'reopen':{const ri=+el.dataset.r,b=el.dataset.b;ui.sel={main:null,lb:null};
-      commit(()=>{if(b==='lb')S.lb=S.lb.slice(0,ri+1);else{S.rounds=S.rounds.slice(0,ri+1);const keep=[];for(const r of S.lb){if((r.fromMain||0)<=ri)keep.push(r);else break}S.lb=keep}},
+    case'reopen':{const ri=+el.dataset.r,b=el.dataset.b;ui.sel={main:null,lb:null,gf:null};
+      commit(()=>{S.gf=[];if(b==='lb')S.lb=S.lb.slice(0,ri+1);else{S.rounds=S.rounds.slice(0,ri+1);const keep=[];for(const r of S.lb){if((r.fromMain||0)<=ri)keep.push(r);else break}S.lb=keep}},
         `${b==='lb'?'LB ':''}Round ${ri+1} reopened. Later rounds cleared.`);break}
     case'withdraw':commit(()=>{removeFromCurrent(pid);P(pid).out=true},`${P(pid).name} withdrawn`);break;
     case'addback':{let w;commit(()=>{removeFromCurrent(pid);P(pid).out=false;w=seat(pid)});toast(seatMsg(P(pid).name,w),true);break}
